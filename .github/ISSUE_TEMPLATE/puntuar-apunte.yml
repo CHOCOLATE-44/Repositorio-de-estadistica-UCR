@@ -35,7 +35,7 @@ body:
       label: Justificación
       description: >-
         Obligatoria. Explica tu puntuación con razones concretas (claridad, orden, temas que cubre,
-        errores, ejemplos, legibilidad…). Mínimo 8 palabras.
+        errores, ejemplos, legibilidad…). Mínimo 4 palabras.
         Los votos «por gusto» se rechazan.
     validations:
       required: true
