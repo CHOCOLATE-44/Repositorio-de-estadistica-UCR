@@ -7,8 +7,9 @@
     "revisar_justificacion_con_gemini": true
   },
   "validacion": {
-    "gemini_modelo": "gemini-3.8-flash",
-    "gemini_modelo_votos": "gemini-flash-lite-latest",
+    "gemini_modelo": "gemini-3.5-flash-lite",
+    "gemini_modelo_votos": "gemini-3.1-flash-lite",
+    "gemini_modelo_preguntas": "gemini-3.8-flash",
     "usar_carta_estudiante": true,
     "exigir_carta": false,
     "min_temas_carta": 3,
