@@ -3,7 +3,7 @@
 Todo es gratuito y **ningún paso pide tarjeta de crédito**.
 
 ## 1. Nombre del repositorio y rama principal
-1. *Settings → General → Repository name*: `Repositorio-carrera-de-estadistica-UCR`
+1. *Settings → General → Repository name*: `Repositorio-de-estadistica-UCR`
    (GitHub no admite espacios; los convierte en guiones). Los enlaces antiguos redirigen solos.
 2. La rama principal debe llamarse **`main`** (los workflows publican desde ella).
    *Settings → Branches → Default branch*.
