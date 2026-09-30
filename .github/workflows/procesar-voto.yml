@@ -3,21 +3,28 @@ name: Procesar voto
 on:
   issues:
     types: [opened, edited, reopened, labeled, unlabeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Número del issue de voto a procesar de nuevo
+        required: true
 
 permissions:
   contents: read
   issues: write
   actions: write   # para disparar la actualización del ranking
 
-concurrency:
-  group: voto-${{ github.event.issue.number }}
-  cancel-in-progress: true
-
 jobs:
   procesar:
+    # La concurrencia va en el job (no en el workflow): así un evento ignorado, como el
+    # «labeled» que GitHub dispara junto con «opened», no cancela al que sí procesa el voto.
+    concurrency:
+      group: voto-${{ github.event.issue.number || inputs.issue }}
+      cancel-in-progress: true
     # Solo issues de voto. De los eventos de etiquetas, solo nos interesa que el
     # mantenedor anule (o reactive) un voto con la etiqueta «voto-anulado».
     if: >-
+      github.event_name == 'workflow_dispatch' ||
       (contains(github.event.issue.labels.*.name, 'voto') || startsWith(github.event.issue.title, 'Voto:')) &&
       ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
        github.event.label.name == 'voto-anulado')
@@ -38,6 +45,7 @@ jobs:
         if: github.event.action != 'labeled' && github.event.action != 'unlabeled'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_MANUAL: ${{ inputs.issue }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/votos.py --evento "$GITHUB_EVENT_PATH"
 
