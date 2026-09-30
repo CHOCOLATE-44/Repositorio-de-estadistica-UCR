@@ -30,7 +30,7 @@ Require approval for first-time contributors*.
 Sin la clave todo sigue funcionando con reglas simples (sigla, nombre y temas del curso).
 Nota: en el plan gratuito Google puede usar los datos enviados para mejorar sus
 productos; aquí solo se envían apuntes que de todos modos serán públicos.
-El modelo se cambia en `config.json → validacion.gemini_modelo` si Google retira el actual.
+Modelos en `config.json`: `gemini_modelo` valida apuntes y responde preguntas; `gemini_modelo_votos` (uno liviano, *flash-lite*) revisa las justificaciones de los votos. Si Google retira alguno, el robot elige solo el más nuevo disponible. Si la cuota del día se agota, no reintenta: sigue con las reglas simples y la cuota vuelve al día siguiente (tu uso: https://ai.dev/rate-limit).
 
 ## 5. Etiquetas
 Se crean solas la primera vez que se usan: `voto`, `voto-valido`, `voto-rechazado`,
