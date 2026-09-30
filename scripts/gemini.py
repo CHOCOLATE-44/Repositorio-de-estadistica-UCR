@@ -19,10 +19,11 @@ from pathlib import Path
 BASE = "https://generativelanguage.googleapis.com/v1beta"
 URL = BASE + "/models/{modelo}:generateContent"
 _modelo_alternativo: str | None = None  # se recuerda durante la ejecución
+_saturado = False  # si Google no respondió tras todos los reintentos, no insistimos en esta ejecución
 
 
 def disponible() -> bool:
-    return bool(os.environ.get("GEMINI_API_KEY"))
+    return bool(os.environ.get("GEMINI_API_KEY")) and not _saturado
 
 
 def elegir_modelo_flash(clave: str, excluir: set[str] = frozenset(), permitir_lite: bool = False) -> str | None:
@@ -106,4 +107,9 @@ def preguntar_json(prompt: str, modelo: str, imagenes: list[Path] = (), intentos
             ultimo_error = f"{modelo} → {e!r}"
         if intento < intentos - 1:
             time.sleep(min(5 * 2 ** intento, 60))  # 5, 10, 20, 40, 60 s
+    # Tras agotar los reintentos por saturación, los demás archivos de esta ejecución
+    # se validan solo con la heurística (evita que un PR con muchos PDF tarde horas).
+    global _saturado
+    if ultimo_error and any(f"HTTP {c}" in ultimo_error for c in (429, 500, 502, 503, 504)):
+        _saturado = True
     raise RuntimeError(f"Gemini no respondió correctamente: {ultimo_error}")
