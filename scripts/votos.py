@@ -97,8 +97,11 @@ def _rutas_existentes() -> dict[str, dict]:
 
 
 def procesar_evento(ruta_evento: str) -> int:
-    evento = json.loads(Path(ruta_evento).read_text(encoding="utf-8"))
-    issue = evento["issue"]
+    manual = os.environ.get("ISSUE_MANUAL", "").strip()
+    if manual:  # reproceso manual (workflow_dispatch)
+        issue = GitHub().get(f"/repos/{GitHub().repo}/issues/{int(manual)}")
+    else:
+        issue = json.loads(Path(ruta_evento).read_text(encoding="utf-8"))["issue"]
     etiquetas = {e["name"] for e in issue.get("labels", [])}
     es_voto = ETIQUETA_VOTO in etiquetas or (issue.get("title") or "").lower().startswith("voto:")
     if not es_voto or ETIQUETA_ANULADO in etiquetas:
