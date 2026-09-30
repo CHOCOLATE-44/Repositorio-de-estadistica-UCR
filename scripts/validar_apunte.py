@@ -69,10 +69,6 @@ def puntuar_curso(texto_norm: str, curso: dict, terminos_carta: list[str] = ()) 
     if temas:
         puntos += min(len(temas), 6)
         señales.append("temas: " + ", ".join(temas[:8]))
-    profes = [p for p in curso.get("profesores", []) if normalizar_texto(p) in texto_norm]
-    if profes:
-        puntos += 2
-        señales.append("profesor(a): " + ", ".join(profes))
     if terminos_carta:
         comunes = [t for t in terminos_carta if re.search(rf"\b{t}\b", texto_norm)]
         if len(comunes) >= 0.3 * len(terminos_carta):
@@ -123,7 +119,6 @@ Decide si el documento enviado son apuntes/notas de estudio del curso indicado.
 CURSO DE LA CARPETA: {curso['sigla']} — {curso['nombre']}
 Siglas equivalentes (planes anteriores): {', '.join(curso.get('siglas_equivalentes', [])) or 'ninguna'}
 Temas típicos: {', '.join(curso.get('temas', []))}
-Profesores conocidos: {', '.join(curso.get('profesores', [])) or 'no registrados'}
 {carta_txt}
 OTROS CURSOS DE LA CARRERA (para detectar si se subió en la carpeta equivocada):
 {lista_otros}
