@@ -12,9 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import gemini  # noqa: E402
 
-MODELOS = ["gemini-3.8-flash", "gemini-3.8-flash-lite", "gemini-3.7-flash", "gemini-3.7-flash-lite", "gemini-4.0-flash-preview"]
+MODELOS = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite",
+           "gemini-3.8-flash-tts", "gemini-4.0-flash-preview"]
 OK = json.dumps({"candidates": [{"content": {"parts": [{"text": '{"ok": true}'}]}}]}).encode()
-CUOTA = b'{"error": {"code": 429, "message": "You exceeded your current quota", "status": "RESOURCE_EXHAUSTED"}}'
+CUOTA = (b'{"error": {"code": 429, "message": "You exceeded your current quota. Quota exceeded for metric: '
+         b'generate_content_free_tier_requests, limit: 20, quotaId: GenerateRequestsPerDayPerProjectPerModel-FreeTier", '
+         b'"status": "RESOURCE_EXHAUSTED"}}')
+POR_MINUTO = (b'{"error": {"code": 429, "message": "You exceeded your current quota. quotaId: '
+              b'GenerateRequestsPerMinutePerProjectPerModel-FreeTier", "status": "RESOURCE_EXHAUSTED"}}')
 SATURADO = b'{"error": {"code": 503, "message": "high demand", "status": "UNAVAILABLE"}}'
 
 
@@ -38,7 +43,11 @@ def api_falsa(comportamiento, llamadas):
         estado = comportamiento.get(modelo, "no-existe" if modelo not in MODELOS else "ok")
         if estado == "ok":
             return Respuesta(OK)
-        codigo, cuerpo = {"cuota": (429, CUOTA), "saturado": (503, SATURADO), "no-existe": (404, b"not found")}[estado]
+        if estado == "minuto-luego-ok":
+            comportamiento[modelo] = "ok"
+            estado = "minuto"
+        codigo, cuerpo = {"cuota": (429, CUOTA), "minuto": (429, POR_MINUTO), "saturado": (503, SATURADO),
+                          "no-existe": (404, b"not found")}[estado]
         raise urllib.error.HTTPError(url, codigo, estado, {}, io.BytesIO(cuerpo))
     return urlopen
 
@@ -74,10 +83,19 @@ class PruebasGemini(unittest.TestCase):
         self.assertEqual(self.esperas, [])
         self.assertFalse(gemini.disponible())
 
-    def test_votos_usan_modelo_lite(self):
-        # «gemini-flash-lite-latest» no existe en esta API falsa → busca el lite más nuevo.
+    def test_lite_inexistente_busca_el_lite_mas_nuevo(self):
         self.assertEqual(self.correr({}, "gemini-flash-lite-latest"), {"ok": True})
-        self.assertTrue(any("gemini-3.8-flash-lite:" in u for u in self.llamadas))
+        self.assertTrue(any("gemini-3.5-flash-lite:" in u for u in self.llamadas))
+
+    def test_lite_sin_cuota_pasa_a_otro_lite(self):
+        self.assertEqual(self.correr({"gemini-3.5-flash-lite": "cuota"}, "gemini-3.5-flash-lite"), {"ok": True})
+        self.assertTrue(any("gemini-3.1-flash-lite:" in u for u in self.llamadas))
+        self.assertEqual(self.esperas, [])
+
+    def test_limite_por_minuto_espera_y_reintenta_el_mismo_modelo(self):
+        self.assertEqual(self.correr({"gemini-3.5-flash-lite": "minuto-luego-ok"}, "gemini-3.5-flash-lite"), {"ok": True})
+        self.assertEqual(self.esperas, [30])
+        self.assertNotIn("gemini-3.5-flash-lite", gemini._sin_cuota)
 
     def test_saturacion_sigue_reintentando(self):
         self.assertEqual(self.correr({"gemini-3.8-flash": "saturado"}), {"ok": True})

@@ -28,8 +28,14 @@ def disponible() -> bool:
 
 
 def es_cuota_agotada(codigo: int, cuerpo: str) -> bool:
-    """429 por cuota (diaria o por minuto) agotada, a diferencia de una saturación pasajera."""
+    """429 por cuota agotada, a diferencia de una saturación pasajera."""
     return codigo == 429 and any(x in cuerpo for x in ("quota", "RESOURCE_EXHAUSTED", "rate-limit"))
+
+
+def es_limite_por_minuto(cuerpo: str) -> bool:
+    """El límite por minuto (p. ej. 15 RPM) se libera solo; el diario no hasta mañana."""
+    c = cuerpo.lower()
+    return ("perminute" in c or "per minute" in c or "per_minute" in c) and "perday" not in c and "per day" not in c
 
 
 def elegir_modelo_flash(clave: str, excluir: set[str] = frozenset(), permitir_lite: bool = False,
@@ -102,9 +108,14 @@ def preguntar_json(prompt: str, modelo: str, imagenes: list[Path] = (), intentos
             texto = datos["candidates"][0]["content"]["parts"][0]["text"]
             return json.loads(texto)
         except urllib.error.HTTPError as e:
-            detalle = e.read()[:400].decode("utf-8", "replace")
+            detalle = e.read()[:3000].decode("utf-8", "replace")
             ultimo_error = f"{modelo} → HTTP {e.code}: {detalle[:300]}"
-            if es_cuota_agotada(e.code, detalle):
+            if es_cuota_agotada(e.code, detalle) and es_limite_por_minuto(detalle):
+                # Límite por minuto: basta con esperar un poco (cuenta como un intento).
+                if intento < intentos - 1:
+                    time.sleep(30)
+                    continue
+            elif es_cuota_agotada(e.code, detalle):
                 # Reintentar no sirve: la cuota vuelve al día siguiente. Probamos otro modelo una vez.
                 _sin_cuota.add(modelo)
                 nuevo = None if cambiado else _cambiar_modelo(clave, pedido, modelo, "no tiene cuota disponible")

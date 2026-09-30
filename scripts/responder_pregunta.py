@@ -79,7 +79,8 @@ def main():
     else:
         datos = calcular_datos()
         try:
-            texto = gemini.preguntar_json(prompt(pregunta, datos), config["validacion"]["gemini_modelo"]).get("respuesta", "").strip()
+            texto = gemini.preguntar_json(prompt(pregunta, datos), config["validacion"].get("gemini_modelo_preguntas")
+                                          or config["validacion"]["gemini_modelo"]).get("respuesta", "").strip()
         except Exception as e:
             print(f"Error de Gemini: {e}")
             texto = ""

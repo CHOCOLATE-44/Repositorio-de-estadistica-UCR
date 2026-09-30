@@ -30,7 +30,12 @@ Require approval for first-time contributors*.
 Sin la clave todo sigue funcionando con reglas simples (sigla, nombre y temas del curso).
 Nota: en el plan gratuito Google puede usar los datos enviados para mejorar sus
 productos; aquí solo se envían apuntes que de todos modos serán públicos.
-Modelos en `config.json`: `gemini_modelo` valida apuntes y responde preguntas; `gemini_modelo_votos` (uno liviano, *flash-lite*) revisa las justificaciones de los votos. Si Google retira alguno, el robot elige solo el más nuevo disponible. Si la cuota del día se agota, no reintenta: sigue con las reglas simples y la cuota vuelve al día siguiente (tu uso: https://ai.dev/rate-limit).
+Modelos en `config.json` (según los límites del plan gratuito de la cuenta):
+- `gemini_modelo` = **gemini-3.5-flash-lite** (15/min, 500/día): valida apuntes contra la carta.
+- `gemini_modelo_votos` = **gemini-3.1-flash-lite** (15/min, 500/día, cuota aparte): revisa justificaciones.
+- `gemini_modelo_preguntas` = **gemini-3.8-flash** (5/min, 20/día): «Pregúntale a la IA».
+
+Si un modelo se queda sin cuota del día, el robot prueba otro una vez y luego sigue con las reglas simples; si choca con el límite por minuto, espera 30 s. Si Google retira un modelo, se elige solo el más nuevo del mismo tipo. Uso actual: https://ai.dev/rate-limit
 
 ## 5. Etiquetas
 Se crean solas la primera vez que se usan: `voto`, `voto-valido`, `voto-rechazado`,
