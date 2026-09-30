@@ -96,12 +96,30 @@ def _rutas_existentes() -> dict[str, dict]:
     return {a["ruta"]: a for a in listar_apuntes(gh)}
 
 
+def reemplazar_justificacion(cuerpo: str, nueva: str) -> str:
+    """Cambia la sección «### Justificación» del formulario por `nueva`."""
+    nueva = nueva.strip()
+    patron = re.compile(r"(### Justificaci[oó]n[ \t]*\n)(.*?)(?=\n### |\Z)", re.S)
+    if patron.search(cuerpo):
+        return patron.sub(lambda m: f"{m.group(1)}\n{nueva}\n", cuerpo, count=1)
+    return f"{cuerpo.rstrip()}\n\n### Justificación\n\n{nueva}\n"
+
+
 def procesar_evento(ruta_evento: str) -> int:
     manual = os.environ.get("ISSUE_MANUAL", "").strip()
     if manual:  # reproceso manual (workflow_dispatch)
         issue = GitHub().get(f"/repos/{GitHub().repo}/issues/{int(manual)}")
     else:
-        issue = json.loads(Path(ruta_evento).read_text(encoding="utf-8"))["issue"]
+        evento = json.loads(Path(ruta_evento).read_text(encoding="utf-8"))
+        issue = evento["issue"]
+        comentario = evento.get("comment")
+        if comentario:
+            # Quien votó respondió con un comentario: se toma como su nueva justificación.
+            if comentario["user"]["login"].lower() != issue["user"]["login"].lower():
+                print("El comentario no es de quien votó; nada que hacer.")
+                return 0
+            issue = dict(issue, body=reemplazar_justificacion(issue.get("body") or "", comentario.get("body") or ""))
+            GitHub().patch(f"/repos/{GitHub().repo}/issues/{issue['number']}", {"body": issue["body"]})
     etiquetas = {e["name"] for e in issue.get("labels", [])}
     es_voto = ETIQUETA_VOTO in etiquetas or (issue.get("title") or "").lower().startswith("voto:")
     if not es_voto or ETIQUETA_ANULADO in etiquetas:
@@ -127,8 +145,10 @@ def procesar_evento(ruta_evento: str) -> int:
 
     if errores:
         texto = (f"### ❌ @{voto['usuario']}, tu voto todavía no cuenta\n\n" + "\n".join(f"- {e}" for e in errores) +
-                 "\n\n**Para corregirlo:** en tu primer mensaje de este issue pulsa **«…» → Edit**, cambia lo necesario "
-                 "y guarda. El robot lo revisa de nuevo solo y, si está bien, cierra este issue.")
+                 "\n\n**Para corregirlo**, elige una opción:\n"
+                 "- **Responde en este issue** con tu nueva justificación (desde la misma cuenta con la que votaste), o\n"
+                 "- edita tu primer mensaje (**«…» → Edit**).\n\n"
+                 "El robot lo revisa de nuevo solo y, si está bien, cierra este issue.")
         gh.comentar(voto["issue"], texto, MARCADOR)
         gh.poner_etiquetas(voto["issue"], poner=[ETIQUETA_RECHAZADO], quitar=[ETIQUETA_VALIDO])
         # Se deja abierto (o se reabre) para que se note que falta corregirlo.
