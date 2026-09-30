@@ -1,20 +1,26 @@
-# Fase 4 (posterior): consultas en lenguaje natural
+# Fase 4: consultas en lenguaje natural
 
-Objetivo: preguntar «¿cuál es el mejor apunte de regresión?» o «apuntes de DOE con más de 4 estrellas».
+Hay dos niveles, del más barato al más potente.
 
-## Base ya lista
-`https://<usuario>.github.io/<repo>/data/puntuaciones.json` contiene todo lo necesario
-(curso, título, autor, fecha, promedio, votos, puntaje de ranking y opiniones).
+## 1. Buscador de la página (sin IA, instantáneo)
+`sitio/consulta.js` traduce frases a filtros. Ejemplos:
 
-## Diseño propuesto (gratis, sin exponer claves)
-La clave de Gemini no puede ir en la página (sería pública), así que la IA corre en Actions:
+| Escribes | Entiende |
+|---|---|
+| ¿cuál es el mejor apunte de regresión? | XS-2130 · el mejor (muestra solo el primero y lo anuncia) |
+| apuntes de DOE con más de 4 estrellas | XS-3150 · promedio > 4 |
+| top 3 de muestreo | XS-3110 · los 3 mejores |
+| series de tiempo de este año | XS-0127 · subidos desde el 1 de enero |
+| probabilidad con al menos 5 votos | XS-0122 · ≥ 5 votos |
+| los más votados de bayes | XS-0128 · ordenado por votos |
+| XS2310 | XS-0122 (sigla equivalente del plan anterior) |
 
-1. Nuevo formulario de issue «❓ Preguntar» (etiqueta `pregunta`).
-2. Workflow `responder-pregunta.yml`: lee `puntuaciones.json`, envía a Gemini la pregunta
-   y **una versión compacta** de los datos (sin opiniones largas) con instrucciones de
-   responder solo con base en ellos y con enlaces a los apuntes.
-3. Comenta la respuesta y cierra el issue (~30 s).
+Los cursos se reconocen por sigla, nombre, siglas equivalentes y **alias** (`cursos.json → alias`).
+Si la gente usa otro apodo para un curso, agrégalo ahí. Lo que no se reconoce se usa como búsqueda de texto.
+Pruebas: `node tests/test_consulta.js`.
 
-Alternativa más barata que conviene hacer primero: en la página, un buscador que
-reconozca patrones simples («regresión», «> 4 estrellas», «DOE») y los traduzca a los
-filtros existentes, sin IA. Cubre la mayoría de preguntas reales.
+## 2. «Pregúntale a la IA» (Gemini, ~30 s)
+Para preguntas abiertas («¿qué me sirve para repasar ANOVA?»). El enlace aparece bajo el buscador
+y abre el formulario **❓ Preguntar** con la pregunta ya escrita. El workflow `responder-pregunta.yml`
+recalcula los datos del ranking, se los pasa a Gemini con instrucciones de responder solo con ellos,
+comenta la respuesta y cierra el issue. La clave nunca llega a la página (sería pública).

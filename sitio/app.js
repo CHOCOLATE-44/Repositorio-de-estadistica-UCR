@@ -32,24 +32,43 @@
     history.replaceState(null, "", p.toString() ? `?${p}` : location.pathname);
   }
 
-  function filtrar() {
-    const q = sinTildes(f.texto.value.trim());
-    const min = parseFloat(f.min.value);
-    const desde = f.fecha.value ? new Date(f.fecha.value) : null;
+  // Combina los controles con lo que se entendió de la consulta escrita (la consulta manda).
+  function filtrosEfectivos() {
+    const c = window.Consulta.interpretar(f.texto.value, datos.cursos);
+    const minCtrl = parseFloat(f.min.value);
+    return {
+      consulta: c,
+      curso: c.curso || f.curso.value,
+      sinVotos: !c.min && minCtrl === -1,
+      min: c.min || (minCtrl > 0 ? { valor: minCtrl, estricto: false } : null),
+      minVotos: c.minVotos,
+      desde: c.desde ? new Date(c.desde) : (f.fecha.value ? new Date(f.fecha.value) : null),
+      orden: c.orden || f.orden.value,
+      texto: c.resto,
+    };
+  }
+
+  function filtrar(e) {
+    const q = e.texto.split(" ").filter(Boolean);
     let lista = datos.apuntes.filter((a) => {
-      if (f.curso.value && a.curso !== f.curso.value) return false;
-      if (min === -1 && a.votos > 0) return false;
-      if (min > 0 && (a.promedio == null || a.promedio < min)) return false;
-      if (desde && new Date(a.fecha) < desde) return false;
-      if (q && !sinTildes(`${a.titulo} ${a.autor} ${a.curso} ${a.ruta}`).includes(q)) return false;
+      if (e.curso && a.curso !== e.curso) return false;
+      if (e.sinVotos && a.votos > 0) return false;
+      if (e.min && (a.promedio == null || (e.min.estricto ? a.promedio <= e.min.valor : a.promedio < e.min.valor))) return false;
+      if (e.minVotos && a.votos < e.minVotos) return false;
+      if (e.desde && new Date(a.fecha) < e.desde) return false;
+      if (q.length) {
+        const heno = sinTildes(`${a.titulo} ${a.autor} ${a.curso} ${a.ruta}`);
+        if (!q.every((w) => heno.includes(w))) return false;
+      }
       return true;
     });
     const orden = {
       ranking: (a, b) => b.puntaje_ranking - a.puntaje_ranking || b.votos - a.votos,
       votos: (a, b) => b.votos - a.votos || b.puntaje_ranking - a.puntaje_ranking,
       fecha: (a, b) => new Date(b.fecha) - new Date(a.fecha),
-    }[f.orden.value];
-    return lista.sort(orden);
+    }[e.orden];
+    lista.sort(orden);
+    return e.consulta.limite ? lista.slice(0, e.consulta.limite) : lista;
   }
 
   function tarjeta(a) {
@@ -82,13 +101,31 @@
     return n;
   }
 
+  function mostrarInterpretacion(e) {
+    const caja = $("#interpretacion");
+    const texto = f.texto.value.trim();
+    caja.hidden = !texto;
+    if (!texto) return;
+    const partes = [...e.consulta.explicacion];
+    if (e.texto) partes.push(`texto «${e.texto}»`);
+    $("#entendi").textContent = partes.length ? `Entendí: ${partes.join(" · ")}` : "";
+    const p = new URLSearchParams({ template: "preguntar.yml", title: `Pregunta: ${texto.slice(0, 80)}`, pregunta: texto });
+    $("#preguntar-ia").href = urlGitHub(`/issues/new?${p}`);
+  }
+
   function pintar() {
     escribirURL();
-    const lista = filtrar();
+    const e = filtrosEfectivos();
+    const lista = filtrar(e);
     const cont = $("#resultados");
     cont.replaceChildren();
-    $("#resumen").textContent = `${lista.length} apunte${lista.length === 1 ? "" : "s"}` +
-      (lista.length !== datos.apuntes.length ? ` (de ${datos.apuntes.length})` : "");
+    mostrarInterpretacion(e);
+    const mejor = e.consulta.limite === 1 && lista[0];
+    $("#resumen").textContent = mejor
+      ? `${mejor.votos ? "El mejor puntuado" : "No hay votos todavía; el primero de la lista"} es «${mejor.titulo}»` +
+        (mejor.votos ? ` (${mejor.promedio.toFixed(1)} ★, ${mejor.votos} voto${mejor.votos === 1 ? "" : "s"}).` : ".")
+      : `${lista.length} apunte${lista.length === 1 ? "" : "s"}` +
+        (lista.length !== datos.apuntes.length ? ` (de ${datos.apuntes.length})` : "");
 
     if (!lista.length) {
       const d = document.createElement("div");
@@ -99,7 +136,7 @@
       return;
     }
     // Con "Todos los cursos" se agrupa por curso (en orden del plan de estudios).
-    const grupos = f.curso.value ? [[datos.cursos.find((c) => c.sigla === f.curso.value), lista]]
+    const grupos = e.curso ? [[datos.cursos.find((c) => c.sigla === e.curso), lista]]
       : datos.cursos.map((c) => [c, lista.filter((a) => a.curso === c.sigla)]).filter(([, l]) => l.length);
     for (const [curso, items] of grupos) {
       const sec = document.createElement("section");

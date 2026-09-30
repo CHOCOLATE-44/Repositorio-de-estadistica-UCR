@@ -57,7 +57,8 @@ def agregar(apuntes: list[dict], votos: list[dict], config: dict) -> None:
         a["opiniones"] = [{k: v[k] for k in ("usuario", "puntuacion", "justificacion", "fecha", "url")} for v in vs]
 
 
-def main():
+def calcular_datos() -> dict:
+    """Inventario de apuntes + votos agregados (lo que se publica como puntuaciones.json)."""
     config, cursos = cargar_config(), cargar_cursos()
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     gh = GitHub() if os.environ.get("GITHUB_TOKEN") and repo else None
@@ -65,24 +66,25 @@ def main():
     rutas = {a["ruta"]: a for a in apuntes}
     votos = recolectar_votos(gh, rutas, config)
     agregar(apuntes, votos, config)
-
-    rama = os.environ.get("RAMA_PRINCIPAL", "main")
-    datos = {
+    return {
         "generado": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "repositorio": repo,
-        "rama": rama,
+        "rama": os.environ.get("RAMA_PRINCIPAL", "main"),
         "config": {"min_caracteres_justificacion": config["votos"]["min_caracteres_justificacion"]},
-        "cursos": [{k: c[k] for k in ("sigla", "nombre", "carpeta", "ciclo")} for c in cursos],
+        "cursos": [{k: c.get(k) for k in ("sigla", "nombre", "carpeta", "ciclo", "siglas_equivalentes", "alias")} for c in cursos],
         "apuntes": sorted(apuntes, key=lambda a: (-a["puntaje_ranking"], a["titulo"])),
     }
 
+
+def main():
+    datos = calcular_datos()
     salida = RAIZ / "_site"
     if salida.exists():
         shutil.rmtree(salida)
     shutil.copytree(RAIZ / "sitio", salida)
     (salida / "data").mkdir(exist_ok=True)
     (salida / "data" / "puntuaciones.json").write_text(json.dumps(datos, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"Sitio generado: {len(apuntes)} apuntes, {len(votos)} votos válidos.")
+    print(f"Sitio generado: {len(datos['apuntes'])} apuntes, {sum(a['votos'] for a in datos['apuntes'])} votos válidos.")
 
 
 if __name__ == "__main__":

@@ -10,16 +10,37 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
-URL = "https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
+BASE = "https://generativelanguage.googleapis.com/v1beta"
+URL = BASE + "/models/{modelo}:generateContent"
+_modelo_alternativo: str | None = None  # se recuerda durante la ejecución
 
 
 def disponible() -> bool:
     return bool(os.environ.get("GEMINI_API_KEY"))
+
+
+def elegir_modelo_flash(clave: str) -> str | None:
+    """Si el modelo configurado fue retirado, busca el «flash» estable más nuevo
+    que admita generateContent. Así el proyecto sigue funcionando sin tocar nada."""
+    req = urllib.request.Request(f"{BASE}/models?pageSize=200")
+    req.add_header("x-goog-api-key", clave)
+    with urllib.request.urlopen(req, timeout=60) as r:
+        modelos = json.loads(r.read()).get("models", [])
+    candidatos = []
+    for m in modelos:
+        nombre = m.get("name", "").removeprefix("models/")
+        if "generateContent" not in m.get("supportedGenerationMethods", []):
+            continue
+        if not re.fullmatch(r"gemini-(\d+(?:\.\d+)?)-flash", nombre):
+            continue  # descarta lite, preview, image, tts, live, etc.
+        candidatos.append((float(nombre.split("-")[1]), nombre))
+    return max(candidatos)[1] if candidatos else None
 
 
 def preguntar_json(prompt: str, modelo: str, imagenes: list[Path] = (), intentos: int = 3) -> dict:
@@ -38,6 +59,8 @@ def preguntar_json(prompt: str, modelo: str, imagenes: list[Path] = (), intentos
         "generationConfig": {"temperature": 0, "responseMimeType": "application/json"},
     }).encode()
 
+    global _modelo_alternativo
+    modelo = _modelo_alternativo or modelo
     ultimo_error = None
     for intento in range(intentos):
         req = urllib.request.Request(URL.format(modelo=modelo), data=cuerpo, method="POST")
@@ -50,6 +73,13 @@ def preguntar_json(prompt: str, modelo: str, imagenes: list[Path] = (), intentos
             return json.loads(texto)
         except urllib.error.HTTPError as e:
             ultimo_error = f"HTTP {e.code}: {e.read()[:300]!r}"
+            if e.code == 404 and not _modelo_alternativo:
+                nuevo = elegir_modelo_flash(clave)
+                if nuevo and nuevo != modelo:
+                    print(f"Aviso: el modelo {modelo} no está disponible; se usa {nuevo}. "
+                          "Actualiza config.json → validacion.gemini_modelo.")
+                    _modelo_alternativo = modelo = nuevo
+                    continue
             if e.code not in (429, 500, 502, 503, 504):
                 break
         except (KeyError, IndexError, json.JSONDecodeError, urllib.error.URLError, TimeoutError) as e:
