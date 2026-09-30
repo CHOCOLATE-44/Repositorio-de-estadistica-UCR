@@ -17,12 +17,11 @@ permissions:
   issues: write
   actions: write
 
-concurrency:
-  group: subir-${{ github.event.issue.number || inputs.issue }}
-  cancel-in-progress: true
-
 jobs:
   subir:
+    concurrency:   # en el job: un evento ignorado no cancela al que sí procesa
+      group: subir-${{ github.event.issue.number || inputs.issue }}
+      cancel-in-progress: true
     # Se reconoce por la etiqueta o por el título que pone el formulario («Apunte: …»).
     if: >-
       github.event_name == 'workflow_dispatch' ||
