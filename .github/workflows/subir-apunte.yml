@@ -1,0 +1,71 @@
+name: Subir apunte desde issue
+
+# Permite subir apuntes sin saber Git: el formulario «Subir un apunte» crea un
+# issue con el PDF adjunto y este workflow abre el Pull Request.
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: subir-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  subir:
+    if: contains(github.event.issue.labels.*.name, 'subir-apunte') && github.event.issue.state == 'open'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Descargar el archivo adjunto
+        id: prep
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/subir_desde_issue.py
+
+      - name: Crear o actualizar el Pull Request
+        if: steps.prep.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUTA: ${{ steps.prep.outputs.ruta }}
+          RAMA: ${{ steps.prep.outputs.rama }}
+          CURSO: ${{ steps.prep.outputs.curso }}
+          AUTOR_NOMBRE: ${{ steps.prep.outputs.autor_nombre }}
+          AUTOR_EMAIL: ${{ steps.prep.outputs.autor_email }}
+          TITULO: ${{ github.event.issue.title }}
+          ISSUE: ${{ github.event.issue.number }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          # El autor del commit es quien subió el apunte (así se le atribuye y no puede autovotarse).
+          git config user.name "$AUTOR_NOMBRE"
+          git config user.email "$AUTOR_EMAIL"
+          export GIT_COMMITTER_NAME="github-actions[bot]"
+          export GIT_COMMITTER_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$RAMA"
+          git add -- "$RUTA"
+          git commit -m "Agregar apunte de $CURSO" -m "Subido desde el issue #$ISSUE."
+          git push --force origin "$RAMA"
+
+          PR=$(gh pr list --head "$RAMA" --state open --json number --jq '.[0].number // empty')
+          if [ -z "$PR" ]; then
+            printf 'Apunte subido por @%s desde el formulario.\n\nArchivo: `%s`\n\nCloses #%s\n' \
+              "$AUTOR_NOMBRE" "$RUTA" "$ISSUE" > cuerpo.md
+            URL=$(gh pr create --base "$BASE" --head "$RAMA" --title "[$CURSO] $TITULO" --body-file cuerpo.md)
+            PR="${URL##*/}"
+          fi
+          gh workflow run validar-apunte.yml --ref "$BASE" -f pr="$PR"
+          gh issue comment "$ISSUE" --body "📄 Listo: se creó el Pull Request #$PR con tu apunte. En unos minutos el robot comentará allí si el contenido corresponde al curso. Cuando el mantenedor lo apruebe, aparecerá en el ranking y este issue se cerrará solo."
