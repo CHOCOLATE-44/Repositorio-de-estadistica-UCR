@@ -3,7 +3,7 @@
 Todo es gratuito y **ningún paso pide tarjeta de crédito**.
 
 ## 1. Nombre del repositorio y rama principal
-1. *Settings → General → Repository name*: `Repositorio-carrera-de-estadistica-UCR`
+1. *Settings → General → Repository name*: `Repositorio-de-estadistica-UCR`
    (GitHub no admite espacios; los convierte en guiones). Los enlaces antiguos redirigen solos.
 2. La rama principal debe llamarse **`main`** (los workflows publican desde ella).
    *Settings → Branches → Default branch*.
@@ -53,7 +53,7 @@ check obligatorio, **Validar apuntes / validar**. Así nadie publica un apunte q
 | Aprobar un apunte | Revisa el comentario del robot en el PR y haz *Merge*. |
 | Anular un voto abusivo | Pon la etiqueta `voto-anulado` al issue del voto. |
 | Agregar/editar un curso | Edita `cursos.json`, crea la carpeta en `apuntes/` y ejecuta `python scripts/generar_plantillas.py`. |
-| Mejorar la validación de un curso | Agrega temas y nombres de profesores en `cursos.json`. |
+| Mejorar la validación de un curso | Agrega temas típicos en `cursos.json`. |
 | Activar la validación con la carta al estudiante | Ver `cartas/README.md`. |
 | Ajustar reglas de votos | `config.json → votos` (largo mínimo, edad mínima de la cuenta, autovoto…). |
 
