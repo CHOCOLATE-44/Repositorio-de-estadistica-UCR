@@ -60,6 +60,7 @@ mantenedores (dueño, miembros de la organización y colaboradores del repo). Cu
 | Quiero… | Cómo |
 |---|---|
 | Aprobar un apunte | Revisa el comentario del robot en el PR y haz *Merge*. |
+| Revisar un apunte marcado `revision-manual` | El autor dice que es contenido nuevo del curso. Revísalo: si corresponde, fusiona con *bypass*; si no, ciérralo explicando. |
 | Anular un voto abusivo | Pon la etiqueta `voto-anulado` al issue del voto. |
 | Que el buscador entienda otro apodo de un curso | Agrégalo en `alias` del curso en `cursos.json`. |
 | Agregar/editar un curso | Edita `cursos.json`, crea la carpeta en `apuntes/` y ejecuta `python scripts/generar_plantillas.py`. |
