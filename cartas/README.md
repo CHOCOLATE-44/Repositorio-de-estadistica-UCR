@@ -10,7 +10,7 @@ temario antes de aprobarse**.
 3. Crea el Pull Request y fusiónalo (solo los mantenedores pueden cambiar esta carpeta).
 
 Se aceptan `.pdf` (con texto seleccionable; si es escaneada, mejor pásala a `.txt`), `.md` o `.txt`.
-Si un curso tiene varias cartas, se usa la primera en orden alfabético: deja solo la vigente.
+Si un curso tiene varias versiones (`v2`, `g03`, `(1)`…), **se usan todas juntas**; no hace falta borrar ninguna.
 
 ## Cómo se usa
 - **Gemini** recibe la sección de *contenidos* de la carta como criterio principal y solo aprueba
