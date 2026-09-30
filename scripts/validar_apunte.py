@@ -56,6 +56,9 @@ ejemplo ejemplos entonces siguiente siguientes valores numero numeros tambien
 ademas manera primer primera segundo segunda tercer formula formulas resultado
 resultados pagina paginas figura tabla tablas cuando siempre ningun alguna
 algunos algunas cualquier respecto mediante utilizar utiliza usando dentro
+examen examenes parcial parciales tarea tareas quices porcentaje entrega entregas
+asistencia calificacion ausencias reposicion lecciones martes miercoles jueves
+viernes lunes sabado virtual presencial correo mediacion plataforma
 """.split())
 
 
@@ -104,45 +107,62 @@ def puntuar_curso(texto_norm: str, curso: dict, terminos_carta: list[str] = ()) 
 # --------------------------------------------------------------------------
 
 _cache_cartas: dict[str, str] = {}
+SEPARADOR_CARTAS = "\n\u241e\n"  # separa el texto de varias cartas del mismo curso
+
+
+def buscar_cartas(curso: dict, config: dict) -> list[Path]:
+    """Archivos de carta del curso en `cartas/`: cualquier nombre que contenga la sigla (o una
+    equivalente): `XS-2130.pdf`, `Programa_XS-2130v2.pdf`, `carta-xs2130-2026.pdf`…
+    Si hay varias versiones, se usan todas."""
+    carpeta = RAIZ / config["validacion"].get("carpeta_cartas", "cartas")
+    if not carpeta.is_dir():
+        return []
+    siglas = [normalizar_sigla(x) for x in [curso["sigla"], *curso.get("siglas_equivalentes", [])]]
+    return [ruta for ruta in sorted(carpeta.iterdir())
+            if ruta.suffix.lower() in (".pdf", ".md", ".txt")
+            and any(re.search(rf"{x}(?!\d)", normalizar_sigla(re.sub(r"\s*\(\d+\)$", "", ruta.stem)))
+                    for x in siglas)]  # «Programa_XS-3310 (1).pdf» = copia descargada dos veces
 
 
 def buscar_carta(curso: dict, config: dict) -> Path | None:
-    """Archivo de la carta del curso en `cartas/`. Acepta cualquier nombre que
-    contenga la sigla (o una equivalente): `XS-2130.pdf`, `carta-xs2130-2026.pdf`…"""
-    carpeta = RAIZ / config["validacion"].get("carpeta_cartas", "cartas")
-    if not carpeta.is_dir():
-        return None
-    siglas = [normalizar_sigla(x) for x in [curso["sigla"], *curso.get("siglas_equivalentes", [])]]
-    for ruta in sorted(carpeta.iterdir()):
-        if ruta.suffix.lower() in (".pdf", ".md", ".txt") and any(x in normalizar_sigla(ruta.stem) for x in siglas):
-            return ruta
-    return None
+    cartas = buscar_cartas(curso, config)
+    return cartas[0] if cartas else None
 
 
 def cargar_carta(curso: dict, config: dict) -> str:
-    """Texto de la carta al estudiante del curso ('' si no hay o la función está apagada)."""
+    """Texto de las cartas al estudiante del curso ('' si no hay o la función está apagada)."""
     if not config["validacion"].get("usar_carta_estudiante"):
         return ""
     if curso["sigla"] not in _cache_cartas:
-        ruta = buscar_carta(curso, config)
-        texto = ""
-        if ruta and ruta.suffix.lower() == ".pdf":
-            texto = extraer(ruta, paginas_imagen=0).texto
-        elif ruta:
-            texto = ruta.read_text(encoding="utf-8", errors="replace")
-        _cache_cartas[curso["sigla"]] = texto
+        textos = []
+        for ruta in buscar_cartas(curso, config):
+            if ruta.suffix.lower() == ".pdf":
+                textos.append(extraer(ruta, paginas_imagen=0).texto)
+            else:
+                textos.append(ruta.read_text(encoding="utf-8", errors="replace"))
+        _cache_cartas[curso["sigla"]] = SEPARADOR_CARTAS.join(t for t in textos if t.strip())
     return _cache_cartas[curso["sigla"]]
 
 
 def temario(carta: str) -> str:
-    """Sección de contenidos de la carta (sin horarios, evaluación ni bibliografía).
-    Si no se reconocen los títulos, devuelve la carta completa."""
-    t = normalizar_texto(carta)
-    inicio = min((m.start() for m in re.finditer(
-        r"\b(contenidos?|temario|programa del curso|unidades tematicas|cronograma)\b", t)), default=0)
-    fin = min((m.start() for m in re.finditer(r"\b(evaluacion|bibliografia|referencias)\b", t)
-               if m.start() > inicio + 200), default=len(t))
-    return t[inicio:fin] if fin - inicio > 200 else t
+    """Sección de contenidos de la(s) carta(s): desde «contenidos»/«temario» hasta la bibliografía.
+    (No se corta en «evaluación» porque suele aparecer dentro del temario: «evaluación de estimadores».)
+    Si hay varias cartas unidas, se toma la sección de cada una."""
+    secciones = []
+    for parte in carta.split(SEPARADOR_CARTAS):
+        t = normalizar_texto(parte)
+        if not t:
+            continue
+        inicio = min((m.start() for m in re.finditer(
+            r"\b(contenidos?|temario|programa del curso|unidades tematicas)\b", t)), default=0)
+        fin = min((m.start() for m in re.finditer(r"\b(bibliografia|referencias bibliograficas)\b", t)
+                   if m.start() > inicio + 200), default=len(t))
+        secciones.append(t[inicio:fin])
+    return " ".join(secciones)
+
+
+ADMINISTRATIVO = re.compile(r"\b(examen\w*|parcial\w*|tareas?|quiz\w*|quices|evaluacion(?! de)|porcentaje|"
+                           r"calificacion\w*|asistencia|horario|consulta|correo|creditos?)\b|%")
 
 
 def temas_de_carta(carta: str) -> list[str]:
@@ -153,6 +173,8 @@ def temas_de_carta(carta: str) -> list[str]:
     for frase in re.split(r"[,;:.\n()/•·\-–]|\by\b|\be\b", t):
         frase = frase.strip()
         palabras = [w for w in re.findall(r"[a-z]+", frase) if len(w) >= 4 and w not in PALABRAS_VACIAS]
+        if ADMINISTRATIVO.search(frase):
+            continue  # «tres exámenes parciales», «tareas 15 %»… no son temas del curso
         if 1 <= len(palabras) <= 5 and len(frase) >= 5 and frase not in temas:
             temas.append(frase)
     return temas
@@ -265,7 +287,8 @@ def validar_archivo(archivo: Path, nombre_en_repo: str, carpeta: str, config: di
         cubiertos = temas_carta_en_apunte(texto_norm, carta)
         total = len(temas_de_carta(carta))
         minimo = val.get("min_temas_carta", 3)
-        detalles.append(f"Carta al estudiante (`{buscar_carta(curso, config).name}`): el apunte trata "
+        nombres = ", ".join(f"`{r.name}`" for r in buscar_cartas(curso, config))
+        detalles.append(f"Carta al estudiante ({nombres}): el apunte trata "
                         f"{len(cubiertos)} de {total} temas del temario (mínimo {minimo})"
                         + (f": {', '.join(cubiertos[:8])}" if cubiertos else ""))
         # Si hay cartas de otros cursos, el apunte debe encajar mejor en la de su carpeta.
