@@ -171,7 +171,6 @@
       grupo.append(new Option(`${c.sigla} ${c.nombre}`, c.sigla));
     }
     $("#btn-subir").href = urlGitHub("/issues/new?template=subir-apunte.yml");
-    $("#btn-repo").href = urlGitHub("");
     $("#generado").textContent = `Datos actualizados: ${new Date(datos.generado).toLocaleString("es-CR")}`;
     leerURL();
     for (const el of Object.values(f)) el.addEventListener("input", pintar);
