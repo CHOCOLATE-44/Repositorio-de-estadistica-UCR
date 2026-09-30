@@ -7,6 +7,11 @@
       "carpeta": "XS-0124-analisis-exploratorio-de-datos",
       "ciclo": 1,
       "siglas_equivalentes": [],
+      "alias": [
+        "aed",
+        "exploratorio",
+        "descriptiva"
+      ],
       "temas": [
         "estadística descriptiva",
         "histograma",
@@ -34,6 +39,12 @@
         "MA-1021",
         "CA-0151"
       ],
+      "alias": [
+        "calculo 1",
+        "calculo i",
+        "calculo diferencial",
+        "calc 1"
+      ],
       "temas": [
         "límite",
         "continuidad",
@@ -55,6 +66,10 @@
       "ciclo": 2,
       "siglas_equivalentes": [
         "CA-0252"
+      ],
+      "alias": [
+        "algebra",
+        "lineal"
       ],
       "temas": [
         "matriz",
@@ -80,6 +95,11 @@
       "siglas_equivalentes": [
         "XS-1110"
       ],
+      "alias": [
+        "inferencia",
+        "principios",
+        "pie"
+      ],
       "temas": [
         "muestra",
         "población",
@@ -102,6 +122,10 @@
       "carpeta": "XS-0280-logica-para-programacion-y-demostraciones",
       "ciclo": 3,
       "siglas_equivalentes": [],
+      "alias": [
+        "logica",
+        "demostraciones"
+      ],
       "temas": [
         "lógica proposicional",
         "tabla de verdad",
@@ -121,6 +145,12 @@
       "carpeta": "MA-1023-calculo-con-optimizacion",
       "ciclo": 4,
       "siglas_equivalentes": [],
+      "alias": [
+        "calculo con optimizacion",
+        "optimizacion",
+        "calculo 2",
+        "calculo ii"
+      ],
       "temas": [
         "derivadas parciales",
         "gradiente",
@@ -141,6 +171,13 @@
       "ciclo": 4,
       "siglas_equivalentes": [
         "XS-2310"
+      ],
+      "alias": [
+        "probabilidad",
+        "probabilisticos 1",
+        "probabilisticos i",
+        "mp1",
+        "probabilidades"
       ],
       "temas": [
         "probabilidad",
@@ -166,6 +203,12 @@
       "siglas_equivalentes": [
         "XS-2210"
       ],
+      "alias": [
+        "programacion 1",
+        "programacion i",
+        "progra 1",
+        "progra i"
+      ],
       "temas": [
         "R",
         "RStudio",
@@ -187,6 +230,12 @@
       "carpeta": "XS-3150-diseno-de-experimentos",
       "ciclo": 4,
       "siglas_equivalentes": [],
+      "alias": [
+        "doe",
+        "diseño de experimentos",
+        "experimentos",
+        "anova"
+      ],
       "temas": [
         "diseño de experimentos",
         "ANOVA",
@@ -210,6 +259,10 @@
       "carpeta": "LM-3039-ingles-para-estadistica-1",
       "ciclo": 5,
       "siglas_equivalentes": [],
+      "alias": [
+        "ingles 1",
+        "ingles i"
+      ],
       "temas": [
         "English",
         "reading",
@@ -226,6 +279,11 @@
       "ciclo": 5,
       "siglas_equivalentes": [
         "XS-2330"
+      ],
+      "alias": [
+        "probabilisticos 2",
+        "probabilisticos ii",
+        "mp2"
       ],
       "temas": [
         "distribución conjunta",
@@ -249,6 +307,12 @@
       "siglas_equivalentes": [
         "XS-2230"
       ],
+      "alias": [
+        "programacion 2",
+        "programacion ii",
+        "progra 2",
+        "progra ii"
+      ],
       "temas": [
         "R",
         "Python",
@@ -270,6 +334,10 @@
       "carpeta": "XS-2130-modelos-de-regresion-aplicados",
       "ciclo": 5,
       "siglas_equivalentes": [],
+      "alias": [
+        "regresion",
+        "regresiones"
+      ],
       "temas": [
         "regresión lineal",
         "mínimos cuadrados",
@@ -292,6 +360,10 @@
       "carpeta": "XS-3510-metodologia-de-la-investigacion-cientifica",
       "ciclo": 5,
       "siglas_equivalentes": [],
+      "alias": [
+        "metodologia",
+        "investigacion"
+      ],
       "temas": [
         "método científico",
         "problema de investigación",
@@ -312,6 +384,10 @@
       "carpeta": "LM-3040-ingles-para-estadistica-2",
       "ciclo": 6,
       "siglas_equivalentes": [],
+      "alias": [
+        "ingles 2",
+        "ingles ii"
+      ],
       "temas": [
         "English",
         "reading",
@@ -328,6 +404,12 @@
       "ciclo": 6,
       "siglas_equivalentes": [
         "XS-3170"
+      ],
+      "alias": [
+        "lineales avanzados",
+        "modelos lineales",
+        "glm",
+        "mla"
       ],
       "temas": [
         "modelos lineales generalizados",
@@ -348,6 +430,10 @@
       "ciclo": 6,
       "siglas_equivalentes": [
         "XS-3010"
+      ],
+      "alias": [
+        "demografia",
+        "bioestadistica"
       ],
       "temas": [
         "demografía",
@@ -371,6 +457,10 @@
       "carpeta": "XS-3110-disenos-de-muestreo-probabilistico",
       "ciclo": 6,
       "siglas_equivalentes": [],
+      "alias": [
+        "muestreo",
+        "diseños de muestreo"
+      ],
       "temas": [
         "muestreo",
         "muestreo aleatorio simple",
@@ -391,6 +481,10 @@
       "carpeta": "XS-3310-teoria-estadistica",
       "ciclo": 6,
       "siglas_equivalentes": [],
+      "alias": [
+        "teoria",
+        "teoria estadistica"
+      ],
       "temas": [
         "estimación puntual",
         "máxima verosimilitud",
@@ -412,6 +506,10 @@
       "carpeta": "LM-3041-ingles-para-estadistica-3",
       "ciclo": 7,
       "siglas_equivalentes": [],
+      "alias": [
+        "ingles 3",
+        "ingles iii"
+      ],
       "temas": [
         "English",
         "reading",
@@ -427,6 +525,11 @@
       "ciclo": 7,
       "siglas_equivalentes": [
         "XS-4110"
+      ],
+      "alias": [
+        "mineria",
+        "multivariado",
+        "multivariada"
       ],
       "temas": [
         "análisis de componentes principales",
@@ -450,6 +553,10 @@
       "siglas_equivalentes": [
         "XS-3210"
       ],
+      "alias": [
+        "bases de datos",
+        "sql"
+      ],
       "temas": [
         "base de datos",
         "SQL",
@@ -469,6 +576,9 @@
       "carpeta": "XS-3130-diseno-y-ejecucion-de-encuestas-por-muestreo",
       "ciclo": 7,
       "siglas_equivalentes": [],
+      "alias": [
+        "encuestas"
+      ],
       "temas": [
         "encuesta",
         "cuestionario",
@@ -488,6 +598,10 @@
       "carpeta": "XS-4050-tecnicas-de-medicion-para-estadistica",
       "ciclo": 7,
       "siglas_equivalentes": [],
+      "alias": [
+        "medicion",
+        "psicometria"
+      ],
       "temas": [
         "medición",
         "escala",
@@ -507,6 +621,10 @@
       "carpeta": "LM-3042-ingles-para-estadistica-4",
       "ciclo": 8,
       "siglas_equivalentes": [],
+      "alias": [
+        "ingles 4",
+        "ingles iv"
+      ],
       "temas": [
         "English",
         "writing",
@@ -521,6 +639,11 @@
       "carpeta": "XS-0128-inferencia-bayesiana",
       "ciclo": 8,
       "siglas_equivalentes": [],
+      "alias": [
+        "bayes",
+        "bayesiana",
+        "bayesiano"
+      ],
       "temas": [
         "teorema de Bayes",
         "distribución a priori",
@@ -543,6 +666,9 @@
       "siglas_equivalentes": [
         "XS-4010"
       ],
+      "alias": [
+        "indicadores"
+      ],
       "temas": [
         "indicador",
         "índice",
@@ -562,6 +688,11 @@
       "carpeta": "XS-4410-practica-profesional-1",
       "ciclo": 8,
       "siglas_equivalentes": [],
+      "alias": [
+        "practica 1",
+        "practica i",
+        "practica profesional 1"
+      ],
       "temas": [
         "práctica profesional",
         "informe",
@@ -577,6 +708,11 @@
       "carpeta": "XS-0127-analisis-de-series-temporales",
       "ciclo": 9,
       "siglas_equivalentes": [],
+      "alias": [
+        "series",
+        "series de tiempo",
+        "series temporales"
+      ],
       "temas": [
         "serie de tiempo",
         "serie temporal",
@@ -598,6 +734,11 @@
       "carpeta": "XS-0132-metodos-para-ciencia-de-datos",
       "ciclo": 9,
       "siglas_equivalentes": [],
+      "alias": [
+        "ciencia de datos",
+        "machine learning",
+        "aprendizaje automatico"
+      ],
       "temas": [
         "aprendizaje automático",
         "machine learning",
@@ -618,6 +759,11 @@
       "carpeta": "XS-4430-practica-profesional-2",
       "ciclo": 9,
       "siglas_equivalentes": [],
+      "alias": [
+        "practica 2",
+        "practica ii",
+        "practica profesional 2"
+      ],
       "temas": [
         "práctica profesional",
         "informe final",

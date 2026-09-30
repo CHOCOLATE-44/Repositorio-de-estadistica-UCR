@@ -117,6 +117,26 @@ body:
         - label: Leí o usé este apunte y mi voto es honesto.
           required: true
 """, encoding="utf-8")
+    (DESTINO / "preguntar.yml").write_text("""# Generado por scripts/generar_plantillas.py — no editar a mano.
+name: ❓ Preguntar sobre los apuntes
+description: Pregunta en lenguaje natural; la IA responde con base en el ranking.
+title: "Pregunta: "
+labels: ["pregunta"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Para búsquedas simples («mejor apunte de regresión», «DOE con más de 4 estrellas») usa el buscador
+        de la página del ranking: responde al instante. Aquí puedes hacer preguntas más abiertas,
+        por ejemplo «¿qué apuntes me sirven para repasar ANOVA antes del parcial?».
+        Un robot responderá en este issue en menos de un minuto.
+  - type: textarea
+    id: pregunta
+    attributes:
+      label: Pregunta
+    validations:
+      required: true
+""", encoding="utf-8")
     print("Plantillas regeneradas.")
 
 
