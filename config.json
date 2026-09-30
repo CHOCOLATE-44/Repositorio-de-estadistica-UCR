@@ -8,6 +8,7 @@
   },
   "validacion": {
     "gemini_modelo": "gemini-3.8-flash",
+    "gemini_modelo_votos": "gemini-flash-lite-latest",
     "usar_carta_estudiante": true,
     "exigir_carta": false,
     "min_temas_carta": 3,
