@@ -100,11 +100,14 @@ def procesar_evento(ruta_evento: str) -> int:
     evento = json.loads(Path(ruta_evento).read_text(encoding="utf-8"))
     issue = evento["issue"]
     etiquetas = {e["name"] for e in issue.get("labels", [])}
-    if ETIQUETA_VOTO not in etiquetas or ETIQUETA_ANULADO in etiquetas:
+    es_voto = ETIQUETA_VOTO in etiquetas or (issue.get("title") or "").lower().startswith("voto:")
+    if not es_voto or ETIQUETA_ANULADO in etiquetas:
         print("No es un voto (o fue anulado); nada que hacer.")
         return 0
 
     gh, config = GitHub(), cargar_config()
+    if ETIQUETA_VOTO not in etiquetas:  # el formulario no la puso (p. ej. la etiqueta no existía)
+        gh.poner_etiquetas(issue["number"], poner=[ETIQUETA_VOTO])
     voto = extraer_voto(issue)
     errores = problemas_basicos(voto, _rutas_existentes(), config)
 
