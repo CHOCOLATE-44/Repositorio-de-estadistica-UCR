@@ -106,6 +106,12 @@ class PruebasPR(unittest.TestCase):
         codigo, _ = correr("dueño", "OWNER", [{"filename": "sitio/app.js", "status": "modified", "raw_url": "u"}])
         self.assertEqual(codigo, 0)
 
+    def test_pr_de_codigo_del_propietario_queda_en_verde_sin_comentar(self):
+        codigo, gh = correr("dueño", "OWNER", [{"filename": "scripts/x.py", "status": "modified", "raw_url": "u"}])
+        self.assertEqual(codigo, 0)
+        self.assertEqual(gh.estados[-1]["state"], "success")
+        self.assertEqual(gh.comentarios, [])
+
     def test_apunte_nuevo_de_cualquiera(self):
         codigo, _ = correr("beto", "NONE", [{"filename": RUTA, "status": "added", "raw_url": "u"}])
         self.assertEqual(codigo, 0)

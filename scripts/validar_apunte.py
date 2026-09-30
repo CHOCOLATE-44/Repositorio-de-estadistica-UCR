@@ -294,7 +294,9 @@ def validar_pr(numero: int) -> int:
         veredictos.append(validar_archivo(destino, str(ruta), partes[1], config, cursos))
 
     texto = _informe(veredictos, notas)
-    gh.comentar(numero, texto, MARCADOR)
+    # Un PR de un mantenedor que no toca apuntes (p. ej. cambios de código) no necesita comentario.
+    if veredictos or not mantenedor:
+        gh.comentar(numero, texto, MARCADOR)
     if veredictos:
         ok = all(v.valido for v in veredictos)
         gh.poner_etiquetas(numero,

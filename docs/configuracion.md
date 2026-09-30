@@ -42,7 +42,7 @@ Se crean solas la primera vez que se usan: `voto`, `voto-valido`, `voto-rechazad
 - ✅ **Restrict deletions** y ✅ **Block force pushes**.
 - ✅ **Require a pull request before merging**.
 - ✅ **Require status checks to pass** → *Add checks* → **Validación de apuntes**
-  (aparece en la lista después de la primera validación).
+  (si no aparece en la lista, escríbelo y elige «Add Validación de apuntes»).
 - **Bypass list:** agrega el rol *Repository admin* para que tú puedas fusionar a mano si el robot se equivoca.
 
 Así, un PR que cambie o borre el apunte de otra persona, o que no sea del curso, no se puede fusionar por accidente.

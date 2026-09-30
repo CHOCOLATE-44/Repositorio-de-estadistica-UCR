@@ -5,8 +5,9 @@ name: Validar apuntes
 # solo como datos (se descargan, nunca se ejecutan).
 on:
   pull_request_target:
+    # Sin filtro de rutas: corre en todos los PR para que el estado «Validación de
+    # apuntes» siempre exista (en PRs sin apuntes queda en verde sin comentar).
     types: [opened, synchronize, reopened]
-    paths: ["apuntes/**"]
   workflow_dispatch:
     inputs:
       pr:
