@@ -18,7 +18,7 @@ jobs:
     # Solo issues de voto. De los eventos de etiquetas, solo nos interesa que el
     # mantenedor anule (o reactive) un voto con la etiqueta «voto-anulado».
     if: >-
-      contains(github.event.issue.labels.*.name, 'voto') &&
+      (contains(github.event.issue.labels.*.name, 'voto') || startsWith(github.event.issue.title, 'Voto:')) &&
       ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
        github.event.label.name == 'voto-anulado')
     runs-on: ubuntu-latest

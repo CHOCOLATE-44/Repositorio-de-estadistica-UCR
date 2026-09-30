@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   responder:
-    if: contains(github.event.issue.labels.*.name, 'pregunta')
+    if: contains(github.event.issue.labels.*.name, 'pregunta') || startsWith(github.event.issue.title, 'Pregunta:')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
