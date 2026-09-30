@@ -16,7 +16,8 @@ hechos por estudiantes y **puntuados por la comunidad**, para que quien llegue d
 | Subir por Pull Request | Sí | Ver [CONTRIBUIR.md](CONTRIBUIR.md). |
 
 Cada apunte que se sube pasa por una **validación automática** que comprueba que su contenido
-corresponde al curso de la carpeta (extracción de texto → OCR si es escaneado o a mano → Gemini de Google).
+corresponde al curso de la carpeta, comparándolo con la **carta al estudiante** del curso
+(extracción de texto → OCR si es escaneado o a mano → Gemini de Google).
 
 ## Estructura
 
@@ -28,7 +29,7 @@ apuntes/
   …                         ← una carpeta por curso (31), creadas desde cursos.json
 cursos.json                 ← catálogo de cursos: sigla, nombre y temas
 config.json                 ← reglas de votos, validación y ranking
-cartas/                     ← cartas al estudiante (validación opcional, desactivada)
+cartas/                     ← cartas al estudiante: los apuntes se comparan con su temario
 sitio/                      ← página del ranking (HTML/JS sin dependencias)
 scripts/                    ← validación de apuntes y votos, construcción del sitio
 .github/ISSUE_TEMPLATE/     ← formularios «Puntuar», «Subir un apunte» y «Preguntar»

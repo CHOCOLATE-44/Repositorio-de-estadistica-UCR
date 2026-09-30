@@ -64,7 +64,7 @@ mantenedores (dueño, miembros de la organización y colaboradores del repo). Cu
 | Que el buscador entienda otro apodo de un curso | Agrégalo en `alias` del curso en `cursos.json`. |
 | Agregar/editar un curso | Edita `cursos.json`, crea la carpeta en `apuntes/` y ejecuta `python scripts/generar_plantillas.py`. |
 | Mejorar la validación de un curso | Agrega temas típicos en `cursos.json`. |
-| Activar la validación con la carta al estudiante | Ver `cartas/README.md`. |
+| Subir la carta al estudiante de un curso | Ver `cartas/README.md` (ya está activa: los apuntes se comparan con ella). |
 | Ajustar reglas de votos | `config.json → votos` (largo mínimo, edad mínima de la cuenta, autovoto…). |
 
 ## Límites del plan gratuito (holgados para esta comunidad)

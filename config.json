@@ -8,7 +8,9 @@
   },
   "validacion": {
     "gemini_modelo": "gemini-3.8-flash",
-    "usar_carta_estudiante": false,
+    "usar_carta_estudiante": true,
+    "exigir_carta": false,
+    "min_temas_carta": 3,
     "carpeta_cartas": "cartas",
     "extensiones_permitidas": [".pdf", ".md"],
     "tamano_maximo_mb": 50,
