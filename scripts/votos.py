@@ -126,12 +126,14 @@ def procesar_evento(ruta_evento: str) -> int:
             errores.append(f"La justificación no parece explicar la puntuación: {motivo}")
 
     if errores:
-        texto = ("### ❌ Voto no registrado\n\n" + "\n".join(f"- {e}" for e in errores) +
-                 "\n\nPuedes **editar este issue** (menú «…» → *Edit*) para corregirlo; se revisará de nuevo automáticamente.")
+        texto = (f"### ❌ @{voto['usuario']}, tu voto todavía no cuenta\n\n" + "\n".join(f"- {e}" for e in errores) +
+                 "\n\n**Para corregirlo:** en tu primer mensaje de este issue pulsa **«…» → Edit**, cambia lo necesario "
+                 "y guarda. El robot lo revisa de nuevo solo y, si está bien, cierra este issue.")
         gh.comentar(voto["issue"], texto, MARCADOR)
         gh.poner_etiquetas(voto["issue"], poner=[ETIQUETA_RECHAZADO], quitar=[ETIQUETA_VALIDO])
-        if issue.get("state") == "open":
-            gh.cerrar_issue(voto["issue"], "not_planned")
+        # Se deja abierto (o se reabre) para que se note que falta corregirlo.
+        if issue.get("state") != "open":
+            gh.patch(f"/repos/{gh.repo}/issues/{voto['issue']}", {"state": "open"})
         print(texto)
         return 0
 
