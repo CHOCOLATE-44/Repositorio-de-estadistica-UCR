@@ -184,15 +184,25 @@ def validar_archivo(archivo: Path, nombre_en_repo: str, carpeta: str, config: di
     terminos_carta = _terminos(carta) if carta else []
 
     puntos, señales = puntuar_curso(texto_norm, curso, terminos_carta)
+    identidad = any(x.startswith(("sigla", "nombre")) for x in señales)  # el apunte nombra al curso
     otros = [c for c in cursos if c["carpeta"] != carpeta]
-    mejor_otro = max(otros, key=lambda c: puntuar_curso(texto_norm, c)[0])
-    puntos_otro = puntuar_curso(texto_norm, mejor_otro)[0]
+    (puntos_otro, señales_otro), mejor_otro = max(
+        ((puntuar_curso(texto_norm, c), c) for c in otros), key=lambda t: t[0][0])
     detalles.append(f"Señales del curso ({puntos} pts): " + ("; ".join(señales) or "ninguna"))
-    heur_valido = puntos >= val["umbral_heuristico"] and puntos_otro < puntos + 4
+    # «Es de otro curso» solo si ese otro curso aparece por su sigla o nombre y domina claramente;
+    # compartir temas (p. ej. distribuciones) no basta, porque varios cursos los repiten.
+    otro_curso = (puntos_otro >= puntos + 4 and not identidad
+                  and any(x.startswith(("sigla", "nombre")) for x in señales_otro))
+    heur_valido = puntos >= val["umbral_heuristico"] and not otro_curso
     heur_motivo = (f"Se encontraron señales del curso ({puntos} pts)." if heur_valido else
                    f"Parece más de {mejor_otro['sigla']} {mejor_otro['nombre']} ({puntos_otro} pts vs {puntos})."
-                   if puntos_otro >= puntos + 4 else
+                   if otro_curso else
                    f"No se encontraron suficientes señales del curso ({puntos} de {val['umbral_heuristico']} pts necesarios).")
+
+    # Si las reglas ya están muy seguras, no gastamos cuota de Gemini (el plan gratuito tiene límite diario).
+    if heur_valido and identidad and puntos >= 2 * val["umbral_heuristico"]:
+        detalles.append("Gemini no consultado: las señales del curso son claras (se ahorra cuota).")
+        return Veredicto(nombre_en_repo, True, heur_motivo, detalles)
 
     if gemini.disponible() and (r.texto.strip() or r.imagenes):
         try:
