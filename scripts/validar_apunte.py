@@ -291,6 +291,7 @@ def validar_pr(numero: int) -> int:
         except Exception as e:
             veredictos.append(Veredicto(str(ruta), False, f"No se pudo descargar el archivo: {e}"))
             continue
+        print(f"Validando {ruta}…", flush=True)
         veredictos.append(validar_archivo(destino, str(ruta), partes[1], config, cursos))
 
     texto = _informe(veredictos, notas)

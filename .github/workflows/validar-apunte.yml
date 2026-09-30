@@ -27,7 +27,7 @@ concurrency:
 jobs:
   validar:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45   # un formulario puede traer hasta 20 PDF
     steps:
       - uses: actions/checkout@v4
         with:
