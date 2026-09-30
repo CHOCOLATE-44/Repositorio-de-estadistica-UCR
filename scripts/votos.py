@@ -83,7 +83,9 @@ Rechaza solo si es claramente por gusto personal sin razones ("no me cae bien el
 ofensiva, spam o sin relación con el apunte.
 Responde SOLO JSON: {{"aceptable": bool, "motivo": "explicación breve en español"}}"""
     try:
-        res = gemini.preguntar_json(prompt, config["validacion"]["gemini_modelo"])
+        # Juzgar una justificación corta no necesita el modelo grande: se usa uno liviano (más cuota gratis).
+        modelo = config["validacion"].get("gemini_modelo_votos") or config["validacion"]["gemini_modelo"]
+        res = gemini.preguntar_json(prompt, modelo)
     except Exception as e:  # si Gemini falla, no bloqueamos el voto
         print(f"Aviso: Gemini no disponible: {e}")
         return None
