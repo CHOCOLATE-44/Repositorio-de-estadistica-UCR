@@ -31,13 +31,13 @@ class GitHubFalso:
         self.cerrados.append(motivo)
 
 
-def procesar(justificacion, estado):
+def procesar(justificacion, estado, comentario=None):
     cuerpo = (f"### Apunte\n\n{RUTA}\n\n### Puntuación\n\n5 — Excelente\n\n### Justificación\n\n{justificacion}")
     issue = {"number": 17, "state": estado, "title": "Voto: x", "html_url": "u", "created_at": "2026-01-01T00:00:00Z",
              "user": {"login": "ana"}, "labels": [{"name": "voto"}], "body": cuerpo}
     gh = GitHubFalso()
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
-        json.dump({"issue": issue}, f)
+        json.dump({"issue": issue, **({"comment": comentario} if comentario else {})}, f)
     with mock.patch.object(votos, "GitHub", return_value=gh), \
          mock.patch.object(votos, "_rutas_existentes", return_value={RUTA: {"ruta": RUTA, "autor_login": "beto"}}), \
          mock.patch.object(votos, "revisar_justificacion_gemini", return_value=None):
@@ -58,6 +58,27 @@ class PruebasEstadoIssue(unittest.TestCase):
     def test_valido_se_cierra(self):
         gh = procesar("Resume muy bien MCO, supuestos e inferencia, ordenado por temas y con ejemplos claros.", "open")
         self.assertEqual(gh.cerrados, ["completed"])
+
+
+class PruebasRespuestaConComentario(unittest.TestCase):
+    NUEVA = "Resume muy bien MCO, supuestos e inferencia, ordenado por temas y con ejemplos claros."
+
+    def test_reemplazar_justificacion(self):
+        cuerpo = "### Apunte\n\nx\n\n### Justificación\n\nes prueba\n\n### Confirmación\n\n- [x] ok"
+        nuevo = votos.reemplazar_justificacion(cuerpo, "texto nuevo")
+        self.assertIn("### Justificación\n\ntexto nuevo\n", nuevo)
+        self.assertNotIn("es prueba", nuevo)
+        self.assertIn("### Confirmación", nuevo)
+
+    def test_comentario_de_quien_voto_cuenta(self):
+        gh = procesar("es prueba", "open", {"user": {"login": "ana"}, "body": self.NUEVA})
+        self.assertEqual(gh.cerrados, ["completed"])
+        self.assertTrue(any(self.NUEVA in (d.get("body") or "") for d in gh.parches))
+
+    def test_comentario_de_otra_persona_no_cuenta(self):
+        gh = procesar("es prueba", "open", {"user": {"login": "beto"}, "body": self.NUEVA})
+        self.assertEqual(gh.cerrados, [])
+        self.assertEqual(gh.comentarios, [])
 
 
 if __name__ == "__main__":
