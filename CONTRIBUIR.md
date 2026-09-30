@@ -16,8 +16,14 @@ Si el robot rechaza el apunte, edita el issue (por ejemplo, para cambiar el curs
    - En la interfaz web: entra a la carpeta → *Add file → Upload files*.
 3. Abre un Pull Request. La validación automática comentará en unos minutos.
 
+## Actualizar o borrar un apunte
+Solo **quien subió el apunte** y los **mantenedores del repositorio** pueden modificarlo,
+renombrarlo o eliminarlo. Para subir una versión corregida de tu apunte, abre un PR que reemplace
+el archivo con el **mismo nombre**: así conserva sus votos. La validación automática rechaza los PR
+que cambien apuntes de otras personas.
+
 ## Reglas
-- Un PR = apuntes (no mezcles cambios a scripts u otras carpetas).
+- Un PR = apuntes: solo se aceptan archivos dentro de `apuntes/<curso>/` (los demás los cambian los mantenedores).
 - No renombres ni muevas apuntes ya publicados: sus votos están ligados a la ruta.
 - Solo material propio o con permiso; nada de exámenes ni material restringido.
 

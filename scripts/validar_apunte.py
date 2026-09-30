@@ -23,8 +23,26 @@ import gemini  # noqa: E402
 from comun import (CARPETA_APUNTES, RAIZ, GitHub, cargar_config, cargar_cursos,  # noqa: E402
                    curso_por_carpeta, escribir_salida, normalizar_texto)
 from extraer_texto import extraer  # noqa: E402
+from indice import autor_de  # noqa: E402
 
 MARCADOR = "<!-- validacion-apuntes -->"
+CONTEXTO_ESTADO = "Validación de apuntes"  # estado que se puede exigir en las reglas de la rama
+
+# author_association de GitHub que cuentan como propietarios/mantenedores del repositorio.
+ROLES_MANTENEDOR = {"OWNER", "MEMBER", "COLLABORATOR"}
+ACCIONES = {"modified": "modificar", "removed": "eliminar", "renamed": "renombrar o mover"}
+
+
+def revisar_permiso(estado: str, usuario: str, asociacion: str, autor_original: str | None) -> str | None:
+    """Solo los mantenedores del repo y quien subió el apunte pueden modificarlo,
+    renombrarlo o eliminarlo. Devuelve el motivo del rechazo, o None si está permitido."""
+    if estado not in ACCIONES or asociacion in ROLES_MANTENEDOR:
+        return None
+    if autor_original and autor_original.lower() == usuario.lower():
+        return None
+    quien = f"@{autor_original} (quien lo subió)" if autor_original else "quien lo subió"
+    return (f"No tienes permiso para {ACCIONES[estado]} este apunte: solo {quien} o los "
+            "mantenedores del repositorio pueden hacerlo. Si tiene un error, avisa en un issue.")
 
 PALABRAS_VACIAS = set("""
 para como pero este esta estos estas donde cuando entre sobre desde hasta segun
@@ -232,18 +250,41 @@ def validar_pr(numero: int) -> int:
     trabajo = Path(tempfile.mkdtemp(prefix="pr-"))
     max_bytes = config["validacion"]["tamano_maximo_mb"] * 1_000_000
 
+    pr = gh.get(f"/repos/{gh.repo}/pulls/{numero}")
+    usuario = pr["user"]["login"]
+    asociacion = pr.get("author_association", "NONE")
+    mantenedor = asociacion in ROLES_MANTENEDOR
+
     for f in gh.paginar(f"/repos/{gh.repo}/pulls/{numero}/files"):
         ruta = PurePosixPath(f["filename"])
         partes = ruta.parts
         es_apunte = (len(partes) == 3 and partes[0] == CARPETA_APUNTES and ruta.name.lower() != "readme.md")
         if not es_apunte:
-            notas.append(f"`{ruta}` ({f['status']}) está fuera de `apuntes/<curso>/`: requiere revisión manual.")
+            if mantenedor:
+                notas.append(f"`{ruta}` ({f['status']}) está fuera de `apuntes/<curso>/`: revísalo antes de fusionar.")
+            else:
+                veredictos.append(Veredicto(str(ruta), False,
+                                            "Solo se pueden agregar o cambiar archivos dentro de `apuntes/<curso>/`. "
+                                            "Los demás archivos los cambian los mantenedores."))
             continue
-        if f["status"] == "removed":
-            notas.append(f"`{ruta}` se elimina: requiere revisión manual (se perderían sus votos).")
-            continue
-        if f["status"] == "renamed":
-            notas.append(f"`{f.get('previous_filename')}` → `{ruta}`: renombrar hace que el apunte pierda sus votos.")
+
+        # Apunte que ya existía: ¿quién lo puede tocar?
+        if f["status"] in ACCIONES:
+            original = f.get("previous_filename") or f["filename"]
+            autor_original = autor_de(original, gh)
+            error = revisar_permiso(f["status"], usuario, asociacion, autor_original)
+            if error:
+                veredictos.append(Veredicto(str(ruta), False, error))
+                continue
+            quien = "mantenedor" if mantenedor else "autor del apunte"
+            if f["status"] == "removed":
+                veredictos.append(Veredicto(str(ruta), True, f"Eliminación autorizada ({quien}). Se perderán sus votos."))
+                continue
+            if f["status"] == "renamed":
+                notas.append(f"`{original}` → `{ruta}` ({quien}): renombrar hace que el apunte pierda sus votos.")
+            else:
+                notas.append(f"`{ruta}` se reemplaza por una nueva versión ({quien}); conserva sus votos.")
+
         destino = trabajo / ruta.name
         try:
             gh.descargar(f["raw_url"], destino, max_bytes=max_bytes)
@@ -259,9 +300,20 @@ def validar_pr(numero: int) -> int:
         gh.poner_etiquetas(numero,
                            poner=["apunte-valido" if ok else "apunte-rechazado"],
                            quitar=["apunte-rechazado" if ok else "apunte-valido"])
+    ok = all(v.valido for v in veredictos)
+    # Estado en el último commit del PR: sirve como check obligatorio tanto para PRs
+    # normales como para los que crea el formulario «Subir un apunte».
+    try:
+        gh.post(f"/repos/{gh.repo}/statuses/{pr['head']['sha']}", {
+            "state": "success" if ok else "failure",
+            "context": CONTEXTO_ESTADO,
+            "description": ("Apuntes válidos" if ok else "Revisa el comentario del robot en el PR")[:140],
+        })
+    except Exception as e:
+        print(f"Aviso: no se pudo publicar el estado del commit: {e}")
     print(texto)
-    escribir_salida("valido", str(all(v.valido for v in veredictos)).lower())
-    return 0 if all(v.valido for v in veredictos) else 1
+    escribir_salida("valido", str(ok).lower())
+    return 0 if ok else 1
 
 
 def main():

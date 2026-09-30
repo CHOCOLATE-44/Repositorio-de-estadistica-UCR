@@ -36,6 +36,26 @@ def _historial_altas() -> dict[str, dict]:
     return altas
 
 
+def _login(alta: dict, gh: GitHub | None, cache: dict[str, str | None]) -> str | None:
+    """Usuario de GitHub que hizo el commit que agregó el archivo."""
+    m = NOREPLY.match(alta.get("email", ""))
+    if m:
+        return m.group(1)
+    if gh and alta.get("sha"):
+        if alta["sha"] not in cache:
+            try:
+                cache[alta["sha"]] = (gh.get(f"/repos/{gh.repo}/commits/{alta['sha']}").get("author") or {}).get("login")
+            except Exception:
+                cache[alta["sha"]] = None
+        return cache[alta["sha"]]
+    return None
+
+
+def autor_de(ruta: str, gh: GitHub | None = None) -> str | None:
+    """Quién subió originalmente el apunte `ruta` (None si no se sabe)."""
+    return _login(_historial_altas().get(ruta, {}), gh, {})
+
+
 def listar_apuntes(gh: GitHub | None = None) -> list[dict]:
     config, cursos = cargar_config(), cargar_cursos()
     extensiones = set(config["validacion"]["extensiones_permitidas"])
@@ -52,17 +72,7 @@ def listar_apuntes(gh: GitHub | None = None) -> list[dict]:
             continue
         ruta = archivo.relative_to(RAIZ).as_posix()
         alta = altas.get(ruta, {})
-        login = None
-        m = NOREPLY.match(alta.get("email", ""))
-        if m:
-            login = m.group(1)
-        elif gh and alta.get("sha"):
-            if alta["sha"] not in cache_login:
-                try:
-                    cache_login[alta["sha"]] = (gh.get(f"/repos/{gh.repo}/commits/{alta['sha']}").get("author") or {}).get("login")
-                except Exception:
-                    cache_login[alta["sha"]] = None
-            login = cache_login[alta["sha"]]
+        login = _login(alta, gh, cache_login)
         fecha = alta.get("fecha") or datetime.fromtimestamp(archivo.stat().st_mtime, timezone.utc).isoformat()
         apuntes.append({
             "ruta": ruta,

@@ -36,10 +36,19 @@ El modelo se cambia en `config.json → validacion.gemini_modelo` si Google reti
 Se crean solas la primera vez que se usan: `voto`, `voto-valido`, `voto-rechazado`,
 `voto-anulado`, `subir-apunte`, `pregunta`, `apunte-valido`, `apunte-rechazado`.
 
-## 6. Protección de la rama (recomendado)
-*Settings → Rules → New branch ruleset* sobre `main`: exigir Pull Request y, como
-check obligatorio, **Validar apuntes / validar**. Así nadie publica un apunte que no pasó la validación
-(tú como admin siempre puedes aprobarlo manualmente si fue un falso rechazo).
+## 6. Protección de la rama (necesaria para que las reglas se cumplan)
+*Settings → Rules → Rulesets → New branch ruleset*:
+- **Enforcement status:** Active · **Target branches:** *Include default branch*.
+- ✅ **Restrict deletions** y ✅ **Block force pushes**.
+- ✅ **Require a pull request before merging**.
+- ✅ **Require status checks to pass** → *Add checks* → **Validación de apuntes**
+  (aparece en la lista después de la primera validación).
+- **Bypass list:** agrega el rol *Repository admin* para que tú puedas fusionar a mano si el robot se equivoca.
+
+Así, un PR que cambie o borre el apunte de otra persona, o que no sea del curso, no se puede fusionar por accidente.
+
+**Quién puede cambiar un apunte existente:** quien lo subió (según el historial de git) y los
+mantenedores (dueño, miembros de la organización y colaboradores del repo). Cualquiera puede *agregar* apuntes nuevos.
 
 ## 7. Primer despliegue
 *Actions → Publicar ranking (GitHub Pages) → Run workflow*.
