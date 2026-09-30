@@ -1,0 +1,32 @@
+name: Crear etiquetas
+
+# Los formularios de issues solo aplican etiquetas que ya existen en el repo.
+# Este workflow las crea (o actualiza) todas; es seguro correrlo varias veces.
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/etiquetas.yml"]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  etiquetas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Crear etiquetas
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          crear() { gh label create "$1" --color "$2" --description "$3" --force; }
+          crear "subir-apunte"     "0e8a16" "Formulario: subir un apunte"
+          crear "voto"             "fbca04" "Formulario: puntuar un apunte"
+          crear "voto-valido"      "2ea44f" "Voto registrado"
+          crear "voto-rechazado"   "d73a4a" "Voto no válido (se puede editar)"
+          crear "voto-anulado"     "6e7781" "Voto anulado por el mantenedor"
+          crear "pregunta"         "1d76db" "Formulario: preguntar a la IA"
+          crear "apunte-valido"    "2ea44f" "El apunte pasó la validación"
+          crear "apunte-rechazado" "d73a4a" "El apunte no pasó la validación"
