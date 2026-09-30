@@ -1,7 +1,7 @@
 {
   "votos": {
-    "min_caracteres_justificacion": 40,
-    "min_palabras_justificacion": 8,
+    "min_caracteres_justificacion": 20,
+    "min_palabras_justificacion": 4,
     "edad_minima_cuenta_dias": 0,
     "permitir_autovoto": false,
     "revisar_justificacion_con_gemini": true
