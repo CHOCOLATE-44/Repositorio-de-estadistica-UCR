@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import gemini  # noqa: E402
 from comun import (CARPETA_APUNTES, RAIZ, GitHub, cargar_config, cargar_cursos,  # noqa: E402
-                   curso_por_carpeta, escribir_salida, normalizar_texto)
+                   curso_por_carpeta, escribir_salida, normalizar_sigla, normalizar_texto)
 from extraer_texto import extraer  # noqa: E402
 from indice import autor_de  # noqa: E402
 
@@ -52,6 +52,10 @@ evaluacion horas clase clases sesion sesiones semana semanas universidad escuela
 estadistica costa rica correo consulta consultas nota notas trabajo trabajos
 porcentaje fecha fechas objetivo objetivos general generales especifico
 especificos contenido contenidos bibliografia metodologia horario grupo
+ejemplo ejemplos entonces siguiente siguientes valores numero numeros tambien
+ademas manera primer primera segundo segunda tercer formula formulas resultado
+resultados pagina paginas figura tabla tablas cuando siempre ningun alguna
+algunos algunas cualquier respecto mediante utilizar utiliza usando dentro
 """.split())
 
 
@@ -99,20 +103,70 @@ def puntuar_curso(texto_norm: str, curso: dict, terminos_carta: list[str] = ()) 
 # Carta al estudiante (desactivada por defecto en config.json)
 # --------------------------------------------------------------------------
 
+_cache_cartas: dict[str, str] = {}
+
+
+def buscar_carta(curso: dict, config: dict) -> Path | None:
+    """Archivo de la carta del curso en `cartas/`. Acepta cualquier nombre que
+    contenga la sigla (o una equivalente): `XS-2130.pdf`, `carta-xs2130-2026.pdf`…"""
+    carpeta = RAIZ / config["validacion"].get("carpeta_cartas", "cartas")
+    if not carpeta.is_dir():
+        return None
+    siglas = [normalizar_sigla(x) for x in [curso["sigla"], *curso.get("siglas_equivalentes", [])]]
+    for ruta in sorted(carpeta.iterdir()):
+        if ruta.suffix.lower() in (".pdf", ".md", ".txt") and any(x in normalizar_sigla(ruta.stem) for x in siglas):
+            return ruta
+    return None
+
+
 def cargar_carta(curso: dict, config: dict) -> str:
-    """Texto de la carta al estudiante del curso, si la función está activa y
-    existe `cartas/<SIGLA>.pdf|.md|.txt`."""
-    val = config["validacion"]
-    if not val.get("usar_carta_estudiante"):
+    """Texto de la carta al estudiante del curso ('' si no hay o la función está apagada)."""
+    if not config["validacion"].get("usar_carta_estudiante"):
         return ""
-    carpeta = RAIZ / val.get("carpeta_cartas", "cartas")
-    for ext in (".pdf", ".md", ".txt"):
-        ruta = carpeta / f"{curso['sigla']}{ext}"
-        if ruta.exists():
-            if ext == ".txt":
-                return ruta.read_text(encoding="utf-8", errors="replace")
-            return extraer(ruta, paginas_imagen=0).texto
-    return ""
+    if curso["sigla"] not in _cache_cartas:
+        ruta = buscar_carta(curso, config)
+        texto = ""
+        if ruta and ruta.suffix.lower() == ".pdf":
+            texto = extraer(ruta, paginas_imagen=0).texto
+        elif ruta:
+            texto = ruta.read_text(encoding="utf-8", errors="replace")
+        _cache_cartas[curso["sigla"]] = texto
+    return _cache_cartas[curso["sigla"]]
+
+
+def temario(carta: str) -> str:
+    """Sección de contenidos de la carta (sin horarios, evaluación ni bibliografía).
+    Si no se reconocen los títulos, devuelve la carta completa."""
+    t = normalizar_texto(carta)
+    inicio = min((m.start() for m in re.finditer(
+        r"\b(contenidos?|temario|programa del curso|unidades tematicas|cronograma)\b", t)), default=0)
+    fin = min((m.start() for m in re.finditer(r"\b(evaluacion|bibliografia|referencias)\b", t)
+               if m.start() > inicio + 200), default=len(t))
+    return t[inicio:fin] if fin - inicio > 200 else t
+
+
+def temas_de_carta(carta: str) -> list[str]:
+    """Temas del temario de la carta: frases cortas separadas por comas, puntos, dos puntos…
+    («técnicas de conteo», «distribución de Poisson», «pruebas de hipótesis»)."""
+    t = re.sub(r"\b(unidad|tema|capitulo|semana|modulo)\s+\w+", " ", temario(carta))
+    temas = []
+    for frase in re.split(r"[,;:.\n()/•·\-–]|\by\b|\be\b", t):
+        frase = frase.strip()
+        palabras = [w for w in re.findall(r"[a-z]+", frase) if len(w) >= 4 and w not in PALABRAS_VACIAS]
+        if 1 <= len(palabras) <= 5 and len(frase) >= 5 and frase not in temas:
+            temas.append(frase)
+    return temas
+
+
+def temas_carta_en_apunte(texto_norm: str, carta: str) -> list[str]:
+    """Temas de la carta que aparecen en el apunte (todas sus palabras clave presentes;
+    se acepta singular/plural cortando la «s» final)."""
+    encontrados = []
+    for tema in temas_de_carta(carta):
+        claves = [w for w in re.findall(r"[a-z]+", tema) if len(w) >= 4 and w not in PALABRAS_VACIAS]
+        if claves and all(re.search(rf"\b{w.rstrip('s')}", texto_norm) for w in claves):
+            encontrados.append(tema)
+    return encontrados
 
 
 # --------------------------------------------------------------------------
@@ -129,7 +183,8 @@ class Veredicto:
 
 def _prompt(curso: dict, otros: list[dict], texto: str, carta: str, hay_imagenes: bool) -> str:
     lista_otros = "\n".join(f"- {c['sigla']} {c['nombre']}" for c in otros)
-    carta_txt = f"\nCARTA AL ESTUDIANTE DEL CURSO (fragmento):\n\"\"\"\n{carta[:8000]}\n\"\"\"\n" if carta else ""
+    carta_txt = (f"\nCARTA AL ESTUDIANTE DEL CURSO — TEMARIO OFICIAL (criterio principal):\n\"\"\"\n{temario(carta)[:9000]}\n\"\"\"\n"
+                 if carta else "")
     imgs = "\nTambién se adjuntan imágenes de las primeras páginas (pueden ser notas a mano).\n" if hay_imagenes else ""
     return f"""Eres un verificador de un repositorio de apuntes de la carrera de Estadística de la Universidad de Costa Rica.
 Decide si el documento enviado son apuntes/notas de estudio del curso indicado.
@@ -150,10 +205,14 @@ Criterios:
 - "es_apunte": false si es spam, algo sin relación con estudiar, o un documento vacío/ilegible.
 - "corresponde": true si el contenido trata mayoritariamente de los temas del curso de la carpeta.
   Temas compartidos con otros cursos son aceptables si encajan razonablemente en este curso.
+{"- HAY CARTA AL ESTUDIANTE: compara el documento con su temario. 'corresponde' es true solo si los temas"
+ " del documento están en la carta (basta con que cubra una parte del temario). En 'temas_carta' lista"
+ " hasta 5 temas de la carta que el documento trata (vacío si ninguno)." if carta else ""}
 - Si claramente pertenece a otro curso de la lista, indica su sigla en "curso_probable".
 Responde SOLO con JSON:
 {{"es_apunte": bool, "corresponde": bool, "confianza": número entre 0 y 1,
-  "curso_probable": "sigla o null", "motivo": "explicación breve en español (máx. 2 oraciones)"}}"""
+  "curso_probable": "sigla o null", "temas_carta": ["..."],
+  "motivo": "explicación breve en español (máx. 2 oraciones)"}}"""
 
 
 def validar_archivo(archivo: Path, nombre_en_repo: str, carpeta: str, config: dict,
@@ -179,9 +238,7 @@ def validar_archivo(archivo: Path, nombre_en_repo: str, carpeta: str, config: di
 
     texto_norm = normalizar_texto(r.texto)
     carta = cargar_carta(curso, config)
-    if val.get("usar_carta_estudiante"):
-        detalles.append("Carta al estudiante: " + ("usada" if carta else f"no encontrada (`{val.get('carpeta_cartas')}/{curso['sigla']}.pdf`)"))
-    terminos_carta = _terminos(carta) if carta else []
+    terminos_carta = _terminos(temario(carta)) if carta else []
 
     puntos, señales = puntuar_curso(texto_norm, curso, terminos_carta)
     identidad = any(x.startswith(("sigla", "nombre")) for x in señales)  # el apunte nombra al curso
@@ -191,7 +248,9 @@ def validar_archivo(archivo: Path, nombre_en_repo: str, carpeta: str, config: di
     detalles.append(f"Señales del curso ({puntos} pts): " + ("; ".join(señales) or "ninguna"))
     # «Es de otro curso» solo si ese otro curso aparece por su sigla o nombre y domina claramente;
     # compartir temas (p. ej. distribuciones) no basta, porque varios cursos los repiten.
-    otro_curso = (puntos_otro >= puntos + 4 and not identidad
+    # Si el apunte se nombra como de otro curso (sigla o nombre) y no nombra al suyo, basta con
+    # que ese curso puntúe más.
+    otro_curso = (puntos_otro > puntos and not identidad
                   and any(x.startswith(("sigla", "nombre")) for x in señales_otro))
     heur_valido = puntos >= val["umbral_heuristico"] and not otro_curso
     heur_motivo = (f"Se encontraron señales del curso ({puntos} pts)." if heur_valido else
@@ -199,8 +258,47 @@ def validar_archivo(archivo: Path, nombre_en_repo: str, carpeta: str, config: di
                    if otro_curso else
                    f"No se encontraron suficientes señales del curso ({puntos} de {val['umbral_heuristico']} pts necesarios).")
 
-    # Si las reglas ya están muy seguras, no gastamos cuota de Gemini (el plan gratuito tiene límite diario).
-    if heur_valido and identidad and puntos >= 2 * val["umbral_heuristico"]:
+    # Carta al estudiante: si existe, es requisito para aprobar.
+    if carta:
+        cubiertos = temas_carta_en_apunte(texto_norm, carta)
+        total = len(temas_de_carta(carta))
+        minimo = val.get("min_temas_carta", 3)
+        detalles.append(f"Carta al estudiante (`{buscar_carta(curso, config).name}`): el apunte trata "
+                        f"{len(cubiertos)} de {total} temas del temario (mínimo {minimo})"
+                        + (f": {', '.join(cubiertos[:8])}" if cubiertos else ""))
+        # Si hay cartas de otros cursos, el apunte debe encajar mejor en la de su carpeta.
+        propia = len(cubiertos) / max(total, 1)
+        mejor_carta = None
+        for c in otros:
+            otra = cargar_carta(c, config)
+            if otra:
+                frac = len(temas_carta_en_apunte(texto_norm, otra)) / max(len(temas_de_carta(otra)), 1)
+                if frac >= propia + 0.15 and (mejor_carta is None or frac > mejor_carta[1]):
+                    mejor_carta = (c, frac)
+        if mejor_carta:
+            detalles.append(f"Encaja mejor en la carta de {mejor_carta[0]['sigla']} ({mejor_carta[1]:.0%} de sus temas "
+                            f"vs {propia:.0%} de la carta de {curso['sigla']}).")
+            otro_curso, mejor_otro = True, mejor_carta[0]
+            heur_valido = False
+            heur_motivo = (f"Coincide más con la carta al estudiante de {mejor_otro['sigla']} {mejor_otro['nombre']} "
+                           f"que con la de {curso['sigla']}.")
+        elif len(cubiertos) < minimo:
+            heur_valido = False
+            heur_motivo = (f"El contenido no coincide con la carta al estudiante de {curso['sigla']}: "
+                           f"trata {len(cubiertos)} de sus temas (se necesitan {minimo}).")
+        elif not otro_curso:
+            heur_valido = True
+            heur_motivo = f"El contenido coincide con la carta al estudiante ({len(cubiertos)} temas del temario)."
+    elif val.get("usar_carta_estudiante"):
+        detalles.append(f"⚠️ {curso['sigla']} aún no tiene carta al estudiante en `{val.get('carpeta_cartas', 'cartas')}/`; "
+                        "se validó con los temas generales del curso.")
+        if val.get("exigir_carta"):
+            return Veredicto(nombre_en_repo, False,
+                             f"No se puede validar: falta la carta al estudiante de {curso['sigla']}.", detalles)
+
+    # Sin carta y con señales muy claras, no gastamos cuota de Gemini (el plan gratuito tiene límite diario).
+    # Con carta siempre se compara con ella.
+    if not carta and heur_valido and identidad and puntos >= 2 * val["umbral_heuristico"]:
         detalles.append("Gemini no consultado: las señales del curso son claras (se ahorra cuota).")
         return Veredicto(nombre_en_repo, True, heur_motivo, detalles)
 
@@ -212,6 +310,8 @@ def validar_archivo(archivo: Path, nombre_en_repo: str, carpeta: str, config: di
             motivo = str(res.get("motivo", "")).strip()
             if res.get("curso_probable") and not valido:
                 motivo += f" (Curso probable: {res['curso_probable']}.)"
+            if carta and res.get("temas_carta"):
+                detalles.append("Temas de la carta que cubre (según Gemini): " + ", ".join(map(str, res["temas_carta"][:5])))
             detalles.append(f"Gemini: confianza {res.get('confianza')}; heurística: {'✅' if heur_valido else '❌'}")
             return Veredicto(nombre_en_repo, valido, motivo or "Sin motivo.", detalles)
         except Exception as e:
