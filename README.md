@@ -3,7 +3,7 @@
 Apuntes de los cursos del **Bachillerato en Estadística (plan 02) de la Universidad de Costa Rica**,
 hechos por estudiantes y **puntuados por la comunidad**, para que quien llegue después vaya directo a los mejores.
 
-**👉 Ranking de apuntes:** https://chocolate-44.github.io/Repositorio-carrera-de-estadistica-UCR/
+**👉 Ranking de apuntes:** https://chocolate-44.github.io/Repositorio-de-estadistica-UCR/
 
 ## ¿Cómo participo?
 
