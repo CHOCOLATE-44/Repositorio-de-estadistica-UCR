@@ -3,6 +3,8 @@ name: Procesar voto
 on:
   issues:
     types: [opened, edited, reopened, labeled, unlabeled]
+  issue_comment:
+    types: [created]   # quien votó puede responder con su nueva justificación
   workflow_dispatch:
     inputs:
       issue:
@@ -25,6 +27,10 @@ jobs:
     # mantenedor anule (o reactive) un voto con la etiqueta «voto-anulado».
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && github.event.comment.user.type != 'Bot' &&
+       github.event.comment.user.login == github.event.issue.user.login &&
+       !startsWith(github.event.comment.body, '/') &&
+       (contains(github.event.issue.labels.*.name, 'voto') || startsWith(github.event.issue.title, 'Voto:'))) ||
       (contains(github.event.issue.labels.*.name, 'voto') || startsWith(github.event.issue.title, 'Voto:')) &&
       ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
        github.event.label.name == 'voto-anulado')
