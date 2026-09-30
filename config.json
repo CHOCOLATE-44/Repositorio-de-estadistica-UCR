@@ -1,0 +1,24 @@
+{
+  "votos": {
+    "min_caracteres_justificacion": 40,
+    "min_palabras_justificacion": 8,
+    "edad_minima_cuenta_dias": 0,
+    "permitir_autovoto": false,
+    "revisar_justificacion_con_gemini": true
+  },
+  "validacion": {
+    "gemini_modelo": "gemini-2.5-flash",
+    "usar_carta_estudiante": false,
+    "carpeta_cartas": "cartas",
+    "extensiones_permitidas": [".pdf", ".md"],
+    "tamano_maximo_mb": 50,
+    "min_caracteres_texto_directo": 300,
+    "max_paginas_ocr": 8,
+    "paginas_imagen_para_gemini": 3,
+    "umbral_heuristico": 5
+  },
+  "ranking": {
+    "votos_previos": 3,
+    "media_previa": 3.5
+  }
+}

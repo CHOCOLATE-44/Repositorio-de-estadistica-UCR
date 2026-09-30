@@ -1,0 +1,78 @@
+# Generado por scripts/generar_plantillas.py — no editar a mano.
+name: 📤 Subir un apunte
+description: Sube tu PDF sin usar Git. Un robot crea el Pull Request y valida el contenido.
+title: "Apunte: "
+labels: ["subir-apunte"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ¡Gracias por compartir! Completa el formulario y **arrastra tu PDF** al cuadro «Archivo».
+        Un proceso automático revisará que el contenido corresponda al curso y te avisará aquí.
+  - type: dropdown
+    id: curso
+    attributes:
+      label: Curso
+      options:
+        - "XS-0124 — Análisis exploratorio de datos"
+        - "MA-0155 — Cálculo diferencial e integral I"
+        - "MA-1004 — Álgebra lineal"
+        - "XS-1130 — Principios de inferencia estadística"
+        - "XS-0280 — Lógica para programación y demostraciones"
+        - "MA-1023 — Cálculo con optimización"
+        - "XS-0122 — Modelos probabilísticos I"
+        - "XS-0129 — Programación para estadística I"
+        - "XS-3150 — Diseño de experimentos"
+        - "LM-3039 — Inglés para Estadística I"
+        - "XS-0123 — Modelos probabilísticos II"
+        - "XS-0130 — Programación para estadística II"
+        - "XS-2130 — Modelos de regresión aplicados"
+        - "XS-3510 — Metodología de la investigación científica"
+        - "LM-3040 — Inglés para Estadística II"
+        - "XS-0125 — Modelos lineales avanzados"
+        - "XS-0133 — Introducción a la demografía y bioestadística"
+        - "XS-3110 — Diseños de muestreo probabilístico"
+        - "XS-3310 — Teoría estadística"
+        - "LM-3041 — Inglés para Estadística III"
+        - "XS-0126 — Minería de datos y análisis multivariado"
+        - "XS-0131 — Gestión de bases de datos y análisis de información"
+        - "XS-3130 — Diseño y ejecución de encuestas por muestreo"
+        - "XS-4050 — Técnicas de medición para Estadística"
+        - "LM-3042 — Inglés para Estadística IV"
+        - "XS-0128 — Inferencia bayesiana"
+        - "XS-0134 — Construcción de indicadores"
+        - "XS-4410 — Práctica profesional I"
+        - "XS-0127 — Análisis de series temporales"
+        - "XS-0132 — Métodos para ciencia de datos"
+        - "XS-4430 — Práctica profesional II"
+    validations:
+      required: true
+  - type: input
+    id: titulo
+    attributes:
+      label: Título
+      description: Corto y descriptivo. Ej. «Resumen completo parcial 1» o «Notas de clase I-2026».
+    validations:
+      required: true
+  - type: textarea
+    id: archivo
+    attributes:
+      label: Archivo
+      description: Arrastra aquí el PDF (máx. 50 MB). Espera a que termine de subir antes de enviar.
+      placeholder: Arrastra tu PDF aquí…
+    validations:
+      required: true
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Descripción
+      description: Opcional. Semestre, profesor(a), temas que cubre…
+  - type: checkboxes
+    id: confirmacion
+    attributes:
+      label: Confirmación
+      options:
+        - label: Este apunte es de mi autoría (o tengo permiso) y acepto que se publique en este repositorio público.
+          required: true
+        - label: No contiene exámenes o material que el profesor haya pedido no compartir.
+          required: true

@@ -1,0 +1,48 @@
+# Generado por scripts/generar_plantillas.py — no editar a mano.
+name: ⭐ Puntuar un apunte
+description: Da de 1 a 5 estrellas a un apunte y explica por qué.
+title: "Voto: "
+labels: ["voto"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lo más fácil es usar el botón **«Puntuar»** en la página del ranking: rellena el apunte por ti.
+        Cuenta un voto por persona y apunte (si votas de nuevo, vale el más reciente). Tu justificación será pública.
+  - type: input
+    id: apunte
+    attributes:
+      label: Apunte
+      description: Ruta del archivo en el repositorio (se rellena sola desde la página).
+      placeholder: apuntes/XS-2130-modelos-de-regresion-aplicados/mi-apunte.pdf
+    validations:
+      required: true
+  - type: dropdown
+    id: puntuacion
+    attributes:
+      label: Puntuación
+      options:
+        - "5 — Excelente"
+        - "4 — Muy bueno"
+        - "3 — Aceptable"
+        - "2 — Deficiente"
+        - "1 — Malo"
+    validations:
+      required: true
+  - type: textarea
+    id: justificacion
+    attributes:
+      label: Justificación
+      description: >-
+        Obligatoria. Explica tu puntuación con razones concretas (claridad, orden, temas que cubre,
+        errores, ejemplos, legibilidad…). Mínimo 8 palabras.
+        Los votos «por gusto» se rechazan.
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmacion
+    attributes:
+      label: Confirmación
+      options:
+        - label: Leí o usé este apunte y mi voto es honesto.
+          required: true

@@ -1,0 +1,52 @@
+name: Validar apuntes
+
+# pull_request_target permite comentar en PRs que vienen de forks. Por seguridad
+# se ejecuta el código de la rama principal y los archivos del PR se tratan
+# solo como datos (se descargan, nunca se ejecutan).
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths: ["apuntes/**"]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Número del Pull Request a validar
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: validar-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Instalar OCR (Tesseract) y poppler
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends tesseract-ocr tesseract-ocr-spa poppler-utils
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Validar contenido de los apuntes
+        env:
+          PR: ${{ github.event.pull_request.number || inputs.pr }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/validar_apunte.py --pr "$PR"

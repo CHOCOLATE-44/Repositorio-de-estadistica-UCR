@@ -1,0 +1,661 @@
+{
+  "_comentario": "Fuente única de verdad de los cursos. Plan 02 del Bachillerato en Estadística (UCR). Complete 'profesores' para mejorar la validación.",
+  "cursos": [
+    {
+      "sigla": "XS-0124",
+      "nombre": "Análisis exploratorio de datos",
+      "carpeta": "XS-0124-analisis-exploratorio-de-datos",
+      "ciclo": 1,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "estadística descriptiva",
+        "histograma",
+        "diagrama de caja",
+        "boxplot",
+        "media",
+        "mediana",
+        "varianza",
+        "desviación estándar",
+        "cuartiles",
+        "percentiles",
+        "tablas de frecuencia",
+        "gráficos",
+        "datos atípicos",
+        "correlación",
+        "R"
+      ]
+    },
+    {
+      "sigla": "MA-0155",
+      "nombre": "Cálculo diferencial e integral I",
+      "carpeta": "MA-0155-calculo-diferencial-e-integral-1",
+      "ciclo": 2,
+      "siglas_equivalentes": [
+        "MA-1021",
+        "CA-0151"
+      ],
+      "profesores": [],
+      "temas": [
+        "límite",
+        "continuidad",
+        "derivada",
+        "regla de la cadena",
+        "integral",
+        "antiderivada",
+        "teorema fundamental del cálculo",
+        "integración por partes",
+        "sustitución",
+        "máximos y mínimos",
+        "regla de L'Hôpital"
+      ]
+    },
+    {
+      "sigla": "MA-1004",
+      "nombre": "Álgebra lineal",
+      "carpeta": "MA-1004-algebra-lineal",
+      "ciclo": 2,
+      "siglas_equivalentes": [
+        "CA-0252"
+      ],
+      "profesores": [],
+      "temas": [
+        "matriz",
+        "determinante",
+        "sistema de ecuaciones",
+        "eliminación gaussiana",
+        "espacio vectorial",
+        "base",
+        "dimensión",
+        "transformación lineal",
+        "valores propios",
+        "vectores propios",
+        "diagonalización",
+        "ortogonalidad",
+        "producto interno"
+      ]
+    },
+    {
+      "sigla": "XS-1130",
+      "nombre": "Principios de inferencia estadística",
+      "carpeta": "XS-1130-principios-de-inferencia-estadistica",
+      "ciclo": 2,
+      "siglas_equivalentes": [
+        "XS-1110"
+      ],
+      "profesores": [],
+      "temas": [
+        "muestra",
+        "población",
+        "distribución muestral",
+        "intervalo de confianza",
+        "prueba de hipótesis",
+        "valor p",
+        "error tipo I",
+        "error tipo II",
+        "teorema del límite central",
+        "estimador",
+        "distribución normal",
+        "distribución t",
+        "ji-cuadrado"
+      ]
+    },
+    {
+      "sigla": "XS-0280",
+      "nombre": "Lógica para programación y demostraciones",
+      "carpeta": "XS-0280-logica-para-programacion-y-demostraciones",
+      "ciclo": 3,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "lógica proposicional",
+        "tabla de verdad",
+        "cuantificadores",
+        "demostración",
+        "inducción matemática",
+        "contraposición",
+        "reducción al absurdo",
+        "conjuntos",
+        "algoritmo",
+        "pseudocódigo"
+      ]
+    },
+    {
+      "sigla": "MA-1023",
+      "nombre": "Cálculo con optimización",
+      "carpeta": "MA-1023-calculo-con-optimizacion",
+      "ciclo": 4,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "derivadas parciales",
+        "gradiente",
+        "matriz hessiana",
+        "multiplicadores de Lagrange",
+        "optimización",
+        "puntos críticos",
+        "integrales dobles",
+        "integrales múltiples",
+        "convexidad",
+        "series"
+      ]
+    },
+    {
+      "sigla": "XS-0122",
+      "nombre": "Modelos probabilísticos I",
+      "carpeta": "XS-0122-modelos-probabilisticos-1",
+      "ciclo": 4,
+      "siglas_equivalentes": [
+        "XS-2310"
+      ],
+      "profesores": [],
+      "temas": [
+        "probabilidad",
+        "variable aleatoria",
+        "función de densidad",
+        "función de distribución",
+        "esperanza",
+        "varianza",
+        "distribución binomial",
+        "distribución de Poisson",
+        "distribución exponencial",
+        "distribución normal",
+        "función generadora de momentos",
+        "probabilidad condicional",
+        "teorema de Bayes"
+      ]
+    },
+    {
+      "sigla": "XS-0129",
+      "nombre": "Programación para estadística I",
+      "carpeta": "XS-0129-programacion-para-estadistica-1",
+      "ciclo": 4,
+      "siglas_equivalentes": [
+        "XS-2210"
+      ],
+      "profesores": [],
+      "temas": [
+        "R",
+        "RStudio",
+        "vector",
+        "data frame",
+        "función",
+        "bucle",
+        "for",
+        "if",
+        "tidyverse",
+        "dplyr",
+        "ggplot2",
+        "importar datos"
+      ]
+    },
+    {
+      "sigla": "XS-3150",
+      "nombre": "Diseño de experimentos",
+      "carpeta": "XS-3150-diseno-de-experimentos",
+      "ciclo": 4,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "diseño de experimentos",
+        "ANOVA",
+        "análisis de varianza",
+        "tratamiento",
+        "bloques",
+        "bloques aleatorizados",
+        "diseño factorial",
+        "interacción",
+        "cuadrado latino",
+        "comparaciones múltiples",
+        "Tukey",
+        "unidad experimental",
+        "aleatorización",
+        "réplica"
+      ]
+    },
+    {
+      "sigla": "LM-3039",
+      "nombre": "Inglés para Estadística I",
+      "carpeta": "LM-3039-ingles-para-estadistica-1",
+      "ciclo": 5,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "English",
+        "reading",
+        "vocabulary",
+        "grammar",
+        "statistics",
+        "listening"
+      ]
+    },
+    {
+      "sigla": "XS-0123",
+      "nombre": "Modelos probabilísticos II",
+      "carpeta": "XS-0123-modelos-probabilisticos-2",
+      "ciclo": 5,
+      "siglas_equivalentes": [
+        "XS-2330"
+      ],
+      "profesores": [],
+      "temas": [
+        "distribución conjunta",
+        "distribución marginal",
+        "distribución condicional",
+        "covarianza",
+        "transformaciones de variables",
+        "estadísticos de orden",
+        "convergencia en distribución",
+        "convergencia en probabilidad",
+        "ley de los grandes números",
+        "teorema del límite central",
+        "normal multivariada"
+      ]
+    },
+    {
+      "sigla": "XS-0130",
+      "nombre": "Programación para estadística II",
+      "carpeta": "XS-0130-programacion-para-estadistica-2",
+      "ciclo": 5,
+      "siglas_equivalentes": [
+        "XS-2230"
+      ],
+      "profesores": [],
+      "temas": [
+        "R",
+        "Python",
+        "funciones",
+        "programación funcional",
+        "simulación",
+        "depuración",
+        "paquetes",
+        "Shiny",
+        "R Markdown",
+        "Quarto",
+        "Git",
+        "eficiencia"
+      ]
+    },
+    {
+      "sigla": "XS-2130",
+      "nombre": "Modelos de regresión aplicados",
+      "carpeta": "XS-2130-modelos-de-regresion-aplicados",
+      "ciclo": 5,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "regresión lineal",
+        "mínimos cuadrados",
+        "regresión múltiple",
+        "coeficiente de determinación",
+        "R cuadrado",
+        "residuos",
+        "multicolinealidad",
+        "heterocedasticidad",
+        "variables indicadoras",
+        "selección de variables",
+        "diagnóstico",
+        "intervalo de predicción",
+        "interacción"
+      ]
+    },
+    {
+      "sigla": "XS-3510",
+      "nombre": "Metodología de la investigación científica",
+      "carpeta": "XS-3510-metodologia-de-la-investigacion-cientifica",
+      "ciclo": 5,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "método científico",
+        "problema de investigación",
+        "hipótesis",
+        "marco teórico",
+        "objetivos",
+        "variables",
+        "diseño de investigación",
+        "revisión bibliográfica",
+        "protocolo",
+        "citas",
+        "APA"
+      ]
+    },
+    {
+      "sigla": "LM-3040",
+      "nombre": "Inglés para Estadística II",
+      "carpeta": "LM-3040-ingles-para-estadistica-2",
+      "ciclo": 6,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "English",
+        "reading",
+        "writing",
+        "vocabulary",
+        "grammar",
+        "statistics"
+      ]
+    },
+    {
+      "sigla": "XS-0125",
+      "nombre": "Modelos lineales avanzados",
+      "carpeta": "XS-0125-modelos-lineales-avanzados",
+      "ciclo": 6,
+      "siglas_equivalentes": [
+        "XS-3170"
+      ],
+      "profesores": [],
+      "temas": [
+        "modelos lineales generalizados",
+        "regresión logística",
+        "regresión de Poisson",
+        "función de enlace",
+        "máxima verosimilitud",
+        "devianza",
+        "modelos mixtos",
+        "efectos aleatorios",
+        "sobredispersión"
+      ]
+    },
+    {
+      "sigla": "XS-0133",
+      "nombre": "Introducción a la demografía y bioestadística",
+      "carpeta": "XS-0133-introduccion-a-la-demografia-y-bioestadistica",
+      "ciclo": 6,
+      "siglas_equivalentes": [
+        "XS-3010"
+      ],
+      "profesores": [],
+      "temas": [
+        "demografía",
+        "tasa de natalidad",
+        "tasa de mortalidad",
+        "fecundidad",
+        "tabla de vida",
+        "esperanza de vida",
+        "pirámide de población",
+        "bioestadística",
+        "riesgo relativo",
+        "razón de odds",
+        "incidencia",
+        "prevalencia",
+        "supervivencia"
+      ]
+    },
+    {
+      "sigla": "XS-3110",
+      "nombre": "Diseños de muestreo probabilístico",
+      "carpeta": "XS-3110-disenos-de-muestreo-probabilistico",
+      "ciclo": 6,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "muestreo",
+        "muestreo aleatorio simple",
+        "muestreo estratificado",
+        "muestreo por conglomerados",
+        "muestreo sistemático",
+        "tamaño de muestra",
+        "factor de expansión",
+        "estimador de Horvitz-Thompson",
+        "efecto de diseño",
+        "marco muestral",
+        "error de muestreo"
+      ]
+    },
+    {
+      "sigla": "XS-3310",
+      "nombre": "Teoría estadística",
+      "carpeta": "XS-3310-teoria-estadistica",
+      "ciclo": 6,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "estimación puntual",
+        "máxima verosimilitud",
+        "método de momentos",
+        "suficiencia",
+        "completitud",
+        "insesgado",
+        "Cramér-Rao",
+        "información de Fisher",
+        "Neyman-Pearson",
+        "razón de verosimilitudes",
+        "UMVUE",
+        "consistencia"
+      ]
+    },
+    {
+      "sigla": "LM-3041",
+      "nombre": "Inglés para Estadística III",
+      "carpeta": "LM-3041-ingles-para-estadistica-3",
+      "ciclo": 7,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "English",
+        "reading",
+        "writing",
+        "presentation",
+        "statistics"
+      ]
+    },
+    {
+      "sigla": "XS-0126",
+      "nombre": "Minería de datos y análisis multivariado",
+      "carpeta": "XS-0126-mineria-de-datos-y-analisis-multivariado",
+      "ciclo": 7,
+      "siglas_equivalentes": [
+        "XS-4110"
+      ],
+      "profesores": [],
+      "temas": [
+        "análisis de componentes principales",
+        "análisis factorial",
+        "análisis de conglomerados",
+        "clustering",
+        "k-medias",
+        "análisis discriminante",
+        "árboles de decisión",
+        "validación cruzada",
+        "clasificación",
+        "distancia",
+        "multivariado"
+      ]
+    },
+    {
+      "sigla": "XS-0131",
+      "nombre": "Gestión de bases de datos y análisis de información",
+      "carpeta": "XS-0131-gestion-de-bases-de-datos-y-analisis-de-informacion",
+      "ciclo": 7,
+      "siglas_equivalentes": [
+        "XS-3210"
+      ],
+      "profesores": [],
+      "temas": [
+        "base de datos",
+        "SQL",
+        "SELECT",
+        "JOIN",
+        "modelo relacional",
+        "tabla",
+        "llave primaria",
+        "normalización",
+        "consultas",
+        "entidad-relación"
+      ]
+    },
+    {
+      "sigla": "XS-3130",
+      "nombre": "Diseño y ejecución de encuestas por muestreo",
+      "carpeta": "XS-3130-diseno-y-ejecucion-de-encuestas-por-muestreo",
+      "ciclo": 7,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "encuesta",
+        "cuestionario",
+        "trabajo de campo",
+        "no respuesta",
+        "ponderación",
+        "calibración",
+        "muestreo",
+        "marco muestral",
+        "entrevista",
+        "diseño muestral"
+      ]
+    },
+    {
+      "sigla": "XS-4050",
+      "nombre": "Técnicas de medición para Estadística",
+      "carpeta": "XS-4050-tecnicas-de-medicion-para-estadistica",
+      "ciclo": 7,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "medición",
+        "escala",
+        "confiabilidad",
+        "validez",
+        "alfa de Cronbach",
+        "ítems",
+        "teoría de respuesta al ítem",
+        "análisis factorial confirmatorio",
+        "constructo",
+        "Likert"
+      ]
+    },
+    {
+      "sigla": "LM-3042",
+      "nombre": "Inglés para Estadística IV",
+      "carpeta": "LM-3042-ingles-para-estadistica-4",
+      "ciclo": 8,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "English",
+        "writing",
+        "presentation",
+        "statistics",
+        "report"
+      ]
+    },
+    {
+      "sigla": "XS-0128",
+      "nombre": "Inferencia bayesiana",
+      "carpeta": "XS-0128-inferencia-bayesiana",
+      "ciclo": 8,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "teorema de Bayes",
+        "distribución a priori",
+        "distribución a posteriori",
+        "verosimilitud",
+        "conjugada",
+        "MCMC",
+        "Gibbs",
+        "Metropolis-Hastings",
+        "intervalo de credibilidad",
+        "factor de Bayes",
+        "Stan"
+      ]
+    },
+    {
+      "sigla": "XS-0134",
+      "nombre": "Construcción de indicadores",
+      "carpeta": "XS-0134-construccion-de-indicadores",
+      "ciclo": 8,
+      "siglas_equivalentes": [
+        "XS-4010"
+      ],
+      "profesores": [],
+      "temas": [
+        "indicador",
+        "índice",
+        "ponderación",
+        "normalización",
+        "números índice",
+        "índice compuesto",
+        "Laspeyres",
+        "Paasche",
+        "dimensiones",
+        "agregación"
+      ]
+    },
+    {
+      "sigla": "XS-4410",
+      "nombre": "Práctica profesional I",
+      "carpeta": "XS-4410-practica-profesional-1",
+      "ciclo": 8,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "práctica profesional",
+        "informe",
+        "consultoría",
+        "cliente",
+        "análisis de datos",
+        "propuesta"
+      ]
+    },
+    {
+      "sigla": "XS-0127",
+      "nombre": "Análisis de series temporales",
+      "carpeta": "XS-0127-analisis-de-series-temporales",
+      "ciclo": 9,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "serie de tiempo",
+        "serie temporal",
+        "tendencia",
+        "estacionalidad",
+        "autocorrelación",
+        "ARIMA",
+        "estacionariedad",
+        "suavizamiento exponencial",
+        "pronóstico",
+        "Box-Jenkins",
+        "SARIMA",
+        "ruido blanco"
+      ]
+    },
+    {
+      "sigla": "XS-0132",
+      "nombre": "Métodos para ciencia de datos",
+      "carpeta": "XS-0132-metodos-para-ciencia-de-datos",
+      "ciclo": 9,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "aprendizaje automático",
+        "machine learning",
+        "random forest",
+        "boosting",
+        "redes neuronales",
+        "regularización",
+        "lasso",
+        "ridge",
+        "validación cruzada",
+        "sobreajuste",
+        "máquinas de soporte vectorial"
+      ]
+    },
+    {
+      "sigla": "XS-4430",
+      "nombre": "Práctica profesional II",
+      "carpeta": "XS-4430-practica-profesional-2",
+      "ciclo": 9,
+      "siglas_equivalentes": [],
+      "profesores": [],
+      "temas": [
+        "práctica profesional",
+        "informe final",
+        "consultoría",
+        "cliente",
+        "análisis de datos"
+      ]
+    }
+  ]
+}

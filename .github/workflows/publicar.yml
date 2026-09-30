@@ -1,0 +1,54 @@
+name: Publicar ranking (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+    paths: ["apuntes/**", "sitio/**", "scripts/**", "cursos.json", "config.json", ".github/workflows/publicar.yml"]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * *"   # una vez al día, por si algún evento se perdió
+
+permissions:
+  contents: read
+  issues: read
+  pages: write
+  id-token: write
+
+# Cada ejecución recalcula todo desde cero, así que basta con la más reciente.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # fechas y autores de cada apunte salen del historial de git
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generar sitio y puntuaciones
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RAMA_PRINCIPAL: ${{ github.ref_name }}
+        run: python scripts/construir_sitio.py
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  desplegar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

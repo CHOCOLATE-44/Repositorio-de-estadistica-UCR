@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apuntes de Estadística UCR</title>
+  <meta name="description" content="Apuntes de la carrera de Estadística de la UCR, puntuados por la comunidad.">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="contenedor">
+      <h1>Repositorio carrera de Estadística UCR</h1>
+      <p class="sub">Apuntes hechos por estudiantes, puntuados por estudiantes. Ve directo a los mejores.</p>
+      <nav class="acciones">
+        <a class="boton primario" id="btn-subir" href="#">Subir un apunte</a>
+        <a class="boton" id="btn-repo" href="#">Ver en GitHub</a>
+        <a class="boton" href="#como-funciona">¿Cómo funciona?</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <section class="filtros" aria-label="Filtros">
+      <label>Buscar
+        <input type="search" id="f-texto" placeholder="Título, autor, tema…">
+      </label>
+      <label>Curso
+        <select id="f-curso"><option value="">Todos los cursos</option></select>
+      </label>
+      <label>Puntuación
+        <select id="f-min">
+          <option value="0">Cualquiera</option>
+          <option value="4.5">4.5 ★ o más</option>
+          <option value="4">4 ★ o más</option>
+          <option value="3">3 ★ o más</option>
+          <option value="-1">Sin votos todavía</option>
+        </select>
+      </label>
+      <label>Subido desde
+        <input type="date" id="f-fecha">
+      </label>
+      <label>Ordenar por
+        <select id="f-orden">
+          <option value="ranking">Mejor puntuados</option>
+          <option value="votos">Más votados</option>
+          <option value="fecha">Más recientes</option>
+        </select>
+      </label>
+    </section>
+
+    <p id="resumen" class="resumen" aria-live="polite">Cargando…</p>
+    <div id="resultados"></div>
+
+    <section id="como-funciona" class="info">
+      <h2>¿Cómo funciona?</h2>
+      <ol>
+        <li><strong>Leer:</strong> abre cualquier apunte con «Abrir». No necesitas cuenta.</li>
+        <li><strong>Puntuar:</strong> pulsa «Puntuar», elige de 1 a 5 estrellas y <em>explica por qué</em>.
+          Necesitas una cuenta gratuita de GitHub (no necesitas saber Git). Se cuenta un voto por persona y apunte;
+          si votas otra vez, vale el más reciente. Las justificaciones son públicas.</li>
+        <li><strong>Subir:</strong> pulsa «Subir un apunte», elige el curso y arrastra tu PDF. Un robot revisa que el
+          contenido sea del curso y, si todo está bien, el mantenedor lo publica.</li>
+      </ol>
+      <p class="nota">El orden «Mejor puntuados» usa un promedio bayesiano: un apunte con 1 voto de 5★ no supera
+        a uno con 30 votos de 4.8★. Se muestra siempre el promedio real y el número de votos.</p>
+      <p class="nota" id="generado"></p>
+    </section>
+  </main>
+
+  <template id="tpl-apunte">
+    <article class="apunte">
+      <div class="apunte-principal">
+        <h3 class="titulo"></h3>
+        <p class="meta"><span class="sigla"></span> · <span class="autor"></span> · <span class="fecha"></span> · <span class="formato"></span></p>
+      </div>
+      <div class="puntaje">
+        <span class="estrellas" aria-hidden="true"></span>
+        <span class="valor"></span>
+      </div>
+      <div class="botones">
+        <a class="boton primario abrir" target="_blank" rel="noopener">Abrir</a>
+        <a class="boton puntuar" target="_blank" rel="noopener">Puntuar</a>
+      </div>
+      <details class="opiniones">
+        <summary></summary>
+        <ul></ul>
+      </details>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

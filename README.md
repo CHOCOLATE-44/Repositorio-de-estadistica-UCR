@@ -1,0 +1,65 @@
+# Repositorio carrera de Estadística UCR
+
+Apuntes de los cursos del **Bachillerato en Estadística (plan 02) de la Universidad de Costa Rica**,
+hechos por estudiantes y **puntuados por la comunidad**, para que quien llegue después vaya directo a los mejores.
+
+**👉 Ranking de apuntes:** https://chocolate-44.github.io/Repositorio-carrera-de-estadistica-UCR/
+
+## ¿Cómo participo?
+
+| Quiero… | ¿Necesito Git? | Cómo |
+|---|---|---|
+| **Leer** apuntes | No, ni cuenta | Abre el ranking y pulsa «Abrir». |
+| **Puntuar** un apunte | No (solo cuenta gratis de GitHub) | Pulsa «Puntuar», elige 1–5 ★ y **explica por qué** (obligatorio). |
+| **Subir** un apunte | No | Pulsa «Subir un apunte», elige el curso y arrastra tu PDF. |
+| Subir por Pull Request | Sí | Ver [CONTRIBUIR.md](CONTRIBUIR.md). |
+
+Cada apunte que se sube pasa por una **validación automática** que comprueba que su contenido
+corresponde al curso de la carpeta (extracción de texto → OCR si es escaneado o a mano → Gemini de Google).
+
+## Estructura
+
+```
+apuntes/
+  XS-0124-analisis-exploratorio-de-datos/
+  XS-2130-modelos-de-regresion-aplicados/
+  XS-3150-diseno-de-experimentos/
+  …                         ← una carpeta por curso (31), creadas desde cursos.json
+cursos.json                 ← catálogo de cursos: sigla, nombre, temas, profesores
+config.json                 ← reglas de votos, validación y ranking
+cartas/                     ← cartas al estudiante (validación opcional, desactivada)
+sitio/                      ← página del ranking (HTML/JS sin dependencias)
+scripts/                    ← validación de apuntes y votos, construcción del sitio
+.github/ISSUE_TEMPLATE/     ← formularios «Puntuar» y «Subir un apunte»
+.github/workflows/          ← automatizaciones
+docs/                       ← decisiones de diseño y guía del mantenedor
+```
+
+## Cursos incluidos
+Todos los cursos propios del plan 02 (XS), las matemáticas del plan (MA-0155, MA-1004, MA-1023)
+e Inglés para Estadística (LM-3039 a LM-3042). No se incluyen Precálculo, cursos de formación
+general (humanidades, arte, deporte, repertorio, seminarios de realidad nacional) ni optativos.
+
+## Cómo funciona por dentro
+
+```
+ Subir apunte ──► PR ──► [Validar apuntes] texto PDF → OCR Tesseract → Gemini ──► comentario en el PR
+                                                                        │
+                                                         mantenedor hace merge
+                                                                        ▼
+ Puntuar ──► issue «voto» ──► [Procesar voto] valida y cierra ──► [Publicar] recalcula ranking ──► GitHub Pages
+```
+
+- Votos: un issue por voto (formulario). Un voto por cuenta y apunte; vale el más reciente.
+  El ranking se **recalcula desde cero** en cada publicación → sin conflictos ni votos perdidos.
+  Por qué esta opción y no Supabase/Firebase/Discussions: [docs/decision-votos.md](docs/decision-votos.md).
+- Ranking: promedio bayesiano para que pocos votos no dominen; se muestra el promedio real.
+- Datos públicos: `…/data/puntuaciones.json` en el sitio.
+
+## Mantenimiento
+Guía de puesta en marcha y tareas habituales: [docs/configuracion.md](docs/configuracion.md).
+Próxima fase (preguntas en lenguaje natural): [docs/fase-4-consultas.md](docs/fase-4-consultas.md).
+
+## Licencia de los apuntes
+Cada apunte pertenece a su autor(a). Al subirlo, aceptas que se publique aquí para uso educativo.
+No subas exámenes ni material que el profesorado haya pedido no compartir.
