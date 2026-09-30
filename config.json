@@ -7,7 +7,7 @@
     "revisar_justificacion_con_gemini": true
   },
   "validacion": {
-    "gemini_modelo": "gemini-2.5-flash",
+    "gemini_modelo": "gemini-3.8-flash",
     "usar_carta_estudiante": false,
     "carpeta_cartas": "cartas",
     "extensiones_permitidas": [".pdf", ".md"],
