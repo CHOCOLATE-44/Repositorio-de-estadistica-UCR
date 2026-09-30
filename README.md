@@ -3,7 +3,7 @@
 Apuntes de los cursos del **Bachillerato en Estadística (plan 02) de la Universidad de Costa Rica**,
 hechos por estudiantes y **puntuados por la comunidad**, para que quien llegue después vaya directo a los mejores.
 
-**👉 Ranking de apuntes:** https://chocolate-44.github.io/Repositorio-carrera-de-estadistica-UCR/
+**👉 Ranking de apuntes:** https://chocolate-44.github.io/Repositorio-de-estadistica-UCR/
 
 ## ¿Cómo participo?
 
@@ -25,7 +25,7 @@ apuntes/
   XS-2130-modelos-de-regresion-aplicados/
   XS-3150-diseno-de-experimentos/
   …                         ← una carpeta por curso (31), creadas desde cursos.json
-cursos.json                 ← catálogo de cursos: sigla, nombre, temas, profesores
+cursos.json                 ← catálogo de cursos: sigla, nombre y temas
 config.json                 ← reglas de votos, validación y ranking
 cartas/                     ← cartas al estudiante (validación opcional, desactivada)
 sitio/                      ← página del ranking (HTML/JS sin dependencias)

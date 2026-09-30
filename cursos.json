@@ -1,5 +1,5 @@
 {
-  "_comentario": "Fuente única de verdad de los cursos. Plan 02 del Bachillerato en Estadística (UCR). Complete 'profesores' para mejorar la validación.",
+  "_comentario": "Fuente única de verdad de los cursos. Plan 02 del Bachillerato en Estadística (UCR).",
   "cursos": [
     {
       "sigla": "XS-0124",
@@ -7,7 +7,6 @@
       "carpeta": "XS-0124-analisis-exploratorio-de-datos",
       "ciclo": 1,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "estadística descriptiva",
         "histograma",
@@ -35,7 +34,6 @@
         "MA-1021",
         "CA-0151"
       ],
-      "profesores": [],
       "temas": [
         "límite",
         "continuidad",
@@ -58,7 +56,6 @@
       "siglas_equivalentes": [
         "CA-0252"
       ],
-      "profesores": [],
       "temas": [
         "matriz",
         "determinante",
@@ -83,7 +80,6 @@
       "siglas_equivalentes": [
         "XS-1110"
       ],
-      "profesores": [],
       "temas": [
         "muestra",
         "población",
@@ -106,7 +102,6 @@
       "carpeta": "XS-0280-logica-para-programacion-y-demostraciones",
       "ciclo": 3,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "lógica proposicional",
         "tabla de verdad",
@@ -126,7 +121,6 @@
       "carpeta": "MA-1023-calculo-con-optimizacion",
       "ciclo": 4,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "derivadas parciales",
         "gradiente",
@@ -148,7 +142,6 @@
       "siglas_equivalentes": [
         "XS-2310"
       ],
-      "profesores": [],
       "temas": [
         "probabilidad",
         "variable aleatoria",
@@ -173,7 +166,6 @@
       "siglas_equivalentes": [
         "XS-2210"
       ],
-      "profesores": [],
       "temas": [
         "R",
         "RStudio",
@@ -195,7 +187,6 @@
       "carpeta": "XS-3150-diseno-de-experimentos",
       "ciclo": 4,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "diseño de experimentos",
         "ANOVA",
@@ -219,7 +210,6 @@
       "carpeta": "LM-3039-ingles-para-estadistica-1",
       "ciclo": 5,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "English",
         "reading",
@@ -237,7 +227,6 @@
       "siglas_equivalentes": [
         "XS-2330"
       ],
-      "profesores": [],
       "temas": [
         "distribución conjunta",
         "distribución marginal",
@@ -260,7 +249,6 @@
       "siglas_equivalentes": [
         "XS-2230"
       ],
-      "profesores": [],
       "temas": [
         "R",
         "Python",
@@ -282,7 +270,6 @@
       "carpeta": "XS-2130-modelos-de-regresion-aplicados",
       "ciclo": 5,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "regresión lineal",
         "mínimos cuadrados",
@@ -305,7 +292,6 @@
       "carpeta": "XS-3510-metodologia-de-la-investigacion-cientifica",
       "ciclo": 5,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "método científico",
         "problema de investigación",
@@ -326,7 +312,6 @@
       "carpeta": "LM-3040-ingles-para-estadistica-2",
       "ciclo": 6,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "English",
         "reading",
@@ -344,7 +329,6 @@
       "siglas_equivalentes": [
         "XS-3170"
       ],
-      "profesores": [],
       "temas": [
         "modelos lineales generalizados",
         "regresión logística",
@@ -365,7 +349,6 @@
       "siglas_equivalentes": [
         "XS-3010"
       ],
-      "profesores": [],
       "temas": [
         "demografía",
         "tasa de natalidad",
@@ -388,7 +371,6 @@
       "carpeta": "XS-3110-disenos-de-muestreo-probabilistico",
       "ciclo": 6,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "muestreo",
         "muestreo aleatorio simple",
@@ -409,7 +391,6 @@
       "carpeta": "XS-3310-teoria-estadistica",
       "ciclo": 6,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "estimación puntual",
         "máxima verosimilitud",
@@ -431,7 +412,6 @@
       "carpeta": "LM-3041-ingles-para-estadistica-3",
       "ciclo": 7,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "English",
         "reading",
@@ -448,7 +428,6 @@
       "siglas_equivalentes": [
         "XS-4110"
       ],
-      "profesores": [],
       "temas": [
         "análisis de componentes principales",
         "análisis factorial",
@@ -471,7 +450,6 @@
       "siglas_equivalentes": [
         "XS-3210"
       ],
-      "profesores": [],
       "temas": [
         "base de datos",
         "SQL",
@@ -491,7 +469,6 @@
       "carpeta": "XS-3130-diseno-y-ejecucion-de-encuestas-por-muestreo",
       "ciclo": 7,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "encuesta",
         "cuestionario",
@@ -511,7 +488,6 @@
       "carpeta": "XS-4050-tecnicas-de-medicion-para-estadistica",
       "ciclo": 7,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "medición",
         "escala",
@@ -531,7 +507,6 @@
       "carpeta": "LM-3042-ingles-para-estadistica-4",
       "ciclo": 8,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "English",
         "writing",
@@ -546,7 +521,6 @@
       "carpeta": "XS-0128-inferencia-bayesiana",
       "ciclo": 8,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "teorema de Bayes",
         "distribución a priori",
@@ -569,7 +543,6 @@
       "siglas_equivalentes": [
         "XS-4010"
       ],
-      "profesores": [],
       "temas": [
         "indicador",
         "índice",
@@ -589,7 +562,6 @@
       "carpeta": "XS-4410-practica-profesional-1",
       "ciclo": 8,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "práctica profesional",
         "informe",
@@ -605,7 +577,6 @@
       "carpeta": "XS-0127-analisis-de-series-temporales",
       "ciclo": 9,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "serie de tiempo",
         "serie temporal",
@@ -627,7 +598,6 @@
       "carpeta": "XS-0132-metodos-para-ciencia-de-datos",
       "ciclo": 9,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "aprendizaje automático",
         "machine learning",
@@ -648,7 +618,6 @@
       "carpeta": "XS-4430-practica-profesional-2",
       "ciclo": 9,
       "siglas_equivalentes": [],
-      "profesores": [],
       "temas": [
         "práctica profesional",
         "informe final",
