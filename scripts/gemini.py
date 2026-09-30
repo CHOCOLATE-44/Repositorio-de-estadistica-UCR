@@ -25,27 +25,44 @@ def disponible() -> bool:
     return bool(os.environ.get("GEMINI_API_KEY"))
 
 
-def elegir_modelo_flash(clave: str) -> str | None:
-    """Si el modelo configurado fue retirado, busca el «flash» estable más nuevo
-    que admita generateContent. Así el proyecto sigue funcionando sin tocar nada."""
+def elegir_modelo_flash(clave: str, excluir: set[str] = frozenset(), permitir_lite: bool = False) -> str | None:
+    """Busca el modelo «flash» estable más nuevo que admita generateContent.
+    Se usa si el modelo configurado fue retirado (404) o está saturado (503/429)."""
     req = urllib.request.Request(f"{BASE}/models?pageSize=200")
     req.add_header("x-goog-api-key", clave)
     with urllib.request.urlopen(req, timeout=60) as r:
         modelos = json.loads(r.read()).get("models", [])
+    patron = r"gemini-(\d+(?:\.\d+)?)-flash" + ("(?:-lite)?" if permitir_lite else "")
     candidatos = []
     for m in modelos:
         nombre = m.get("name", "").removeprefix("models/")
-        if "generateContent" not in m.get("supportedGenerationMethods", []):
+        if nombre in excluir or "generateContent" not in m.get("supportedGenerationMethods", []):
             continue
-        if not re.fullmatch(r"gemini-(\d+(?:\.\d+)?)-flash", nombre):
-            continue  # descarta lite, preview, image, tts, live, etc.
-        candidatos.append((float(nombre.split("-")[1]), nombre))
-    return max(candidatos)[1] if candidatos else None
+        if not re.fullmatch(patron, nombre):
+            continue  # descarta preview, image, tts, live, etc.
+        # Preferimos versión más nueva y, a igual versión, el flash completo sobre el lite.
+        candidatos.append((float(nombre.split("-")[1]), not nombre.endswith("-lite"), nombre))
+    return max(candidatos)[2] if candidatos else None
 
 
-def preguntar_json(prompt: str, modelo: str, imagenes: list[Path] = (), intentos: int = 3) -> dict:
+def _cambiar_modelo(clave: str, actual: str, motivo: str, permitir_lite: bool) -> str | None:
+    global _modelo_alternativo
+    try:
+        nuevo = elegir_modelo_flash(clave, excluir={actual}, permitir_lite=permitir_lite)
+    except Exception as e:
+        print(f"Aviso: no se pudo listar modelos de Gemini: {e}")
+        return None
+    if nuevo:
+        print(f"Aviso: {actual} {motivo}; se usa {nuevo}.")
+        _modelo_alternativo = nuevo
+    return nuevo
+
+
+def preguntar_json(prompt: str, modelo: str, imagenes: list[Path] = (), intentos: int = 6) -> dict:
     """Envía el prompt (y opcionalmente imágenes JPEG) y devuelve la respuesta
-    como JSON. Lanza RuntimeError si no hay clave o la API falla."""
+    como JSON. Reintenta con espera creciente si Google está saturado y, si el
+    modelo sigue sin responder, cambia a otro modelo flash. Lanza RuntimeError
+    si no hay clave o la API falla."""
     clave = os.environ.get("GEMINI_API_KEY")
     if not clave:
         raise RuntimeError("Falta GEMINI_API_KEY")
@@ -59,8 +76,8 @@ def preguntar_json(prompt: str, modelo: str, imagenes: list[Path] = (), intentos
         "generationConfig": {"temperature": 0, "responseMimeType": "application/json"},
     }).encode()
 
-    global _modelo_alternativo
     modelo = _modelo_alternativo or modelo
+    cambiado = False
     ultimo_error = None
     for intento in range(intentos):
         req = urllib.request.Request(URL.format(modelo=modelo), data=cuerpo, method="POST")
@@ -72,17 +89,21 @@ def preguntar_json(prompt: str, modelo: str, imagenes: list[Path] = (), intentos
             texto = datos["candidates"][0]["content"]["parts"][0]["text"]
             return json.loads(texto)
         except urllib.error.HTTPError as e:
-            ultimo_error = f"HTTP {e.code}: {e.read()[:300]!r}"
-            if e.code == 404 and not _modelo_alternativo:
-                nuevo = elegir_modelo_flash(clave)
-                if nuevo and nuevo != modelo:
-                    print(f"Aviso: el modelo {modelo} no está disponible; se usa {nuevo}. "
-                          "Actualiza config.json → validacion.gemini_modelo.")
-                    _modelo_alternativo = modelo = nuevo
+            ultimo_error = f"{modelo} → HTTP {e.code}: {e.read()[:300]!r}"
+            if e.code == 404 and not cambiado:
+                nuevo = _cambiar_modelo(clave, modelo, "no está disponible (actualiza config.json)", False)
+                if nuevo:
+                    modelo, cambiado = nuevo, True
                     continue
             if e.code not in (429, 500, 502, 503, 504):
                 break
+            # Saturado: a mitad de los intentos probamos con otro modelo flash (incluso lite).
+            if intento == intentos // 2 - 1 and not cambiado:
+                nuevo = _cambiar_modelo(clave, modelo, f"está saturado (HTTP {e.code})", True)
+                if nuevo:
+                    modelo, cambiado = nuevo, True
         except (KeyError, IndexError, json.JSONDecodeError, urllib.error.URLError, TimeoutError) as e:
-            ultimo_error = repr(e)
-        time.sleep(5 * (intento + 1))
+            ultimo_error = f"{modelo} → {e!r}"
+        if intento < intentos - 1:
+            time.sleep(min(5 * 2 ** intento, 60))  # 5, 10, 20, 40, 60 s
     raise RuntimeError(f"Gemini no respondió correctamente: {ultimo_error}")
