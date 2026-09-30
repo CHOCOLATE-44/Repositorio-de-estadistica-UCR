@@ -11,6 +11,7 @@ para los pasos 2 y 3. Ambos se instalan gratis dentro de GitHub Actions.
 
 from __future__ import annotations
 
+import logging
 import shutil
 import subprocess
 import sys
@@ -26,6 +27,9 @@ class ResultadoExtraccion:
     paginas: int = 0
     imagenes: list[Path] = field(default_factory=list)  # JPEG de las primeras páginas
     avisos: list[str] = field(default_factory=list)
+
+
+logging.getLogger("pypdf").setLevel(logging.ERROR)  # PDFs «imperfectos» generan avisos inofensivos
 
 
 def _texto_directo(pdf: Path) -> tuple[str, int]:
