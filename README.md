@@ -25,7 +25,7 @@ apuntes/
   XS-2130-modelos-de-regresion-aplicados/
   XS-3150-diseno-de-experimentos/
   …                         ← una carpeta por curso (31), creadas desde cursos.json
-cursos.json                 ← catálogo de cursos: sigla, nombre, temas, profesores
+cursos.json                 ← catálogo de cursos: sigla, nombre y temas
 config.json                 ← reglas de votos, validación y ranking
 cartas/                     ← cartas al estudiante (validación opcional, desactivada)
 sitio/                      ← página del ranking (HTML/JS sin dependencias)

@@ -53,7 +53,7 @@ check obligatorio, **Validar apuntes / validar**. Así nadie publica un apunte q
 | Aprobar un apunte | Revisa el comentario del robot en el PR y haz *Merge*. |
 | Anular un voto abusivo | Pon la etiqueta `voto-anulado` al issue del voto. |
 | Agregar/editar un curso | Edita `cursos.json`, crea la carpeta en `apuntes/` y ejecuta `python scripts/generar_plantillas.py`. |
-| Mejorar la validación de un curso | Agrega temas y nombres de profesores en `cursos.json`. |
+| Mejorar la validación de un curso | Agrega temas típicos en `cursos.json`. |
 | Activar la validación con la carta al estudiante | Ver `cartas/README.md`. |
 | Ajustar reglas de votos | `config.json → votos` (largo mínimo, edad mínima de la cuenta, autovoto…). |
 
