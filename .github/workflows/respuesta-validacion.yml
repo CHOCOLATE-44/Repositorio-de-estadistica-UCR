@@ -1,0 +1,36 @@
+name: Respuesta a la validación
+
+# Quien subió un apunte rechazado responde con /contenido-nuevo o /curso XS-0000
+# (en el PR o en su issue de subida). Ver scripts/responder_validacion.py.
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write        # mover el apunte de carpeta en la rama del PR
+  pull-requests: write
+  issues: write
+  actions: write         # relanzar la validación
+
+jobs:
+  responder:
+    if: >-
+      github.event.comment.user.type != 'Bot' &&
+      (startsWith(github.event.comment.body, '/contenido') || startsWith(github.event.comment.body, '/curso'))
+    concurrency:
+      group: respuesta-${{ github.event.issue.number }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Atender la respuesta
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/responder_validacion.py --evento "$GITHUB_EVENT_PATH"

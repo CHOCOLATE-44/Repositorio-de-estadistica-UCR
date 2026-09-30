@@ -5,7 +5,14 @@
 2. Elige el curso, escribe un título y arrastra tu PDF al cuadro «Archivo».
 3. Un robot crea el Pull Request por ti y comenta si el contenido corresponde al curso.
 
-Si el robot rechaza el apunte, edita el issue (por ejemplo, para cambiar el curso) y se reintentará solo.
+## Si el robot rechaza tu apunte
+El robot compara tu apunte con la **carta al estudiante** del curso. Si lo rechaza por su contenido,
+te preguntará qué pasó. Responde con un comentario (en el PR o en tu issue) que empiece con:
+
+- **`/contenido-nuevo`** — el tema sí es del curso pero no aparece en la carta (por ejemplo, el profesor
+  lo agregó este semestre). Puedes explicar en el mismo comentario. Un mantenedor lo revisará a mano.
+- **`/curso XS-0122`** — te equivocaste de curso: escribe la sigla correcta y el robot moverá el apunte
+  y lo validará de nuevo.
 
 ## Opción con Git / interfaz web de GitHub
 1. Haz *fork* del repositorio.

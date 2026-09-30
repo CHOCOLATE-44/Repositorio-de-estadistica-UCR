@@ -53,7 +53,9 @@ def sin_tildes(texto: str) -> str:
 
 
 def normalizar_texto(texto: str) -> str:
-    """Minúsculas, sin tildes y con espacios colapsados (para comparar)."""
+    """Minúsculas, sin tildes y con espacios colapsados (para comparar).
+    Repara los acentos sueltos de PDFs hechos con LaTeX («l´ımites», «funci ´on»)."""
+    texto = re.sub(r" ?[´`¨˜ˆ]", "", texto or "").replace("ı", "i")
     return re.sub(r"\s+", " ", sin_tildes(texto).lower()).strip()
 
 

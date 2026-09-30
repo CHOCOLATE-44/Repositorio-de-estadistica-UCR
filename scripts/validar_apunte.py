@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import gemini  # noqa: E402
 from comun import (CARPETA_APUNTES, RAIZ, GitHub, cargar_config, cargar_cursos,  # noqa: E402
-                   curso_por_carpeta, escribir_salida, normalizar_sigla, normalizar_texto)
+                   curso_por_carpeta, curso_por_sigla, escribir_salida, normalizar_sigla, normalizar_texto)
 from extraer_texto import extraer  # noqa: E402
 from indice import autor_de  # noqa: E402
 
@@ -179,6 +179,8 @@ class Veredicto:
     valido: bool
     motivo: str
     detalles: list[str] = field(default_factory=list)
+    preguntar: bool = False              # rechazo por contenido: se pregunta al autor qué pasó
+    curso_sugerido: str | None = None    # sigla del curso donde probablemente encaja
 
 
 def _prompt(curso: dict, otros: list[dict], texto: str, carta: str, hay_imagenes: bool) -> str:
@@ -308,26 +310,53 @@ def validar_archivo(archivo: Path, nombre_en_repo: str, carpeta: str, config: di
                                         val["gemini_modelo"], r.imagenes)
             valido = bool(res.get("es_apunte")) and bool(res.get("corresponde"))
             motivo = str(res.get("motivo", "")).strip()
-            if res.get("curso_probable") and not valido:
-                motivo += f" (Curso probable: {res['curso_probable']}.)"
+            sugerido = curso_por_sigla(str(res.get("curso_probable") or ""), cursos) if not valido else None
+            if sugerido and sugerido["sigla"] != curso["sigla"]:
+                motivo += f" (Curso probable: {sugerido['sigla']} {sugerido['nombre']}.)"
+            else:
+                sugerido = None
             if carta and res.get("temas_carta"):
                 detalles.append("Temas de la carta que cubre (según Gemini): " + ", ".join(map(str, res["temas_carta"][:5])))
             detalles.append(f"Gemini: confianza {res.get('confianza')}; heurística: {'✅' if heur_valido else '❌'}")
-            return Veredicto(nombre_en_repo, valido, motivo or "Sin motivo.", detalles)
+            return Veredicto(nombre_en_repo, valido, motivo or "Sin motivo.", detalles,
+                             preguntar=not valido and bool(res.get("es_apunte")),
+                             curso_sugerido=sugerido["sigla"] if sugerido else None)
         except Exception as e:
             detalles.append(f"Gemini no disponible ({e}); se usó solo la heurística.")
 
     if not r.texto.strip():
         return Veredicto(nombre_en_repo, False,
                          "No se pudo extraer texto del documento (¿escaneo ilegible o PDF protegido?).", detalles)
-    return Veredicto(nombre_en_repo, heur_valido, heur_motivo, detalles)
+    return Veredicto(nombre_en_repo, heur_valido, heur_motivo, detalles, preguntar=not heur_valido,
+                     curso_sugerido=mejor_otro["sigla"] if otro_curso and not heur_valido else None)
 
 
 # --------------------------------------------------------------------------
 # Modo Pull Request
 # --------------------------------------------------------------------------
 
-def _informe(veredictos: list[Veredicto], notas: list[str]) -> str:
+ETIQUETA_REVISION = "revision-manual"
+
+
+def pregunta_al_autor(veredictos: list[Veredicto], autor: str | None) -> str:
+    """Bloque que pregunta a quien subió el apunte si es contenido nuevo o curso equivocado."""
+    dudosos = [v for v in veredictos if not v.valido and v.preguntar]
+    if not dudosos:
+        return ""
+    sugeridos = sorted({v.curso_sugerido for v in dudosos if v.curso_sugerido})
+    ejemplo = sugeridos[0] if sugeridos else "XS-0122"
+    quien = f"@{autor}, " if autor else ""
+    return (f"### 🤔 {quien}¿qué pasó con este apunte?\n\n"
+            "Responde con **un comentario** en este PR (o en tu issue de subida) que empiece con una de estas opciones:\n\n"
+            "- **`/contenido-nuevo`** — el tema **sí es del curso**, pero no aparece en la carta al estudiante "
+            "(por ejemplo, el profesor lo agregó este semestre). Puedes explicar en el mismo comentario. "
+            "Un mantenedor lo revisará a mano.\n"
+            f"- **`/curso {ejemplo}`** — **te equivocaste de curso**. Escribe la sigla del curso correcto y el robot "
+            "moverá el apunte y lo validará de nuevo."
+            + (f"\n\nSegún la revisión, podría ser de: {', '.join(f'`{x}`' for x in sugeridos)}." if sugeridos else ""))
+
+
+def _informe(veredictos: list[Veredicto], notas: list[str], autor: str | None = None) -> str:
     ok = all(v.valido for v in veredictos)
     if not veredictos:
         cab = "### ℹ️ Este PR no agrega apuntes nuevos"
@@ -344,12 +373,31 @@ def _informe(veredictos: list[Veredicto], notas: list[str]) -> str:
         partes.append("")
     if notas:
         partes += ["**Notas para el mantenedor:**", *[f"- {n}" for n in notas], ""]
-    if veredictos and not ok:
+    pregunta = pregunta_al_autor(veredictos, autor)
+    if pregunta:
+        partes.append(pregunta)
+    elif veredictos and not ok:
         partes.append("Si crees que es un error, responde en este PR explicando por qué; "
-                      "el mantenedor lo revisará manualmente. Si te equivocaste de carpeta, "
-                      "mueve el archivo a la carpeta correcta y vuelve a hacer push.")
+                      "el mantenedor lo revisará manualmente.")
     partes.append("\n<sub>Validación automática · texto directo → OCR (Tesseract) → Gemini (Google AI Studio)</sub>")
     return "\n".join(partes)
+
+
+def issue_de_subida(pr: dict) -> int | None:
+    """Número del issue «Subir un apunte» que originó el PR (ramas `apunte/issue-N`)."""
+    m = re.fullmatch(r"apunte/issue-(\d+)", (pr.get("head") or {}).get("ref", ""))
+    return int(m.group(1)) if m else None
+
+
+def autor_real(gh: GitHub, pr: dict) -> str:
+    """Quien subió el apunte: el autor del issue de subida, o el autor del PR."""
+    issue = issue_de_subida(pr)
+    if issue:
+        try:
+            return gh.get(f"/repos/{gh.repo}/issues/{issue}")["user"]["login"]
+        except Exception:
+            pass
+    return pr["user"]["login"]
 
 
 def validar_pr(numero: int) -> int:
@@ -404,10 +452,17 @@ def validar_pr(numero: int) -> int:
         print(f"Validando {ruta}…", flush=True)
         veredictos.append(validar_archivo(destino, str(ruta), partes[1], config, cursos))
 
-    texto = _informe(veredictos, notas)
+    autor = autor_real(gh, pr)
+    texto = _informe(veredictos, notas, autor)
     # Un PR de un mantenedor que no toca apuntes (p. ej. cambios de código) no necesita comentario.
     if veredictos or not mantenedor:
         gh.comentar(numero, texto, MARCADOR)
+    # En subidas por formulario, el estudiante sigue su issue: le avisamos allí también.
+    issue = issue_de_subida(pr)
+    pregunta = pregunta_al_autor(veredictos, autor)
+    if issue and pregunta:
+        gh.comentar(issue, f"El robot revisó tu apunte en el PR #{numero} y **no lo aprobó**. "
+                           f"Mira el motivo allí.\n\n{pregunta}", "<!-- pregunta-validacion -->")
     if veredictos:
         ok = all(v.valido for v in veredictos)
         gh.poner_etiquetas(numero,
