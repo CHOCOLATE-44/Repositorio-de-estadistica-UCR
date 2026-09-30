@@ -30,3 +30,4 @@ jobs:
           crear "pregunta"         "1d76db" "Formulario: preguntar a la IA"
           crear "apunte-valido"    "2ea44f" "El apunte pasó la validación"
           crear "apunte-rechazado" "d73a4a" "El apunte no pasó la validación"
+          crear "revision-manual"  "5319e7" "El autor dice que es contenido nuevo: revisar a mano"
