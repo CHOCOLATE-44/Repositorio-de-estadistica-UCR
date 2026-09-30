@@ -4,7 +4,12 @@ name: Subir apunte desde issue
 # issue con el PDF adjunto y este workflow abre el Pull Request.
 on:
   issues:
-    types: [opened, edited]
+    types: [opened, edited, labeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Número del issue «Subir un apunte» a procesar de nuevo
+        required: true
 
 permissions:
   contents: write
@@ -13,12 +18,17 @@ permissions:
   actions: write
 
 concurrency:
-  group: subir-${{ github.event.issue.number }}
+  group: subir-${{ github.event.issue.number || inputs.issue }}
   cancel-in-progress: true
 
 jobs:
   subir:
-    if: contains(github.event.issue.labels.*.name, 'subir-apunte') && github.event.issue.state == 'open'
+    # Se reconoce por la etiqueta o por el título que pone el formulario («Apunte: …»).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.state == 'open' &&
+       (contains(github.event.issue.labels.*.name, 'subir-apunte') || startsWith(github.event.issue.title, 'Apunte:')) &&
+       (github.event.action != 'labeled' || github.event.label.name == 'subir-apunte'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -34,19 +44,21 @@ jobs:
         id: prep
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_MANUAL: ${{ inputs.issue }}
         run: python scripts/subir_desde_issue.py
 
       - name: Crear o actualizar el Pull Request
         if: steps.prep.outputs.ok == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RUTA: ${{ steps.prep.outputs.ruta }}
+          CARPETA: ${{ steps.prep.outputs.carpeta }}
+          ARCHIVOS: ${{ steps.prep.outputs.archivos }}
           RAMA: ${{ steps.prep.outputs.rama }}
           CURSO: ${{ steps.prep.outputs.curso }}
           AUTOR_NOMBRE: ${{ steps.prep.outputs.autor_nombre }}
           AUTOR_EMAIL: ${{ steps.prep.outputs.autor_email }}
-          TITULO: ${{ github.event.issue.title }}
-          ISSUE: ${{ github.event.issue.number }}
+          TITULO: ${{ steps.prep.outputs.titulo }}
+          ISSUE: ${{ steps.prep.outputs.issue }}
           BASE: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
@@ -56,14 +68,15 @@ jobs:
           export GIT_COMMITTER_NAME="github-actions[bot]"
           export GIT_COMMITTER_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$RAMA"
-          git add -- "$RUTA"
+          git add -- "$CARPETA"
           git commit -m "Agregar apunte de $CURSO" -m "Subido desde el issue #$ISSUE."
           git push --force origin "$RAMA"
 
           PR=$(gh pr list --head "$RAMA" --state open --json number --jq '.[0].number // empty')
           if [ -z "$PR" ]; then
-            printf 'Apunte subido por @%s desde el formulario.\n\nArchivo: `%s`\n\nCloses #%s\n' \
-              "$AUTOR_NOMBRE" "$RUTA" "$ISSUE" > cuerpo.md
+            { printf 'Apunte subido por @%s desde el formulario (%s archivo/s).\n\n' "$AUTOR_NOMBRE" "$ARCHIVOS"
+              git diff --name-only HEAD~1 HEAD | sed 's/^/- `/; s/$/`/'
+              printf '\nCloses #%s\n' "$ISSUE"; } > cuerpo.md
             URL=$(gh pr create --base "$BASE" --head "$RAMA" --title "[$CURSO] $TITULO" --body-file cuerpo.md)
             PR="${URL##*/}"
           fi
