@@ -30,6 +30,9 @@ h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 3vw, 2rem); }
 .filtros label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--suave); }
 .filtros input, .filtros select { font: inherit; color: var(--texto); background: var(--fondo);
   border: 1px solid var(--borde); border-radius: 6px; padding: 6px 8px; min-width: 0; }
+.filtros .ancho { grid-column: 1 / -1; }
+.interpretacion { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px;
+  margin: 10px 0 0; font-size: .9rem; color: var(--suave); }
 .resumen { color: var(--suave); margin: 16px 0 8px; }
 .grupo h2 { font-size: 1.1rem; margin: 26px 0 10px; }
 .grupo h2 small { color: var(--suave); font-weight: 400; }

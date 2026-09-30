@@ -2,10 +2,10 @@ name: Pruebas
 
 on:
   pull_request:
-    paths: ["scripts/**", "tests/**", "cursos.json", "config.json", ".github/ISSUE_TEMPLATE/**"]
+    paths: ["scripts/**", "sitio/**", "tests/**", "cursos.json", "config.json", ".github/ISSUE_TEMPLATE/**"]
   push:
     branches: [main]
-    paths: ["scripts/**", "tests/**", "cursos.json", "config.json", ".github/ISSUE_TEMPLATE/**"]
+    paths: ["scripts/**", "sitio/**", "tests/**", "cursos.json", "config.json", ".github/ISSUE_TEMPLATE/**"]
 
 permissions:
   contents: read
@@ -21,3 +21,4 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python -m unittest discover -s tests -v
+      - run: node tests/test_consulta.js

@@ -22,8 +22,8 @@
 
   <main class="contenedor">
     <section class="filtros" aria-label="Filtros">
-      <label>Buscar
-        <input type="search" id="f-texto" placeholder="Título, autor, tema…">
+      <label class="ancho">Buscar o preguntar
+        <input type="search" id="f-texto" placeholder="Ej.: «el mejor apunte de regresión» o «DOE con más de 4 estrellas»">
       </label>
       <label>Curso
         <select id="f-curso"><option value="">Todos los cursos</option></select>
@@ -49,6 +49,10 @@
       </label>
     </section>
 
+    <p id="interpretacion" class="interpretacion" hidden>
+      <span id="entendi"></span>
+      <a id="preguntar-ia" target="_blank" rel="noopener">¿No era eso? Pregúntale a la IA →</a>
+    </p>
     <p id="resumen" class="resumen" aria-live="polite">Cargando…</p>
     <div id="resultados"></div>
 
@@ -56,6 +60,8 @@
       <h2>¿Cómo funciona?</h2>
       <ol>
         <li><strong>Leer:</strong> abre cualquier apunte con «Abrir». No necesitas cuenta.</li>
+        <li><strong>Buscar o preguntar:</strong> escribe como hablas: «mejor apunte de regresión», «DOE con más de 4 estrellas»,
+          «top 3 de muestreo», «series de tiempo de este año». Para preguntas más abiertas, usa «Pregúntale a la IA».</li>
         <li><strong>Puntuar:</strong> pulsa «Puntuar», elige de 1 a 5 estrellas y <em>explica por qué</em>.
           Necesitas una cuenta gratuita de GitHub (no necesitas saber Git). Se cuenta un voto por persona y apunte;
           si votas otra vez, vale el más reciente. Las justificaciones son públicas.</li>
@@ -89,6 +95,7 @@
     </article>
   </template>
 
+  <script src="consulta.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -34,7 +34,7 @@ El modelo se cambia en `config.json → validacion.gemini_modelo` si Google reti
 
 ## 5. Etiquetas
 Se crean solas la primera vez que se usan: `voto`, `voto-valido`, `voto-rechazado`,
-`voto-anulado`, `subir-apunte`, `apunte-valido`, `apunte-rechazado`.
+`voto-anulado`, `subir-apunte`, `pregunta`, `apunte-valido`, `apunte-rechazado`.
 
 ## 6. Protección de la rama (recomendado)
 *Settings → Rules → New branch ruleset* sobre `main`: exigir Pull Request y, como
@@ -52,6 +52,7 @@ check obligatorio, **Validar apuntes / validar**. Así nadie publica un apunte q
 |---|---|
 | Aprobar un apunte | Revisa el comentario del robot en el PR y haz *Merge*. |
 | Anular un voto abusivo | Pon la etiqueta `voto-anulado` al issue del voto. |
+| Que el buscador entienda otro apodo de un curso | Agrégalo en `alias` del curso en `cursos.json`. |
 | Agregar/editar un curso | Edita `cursos.json`, crea la carpeta en `apuntes/` y ejecuta `python scripts/generar_plantillas.py`. |
 | Mejorar la validación de un curso | Agrega temas típicos en `cursos.json`. |
 | Activar la validación con la carta al estudiante | Ver `cartas/README.md`. |

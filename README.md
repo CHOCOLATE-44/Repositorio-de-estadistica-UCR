@@ -10,6 +10,7 @@ hechos por estudiantes y **puntuados por la comunidad**, para que quien llegue d
 | Quiero… | ¿Necesito Git? | Cómo |
 |---|---|---|
 | **Leer** apuntes | No, ni cuenta | Abre el ranking y pulsa «Abrir». |
+| **Buscar o preguntar** | No | Escribe en el buscador: «mejor apunte de regresión», «DOE con más de 4 estrellas». |
 | **Puntuar** un apunte | No (solo cuenta gratis de GitHub) | Pulsa «Puntuar», elige 1–5 ★ y **explica por qué** (obligatorio). |
 | **Subir** un apunte | No | Pulsa «Subir un apunte», elige el curso y arrastra tu PDF. |
 | Subir por Pull Request | Sí | Ver [CONTRIBUIR.md](CONTRIBUIR.md). |
@@ -30,7 +31,7 @@ config.json                 ← reglas de votos, validación y ranking
 cartas/                     ← cartas al estudiante (validación opcional, desactivada)
 sitio/                      ← página del ranking (HTML/JS sin dependencias)
 scripts/                    ← validación de apuntes y votos, construcción del sitio
-.github/ISSUE_TEMPLATE/     ← formularios «Puntuar» y «Subir un apunte»
+.github/ISSUE_TEMPLATE/     ← formularios «Puntuar», «Subir un apunte» y «Preguntar»
 .github/workflows/          ← automatizaciones
 docs/                       ← decisiones de diseño y guía del mantenedor
 ```
@@ -58,7 +59,7 @@ general (humanidades, arte, deporte, repertorio, seminarios de realidad nacional
 
 ## Mantenimiento
 Guía de puesta en marcha y tareas habituales: [docs/configuracion.md](docs/configuracion.md).
-Próxima fase (preguntas en lenguaje natural): [docs/fase-4-consultas.md](docs/fase-4-consultas.md).
+Preguntas en lenguaje natural: [docs/fase-4-consultas.md](docs/fase-4-consultas.md).
 
 ## Licencia de los apuntes
 Cada apunte pertenece a su autor(a). Al subirlo, aceptas que se publique aquí para uso educativo.
