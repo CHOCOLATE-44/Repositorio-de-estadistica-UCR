@@ -145,7 +145,7 @@ def extraer(archivo: Path, min_caracteres: int = 300, max_paginas_ocr: int = 8,
     imagenes: list[Path] = []
     if len(texto.strip()) < min_caracteres * 3 and paginas_imagen > 0:
         # Poco texto (típico de notas a mano): preparamos imágenes para Gemini.
-        imagenes = _rasterizar(archivo, trabajo, paginas_imagen, 100, "vista")
+        imagenes = _rasterizar(archivo, trabajo, paginas_imagen, 150, "vista")
 
     return ResultadoExtraccion(texto, metodo, paginas, imagenes, avisos)
 

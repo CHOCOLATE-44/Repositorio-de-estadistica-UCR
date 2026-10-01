@@ -29,6 +29,8 @@ body:
       value: |
         ¡Gracias por compartir! Complete el formulario y **arrastre su archivo** al cuadro «Archivo»: PDF, Word, PowerPoint, fotos (JPG/PNG), Markdown, R Markdown, HTML o texto.
         Si GitHub no le deja adjuntar un formato (`.Rmd`, `.html`…), comprímalo en un `.zip`.
+
+        📸 **¿Fotos de su cuaderno?** Mejor escanéelas a PDF con el celular (gratis): Google Drive → *+ → Escanear*, Notas del iPhone → *Escanear documentos* o Adobe Scan. Quedan más nítidas. Si sube fotos, súbalas todas en este mismo formulario y en orden: el robot las une en un solo PDF.
         Un proceso automático revisará que el contenido corresponda al curso y le avisará aquí.
   - type: dropdown
     id: curso

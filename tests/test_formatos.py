@@ -15,6 +15,13 @@ import subir_desde_issue as sdi  # noqa: E402
 from extraer_texto import extraer  # noqa: E402
 
 
+def foto(color, tamano=(3000, 4000), formato="JPEG") -> bytes:
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", tamano, color).save(buf, formato)
+    return buf.getvalue()
+
+
 def zip_con(archivos: dict[str, str]) -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as z:
@@ -112,6 +119,7 @@ class PruebasSubida(unittest.TestCase):
                 sdi.main()
             except SystemExit:
                 pass
+        self.ultima_raiz = raiz
         carpeta = raiz / "apuntes"
         return salidas, sorted(p.name for p in carpeta.rglob("*") if p.is_file()), gh
 
@@ -123,9 +131,26 @@ class PruebasSubida(unittest.TestCase):
         self.assertEqual(archivos, ["analisis-ana.rmd", "pagina-ana.html"])
 
     def test_formatos_directos(self):
-        salidas, archivos, _ = self.subir({"clase.pptx": b"PK", "foto.jpg": b"\xff\xd8"})
+        salidas, archivos, _ = self.subir({"clase.pptx": b"PK", "notas.docx": b"PK"})
         self.assertEqual(salidas["ok"], "true")
-        self.assertEqual(archivos, ["clase-ana.pptx", "foto-ana.jpg"])
+        self.assertEqual(archivos, ["clase-ana.pptx", "notas-ana.docx"])
+
+    def test_fotos_se_unen_en_un_pdf_en_orden(self):
+        from pypdf import PdfReader
+        salidas, archivos, _ = self.subir({"p1.jpg": foto("red"), "p2.png": foto("blue", formato="PNG"),
+                                           "p3.jpg": foto("green")})
+        self.assertEqual(salidas["ok"], "true")
+        self.assertEqual(archivos, ["repaso-ana.pdf"])
+        pdf = next(self.ultima_raiz.rglob("*.pdf"))
+        lector = PdfReader(str(pdf))
+        self.assertEqual(len(lector.pages), 3)
+        self.assertLess(pdf.stat().st_size, 2_000_000)  # se achican: no 3 fotos de 12 MP
+        caja = lector.pages[0].mediabox
+        self.assertAlmostEqual(float(caja.width) / 72, 8.5, places=1)  # ancho de hoja carta
+
+    def test_fotos_y_otro_archivo(self):
+        _, archivos, _ = self.subir({"clase.pptx": b"PK", "p1.jpg": foto("red")})
+        self.assertEqual(archivos, ["clase-ana.pptx", "repaso-ana.pdf"])
 
     def test_zip_sin_archivos_validos(self):
         salidas, archivos, gh = self.subir({"x.zip": zip_con({"datos.csv": "1"})})
