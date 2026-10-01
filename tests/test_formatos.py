@@ -163,6 +163,16 @@ class PruebasSubida(unittest.TestCase):
         _, archivos, _ = self.subir_cuerpo(cuerpo, gh)
         self.assertEqual(archivos, ["repaso-ana-2.pdf", "repaso-ana.pdf"])
 
+    def test_fotos_pegadas_en_descripcion(self):
+        # Caso real: en el celular las fotos quedaron en «Descripción» y en «Archivo» solo texto.
+        uuid = "efd8e6ae-efe0-4ee7-861d-3cc3f316a749"
+        url = f"https://github.com/user-attachments/assets/{uuid}"
+        archivo = (f"Resumen hecho a mano\n\n### Descripción\n\n"
+                   f'<img width="3024" height="4032" alt="Image" src="{url}" />')
+        salidas, archivos, _ = self.subir_cuerpo(archivo, GitHubFalso({url: foto("red")}))
+        self.assertEqual(salidas["ok"], "true")
+        self.assertEqual(archivos, ["repaso-ana.pdf"])
+
     def test_fotos_y_otro_archivo(self):
         _, archivos, _ = self.subir({"clase.pptx": b"PK", "p1.jpg": foto("red")})
         self.assertEqual(archivos, ["clase-ana.pptx", "repaso-ana.pdf"])

@@ -16,7 +16,12 @@
   };
 
   function urlGitHub(ruta) { return `https://github.com/${datos.repositorio}${ruta}`; }
-  function urlAbrir(a) { return urlGitHub(`/blob/${datos.rama}/${rutaURL(a.ruta)}`); }
+  // PDF e imágenes se sirven desde este mismo sitio (visor del navegador, todas las páginas);
+  // el resto se abre en GitHub.
+  const EN_SITIO = new Set(["pdf", "jpg", "jpeg", "png"]);
+  function urlAbrir(a) {
+    return EN_SITIO.has(a.formato) ? rutaURL(a.ruta) : urlGitHub(`/blob/${datos.rama}/${rutaURL(a.ruta)}`);
+  }
   function urlVotar(a) {
     const p = new URLSearchParams({ template: "puntuar-apunte.yml", title: `Voto: ${a.titulo} (${a.curso})`, apunte: a.ruta });
     return urlGitHub(`/issues/new?${p}`);
