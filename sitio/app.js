@@ -163,6 +163,58 @@
     }
   }
 
+  // Ranking de quienes suben apuntes: más apuntes, luego más votos recibidos, luego mejor promedio.
+  function contribuyentes() {
+    const porAutor = new Map();
+    for (const a of datos.apuntes) {
+      if (!a.autor || a.autor === "desconocido") continue;
+      const c = porAutor.get(a.autor) || { autor: a.autor, apuntes: 0, votos: 0, suma: 0 };
+      c.apuntes += 1;
+      c.votos += a.votos;
+      c.suma += a.votos ? a.promedio * a.votos : 0;
+      porAutor.set(a.autor, c);
+    }
+    const lista = [...porAutor.values()].map((c) => ({ ...c, promedio: c.votos ? c.suma / c.votos : null }));
+    lista.sort((x, y) => y.apuntes - x.apuntes || y.votos - x.votos || (y.promedio ?? 0) - (x.promedio ?? 0)
+      || x.autor.localeCompare(y.autor));
+    return lista;
+  }
+
+  function pintarContribuyentes() {
+    const ol = $("#lista-contribuyentes");
+    ol.replaceChildren();
+    const lista = contribuyentes();
+    if (!lista.length) {
+      ol.outerHTML = '<p class="vacio">Todavía no hay contribuyentes. ¡Sea el primero!</p>';
+      return;
+    }
+    const medallas = ["🥇", "🥈", "🥉"];
+    lista.slice(0, 20).forEach((c, i) => {
+      const li = document.createElement("li");
+      const pos = document.createElement("span");
+      pos.className = "posicion";
+      pos.textContent = medallas[i] || `${i + 1}.`;
+      const foto = document.createElement("img");
+      foto.src = `https://github.com/${encodeURIComponent(c.autor)}.png?size=64`;
+      foto.alt = ""; foto.loading = "lazy"; foto.width = 32; foto.height = 32;
+      foto.onerror = () => foto.remove();
+      const nombre = document.createElement("a");
+      nombre.className = "nombre";
+      nombre.href = `https://github.com/${encodeURIComponent(c.autor)}`;
+      nombre.target = "_blank"; nombre.rel = "noopener";
+      nombre.textContent = `@${c.autor}`;
+      const cifras = document.createElement("span");
+      cifras.className = "cifras";
+      cifras.textContent = `${c.apuntes} apunte${c.apuntes === 1 ? "" : "s"} · ${c.votos} voto${c.votos === 1 ? "" : "s"}`
+        + (c.promedio != null ? ` · ${c.promedio.toFixed(1)} ★` : "");
+      const datosC = document.createElement("div");
+      datosC.className = "datos";
+      datosC.append(nombre, cifras);
+      li.append(pos, foto, datosC);
+      ol.append(li);
+    });
+  }
+
   async function iniciar() {
     try {
       const r = await fetch("data/puntuaciones.json", { cache: "no-cache" });
@@ -186,6 +238,7 @@
     leerURL();
     for (const el of Object.values(f)) el.addEventListener("input", pintar);
     pintar();
+    pintarContribuyentes();
   }
   iniciar();
 })();
