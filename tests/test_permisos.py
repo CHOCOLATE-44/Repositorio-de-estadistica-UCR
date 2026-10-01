@@ -37,8 +37,10 @@ class GitHubFalso:
     repo = "o/r"
 
     def __init__(self, usuario, asociacion, archivos):
-        self.pr = {"user": {"login": usuario}, "author_association": asociacion, "head": {"sha": "abc"}}
-        self.archivos, self.estados, self.comentarios = archivos, [], []
+        self.pr = {"number": 1, "user": {"login": usuario}, "author_association": asociacion,
+                   "head": {"sha": "abc", "ref": "apunte/issue-9", "repo": {"full_name": "o/r"}},
+                   "base": {"ref": "main"}}
+        self.archivos, self.estados, self.comentarios, self.fusiones = archivos, [], [], []
 
     def get(self, ruta):
         return self.pr
@@ -56,7 +58,14 @@ class GitHubFalso:
         pass
 
     def post(self, ruta, datos):
-        self.estados.append(datos)
+        if "/statuses/" in ruta:
+            self.estados.append(datos)
+
+    def put(self, ruta, datos):
+        self.fusiones.append(datos)
+
+    def delete(self, ruta):
+        pass
 
 
 def correr(usuario, asociacion, archivos, autor="ana"):
@@ -115,6 +124,24 @@ class PruebasPR(unittest.TestCase):
     def test_apunte_nuevo_de_cualquiera(self):
         codigo, _ = correr("beto", "NONE", [{"filename": RUTA, "status": "added", "raw_url": "u"}])
         self.assertEqual(codigo, 0)
+
+
+class PruebasPublicacion(unittest.TestCase):
+    def test_apunte_que_coincide_se_publica_solo(self):
+        _, gh = correr("beto", "NONE", [{"filename": RUTA, "status": "added", "raw_url": "u"}])
+        self.assertEqual(gh.fusiones, [{"merge_method": "merge", "sha": "abc", "commit_title": "Publicar apunte (#1)"}])
+        self.assertTrue(any("Publicado" in c for c in gh.comentarios))
+
+    def test_apunte_rechazado_no_se_publica(self):
+        _, gh = correr("beto", "CONTRIBUTOR", [{"filename": RUTA, "status": "modified", "raw_url": "u"}])
+        self.assertEqual(gh.fusiones, [])
+
+    def test_pr_con_codigo_no_se_publica_solo(self):
+        _, gh = correr("dueño", "OWNER", [{"filename": RUTA, "status": "added", "raw_url": "u"},
+                                          {"filename": "scripts/x.py", "status": "modified", "raw_url": "u"}])
+        self.assertEqual(gh.fusiones, [])
+        _, gh = correr("dueño", "OWNER", [{"filename": "scripts/x.py", "status": "modified", "raw_url": "u"}])
+        self.assertEqual(gh.fusiones, [])
 
 
 if __name__ == "__main__":

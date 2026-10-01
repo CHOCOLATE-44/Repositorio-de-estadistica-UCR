@@ -15,10 +15,11 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write   # publicar (fusionar) los apuntes que coinciden con su curso
   pull-requests: write
   issues: write
   statuses: write   # estado «Validación de apuntes» en el PR
+  actions: write    # relanzar la publicación del ranking
 
 concurrency:
   group: validar-${{ github.event.pull_request.number || inputs.pr }}
