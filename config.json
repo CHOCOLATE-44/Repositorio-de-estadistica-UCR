@@ -21,6 +21,10 @@
     "paginas_imagen_para_gemini": 3,
     "umbral_heuristico": 5
   },
+  "publicacion": {
+    "confianza_minima": 0.8,
+    "exigir_carta": true
+  },
   "ranking": {
     "votos_previos": 3,
     "media_previa": 3.5
