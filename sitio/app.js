@@ -22,6 +22,11 @@
     return urlGitHub(`/issues/new?${p}`);
   }
 
+  function urlBorrar(a) {
+    const p = new URLSearchParams({ template: "borrar-apunte.yml", title: `Borrar: ${a.titulo} (${a.curso})`, apunte: a.ruta });
+    return urlGitHub(`/issues/new?${p}`);
+  }
+
   function leerURL() {
     const p = new URLSearchParams(location.search);
     for (const k of Object.keys(f)) if (p.has(k)) f[k].value = p.get(k);
@@ -83,6 +88,7 @@
     n.querySelector(".puntaje").title = a.votos ? `Promedio ${a.promedio} de ${a.votos} votos` : "Aún no tiene votos";
     n.querySelector(".abrir").href = urlAbrir(a);
     n.querySelector(".puntuar").href = urlVotar(a);
+    n.querySelector(".borrar").href = urlBorrar(a);
     const det = n.querySelector(".opiniones");
     if (!a.opiniones.length) det.remove();
     else {

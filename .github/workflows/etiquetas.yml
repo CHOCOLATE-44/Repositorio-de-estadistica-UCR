@@ -23,6 +23,7 @@ jobs:
           set -euo pipefail
           crear() { gh label create "$1" --color "$2" --description "$3" --force; }
           crear "subir-apunte"     "0e8a16" "Formulario: subir un apunte"
+          crear "borrar-apunte"    "b60205" "Formulario: borrar un apunte"
           crear "voto"             "fbca04" "Formulario: puntuar un apunte"
           crear "voto-valido"      "2ea44f" "Voto registrado"
           crear "voto-rechazado"   "d73a4a" "Voto no válido (se puede editar)"

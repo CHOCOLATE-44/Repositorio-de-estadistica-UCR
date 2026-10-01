@@ -25,6 +25,8 @@ h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 3vw, 2rem); }
   color: var(--texto); background: var(--superficie); text-decoration: none; font-weight: 500; font-size: .95rem; white-space: nowrap; }
 .boton:hover { border-color: var(--acento); }
 .boton.primario { background: var(--acento); color: var(--acento-texto); border-color: var(--acento); }
+.boton.borrar { color: var(--suave); }
+.boton.borrar:hover { border-color: #d73a4a; color: #d73a4a; }
 .filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px;
   background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); padding: 14px; }
 .filtros label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--suave); }

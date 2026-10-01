@@ -1,0 +1,74 @@
+name: Borrar apunte desde issue
+
+# El formulario «Borrar un apunte» lo puede usar quien subió el apunte o un
+# mantenedor. Este workflow comprueba el permiso, borra el archivo en un PR y la
+# validación lo publica sola.
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Número del issue «Borrar un apunte» a procesar de nuevo
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+jobs:
+  borrar:
+    concurrency:   # en el job: un evento ignorado no cancela al que sí procesa
+      group: borrar-${{ github.event.issue.number || inputs.issue }}
+      cancel-in-progress: true
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.state == 'open' &&
+       (contains(github.event.issue.labels.*.name, 'borrar-apunte') || startsWith(github.event.issue.title, 'Borrar:')) &&
+       (github.event.action != 'labeled' || github.event.label.name == 'borrar-apunte'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0   # historial completo: saber quién subió el apunte
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Comprobar permiso
+        id: prep
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_MANUAL: ${{ inputs.issue }}
+        run: python scripts/borrar_desde_issue.py
+
+      - name: Crear el Pull Request que borra el apunte
+        if: steps.prep.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUTA: ${{ steps.prep.outputs.ruta }}
+          RAMA: ${{ steps.prep.outputs.rama }}
+          ISSUE: ${{ steps.prep.outputs.issue }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$RAMA"
+          git rm -q -- "$RUTA"
+          git commit -m "Borrar apunte" -m "Pedido en el issue #$ISSUE."
+          git push --force origin "$RAMA"
+
+          PR=$(gh pr list --head "$RAMA" --state open --json number --jq '.[0].number // empty')
+          if [ -z "$PR" ]; then
+            printf 'Borrar `%s`, pedido en el issue #%s.\n\nCloses #%s\n' "$RUTA" "$ISSUE" "$ISSUE" > cuerpo.md
+            URL=$(gh pr create --base "$BASE" --head "$RAMA" --title "Borrar apunte: $(basename "$RUTA")" --body-file cuerpo.md)
+            PR="${URL##*/}"
+          fi
+          gh workflow run validar-apunte.yml --ref "$BASE" -f pr="$PR"
+          gh issue comment "$ISSUE" --body "🗑️ Listo: el apunte se borrará en unos minutos (PR #$PR). Sus votos se pierden y este issue se cerrará solo."
