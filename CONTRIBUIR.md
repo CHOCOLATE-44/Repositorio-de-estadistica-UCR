@@ -26,7 +26,8 @@ le preguntará qué pasó. Responda con un comentario (en el PR o en su issue) q
 
 ## Actualizar o borrar un apunte
 Solo **quien subió el apunte** y los **mantenedores del repositorio** pueden modificarlo,
-renombrarlo o eliminarlo. Para subir una versión corregida de su apunte, abra un PR que reemplace
+renombrarlo o eliminarlo. Para borrarlo sin Git, use el botón **Borrar** del ranking: el robot
+comprueba que usted lo subió y lo quita en unos minutos (se pierden sus votos). Para subir una versión corregida de su apunte, abra un PR que reemplace
 el archivo con el **mismo nombre**: así conserva sus votos. La validación automática rechaza los PR
 que cambien apuntes de otras personas.
 

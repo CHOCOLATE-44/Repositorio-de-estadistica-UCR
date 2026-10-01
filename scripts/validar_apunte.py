@@ -425,8 +425,12 @@ def publicar(gh: GitHub, pr: dict) -> bool:
 
 
 def issue_de_subida(pr: dict) -> int | None:
-    """Número del issue «Subir un apunte» que originó el PR (ramas `apunte/issue-N`)."""
-    m = re.fullmatch(r"apunte/issue-(\d+)", (pr.get("head") or {}).get("ref", ""))
+    """Número del issue «Subir/Borrar un apunte» que originó el PR (ramas `apunte/issue-N`
+    o `borrar/issue-N`). Solo cuenta si la rama está en este repo: esas las crea el robot."""
+    cabeza = pr.get("head") or {}
+    if (cabeza.get("repo") or {}).get("full_name") != (pr.get("base") or {}).get("repo", {}).get("full_name"):
+        return None
+    m = re.fullmatch(r"(?:apunte|borrar)/issue-(\d+)", cabeza.get("ref", ""))
     return int(m.group(1)) if m else None
 
 
@@ -452,6 +456,12 @@ def validar_pr(numero: int) -> int:
     pr = gh.get(f"/repos/{gh.repo}/pulls/{numero}")
     usuario = pr["user"]["login"]
     asociacion = pr.get("author_association", "NONE")
+    if issue_de_subida(pr):  # PR que abrió el robot: los permisos son los de quien hizo el pedido
+        try:
+            pedido = gh.get(f"/repos/{gh.repo}/issues/{issue_de_subida(pr)}")
+            usuario, asociacion = pedido["user"]["login"], pedido.get("author_association", "NONE")
+        except Exception:
+            pass
     mantenedor = asociacion in ROLES_MANTENEDOR
 
     otros_archivos = False  # el PR cambia algo fuera de apuntes/ (código): nunca se publica solo

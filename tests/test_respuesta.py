@@ -29,7 +29,9 @@ class PruebasComandos(unittest.TestCase):
         self.assertFalse(rv.puede_responder("beto", "CONTRIBUTOR", "ana"))
 
     def test_issue_de_subida(self):
-        self.assertEqual(issue_de_subida({"head": {"ref": "apunte/issue-5"}}), 5)
+        self.assertEqual(issue_de_subida({"head": {"ref": "apunte/issue-5", "repo": {"full_name": "o/r"}},
+                  "base": {"repo": {"full_name": "o/r"}},
+                                          "base": {"repo": {"full_name": "o/r"}}}), 5)
         self.assertIsNone(issue_de_subida({"head": {"ref": "mi-rama"}}))
 
     def test_pregunta_solo_en_rechazo_por_contenido(self):
@@ -81,7 +83,7 @@ class PruebaMoverCurso(unittest.TestCase):
 
             gh = GitHubFalso()
             pr = {"number": 10, "title": "[XS-1130] Poisson", "head": {"ref": "apunte/issue-5", "repo": {"full_name": "o/r"}},
-                  "base": {"ref": "main"}}
+                  "base": {"ref": "main", "repo": {"full_name": "o/r"}}}
             with mock.patch.object(rv, "RAIZ", local):
                 respuesta = rv.cambiar_curso(gh, pr, "ana", "XS-0122")
 

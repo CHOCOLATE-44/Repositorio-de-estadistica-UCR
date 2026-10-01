@@ -1,0 +1,24 @@
+# Generado por scripts/generar_plantillas.py — no editar a mano.
+name: 🗑️ Borrar un apunte
+description: Solo quien subió el apunte (o un mantenedor) puede borrarlo.
+title: "Borrar: "
+labels: ["borrar-apunte"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lo más fácil es usar el botón **«Borrar»** en la página del ranking: rellena el apunte por usted.
+        Solo se borra si usted lo subió (o es mantenedor). **Se pierden sus votos** y no se puede deshacer.
+  - type: input
+    id: apunte
+    attributes:
+      label: Apunte
+      description: Ruta del archivo en el repositorio (se rellena sola desde la página).
+      placeholder: apuntes/XS-2130-modelos-de-regresion-aplicados/mi-apunte.pdf
+    validations:
+      required: true
+  - type: textarea
+    id: motivo
+    attributes:
+      label: Motivo
+      description: Opcional.
