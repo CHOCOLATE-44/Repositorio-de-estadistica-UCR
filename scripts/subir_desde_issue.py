@@ -109,10 +109,13 @@ def main():
 
     permitidas = config["validacion"]["extensiones_permitidas"]
     max_bytes = config["validacion"]["tamano_maximo_mb"] * 1_000_000
-    enlaces = [(nombre, url) for nombre, url in adjuntos_de(campos.get("archivo", ""))
+    # Primero el campo «Archivo»; luego el resto del formulario, porque en el celular es fácil
+    # pegar las fotos en «Descripción» por error.
+    otros = "\n".join(v for k, v in campos.items() if k != "archivo")
+    enlaces = [(nombre, url) for nombre, url in adjuntos_de(campos.get("archivo", "") + "\n" + otros)
                if extension_de(url) in [*permitidas, ".zip", ""]]
     if not enlaces:
-        fallar(gh, numero, f"No encontré archivos ({', '.join(permitidas)} o .zip) en el campo «Archivo». "
+        fallar(gh, numero, f"No encontré archivos ({', '.join(permitidas)} o .zip) en el formulario. "
                            "Arrástrelos al cuadro de texto y espere a que terminen de subir antes de enviar.")
 
     # (nombre, extensión, contenido). Un .zip se abre y cada archivo válido de adentro cuenta

@@ -76,12 +76,23 @@ def calcular_datos() -> dict:
     }
 
 
+VISIBLES_EN_SITIO = {"pdf", "jpg", "jpeg", "png"}
+
+
 def main():
     datos = calcular_datos()
     salida = RAIZ / "_site"
     if salida.exists():
         shutil.rmtree(salida)
     shutil.copytree(RAIZ / "sitio", salida)
+    # Los PDF e imágenes se publican también en el sitio: así «Abrir» los muestra con el visor
+    # del navegador (el de GitHub, en el celular, solo deja ver la primera página). Los HTML no:
+    # podrían ejecutar código dentro del sitio.
+    for a in datos["apuntes"]:
+        if a["formato"] in VISIBLES_EN_SITIO:
+            destino = salida / a["ruta"]
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(RAIZ / a["ruta"], destino)
     (salida / "data").mkdir(exist_ok=True)
     (salida / "data" / "puntuaciones.json").write_text(json.dumps(datos, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"Sitio generado: {len(datos['apuntes'])} apuntes, {sum(a['votos'] for a in datos['apuntes'])} votos válidos.")
