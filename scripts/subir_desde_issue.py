@@ -20,6 +20,24 @@ from comun import (CARPETA_APUNTES, RAIZ, GitHub, cargar_config, cargar_cursos, 
                    curso_por_sigla, escribir_salida, leer_formulario, slug)
 
 MAX_ARCHIVOS = 20
+IMAGENES = {".jpg", ".jpeg", ".png"}
+LADO_MAXIMO = 2000  # px: suficiente para leer letra a mano sin que el PDF pese de más
+
+
+def fotos_a_pdf(fotos: list[bytes]) -> bytes:
+    """Une las fotos (en orden) en un solo PDF, enderezadas según el celular y achicadas."""
+    from PIL import Image, ImageOps
+
+    paginas = []
+    for datos in fotos:
+        img = ImageOps.exif_transpose(Image.open(io.BytesIO(datos))).convert("RGB")
+        img.thumbnail((LADO_MAXIMO, LADO_MAXIMO))
+        paginas.append(img)
+    salida = io.BytesIO()
+    # Resolución para que cada página mida como una hoja carta (8,5 pulgadas de ancho).
+    paginas[0].save(salida, "PDF", save_all=True, append_images=paginas[1:], quality=85,
+                    resolution=max(72.0, paginas[0].width / 8.5))
+    return salida.getvalue()
 
 ADJUNTO = re.compile(
     r"https://github\.com/(?:user-attachments/files|[\w.-]+/[\w.-]+/files)/\d+/[^\s)\]\"'>]+", re.I)
@@ -107,6 +125,14 @@ def main():
             fallar(gh, numero, f"«{nombre}» no es un .zip válido.")
     if not adjuntos:
         fallar(gh, numero, f"Los .zip no traen archivos válidos ({', '.join(permitidas)}).")
+    # Las fotos (páginas de un cuaderno) se unen en un solo PDF: un apunte, no uno por foto.
+    fotos = [datos for _, ext, datos in adjuntos if ext in IMAGENES]
+    if fotos:
+        try:
+            pdf = fotos_a_pdf(fotos)
+        except Exception as e:
+            fallar(gh, numero, f"No se pudieron leer las fotos: {e}")
+        adjuntos = [a for a in adjuntos if a[1] not in IMAGENES] + [(f"{titulo}.pdf", ".pdf", pdf)]
     if len(adjuntos) > MAX_ARCHIVOS:
         fallar(gh, numero, f"Adjunte como máximo {MAX_ARCHIVOS} archivos por formulario.")
 

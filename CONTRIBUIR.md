@@ -4,6 +4,7 @@
 1. En el ranking o en *Issues → New issue*, elija **📤 Subir un apunte**.
 2. Elija el curso, escriba un título y arrastre su archivo al cuadro «Archivo»: PDF, Word, PowerPoint, fotos (JPG/PNG), Markdown, R Markdown, HTML o texto.
    Si GitHub no le deja adjuntar un formato (por ejemplo `.Rmd` o `.html`), comprímalo en un `.zip` y adjunte el `.zip`.
+   📸 **¿Fotos de su cuaderno?** Mejor escanéelas a PDF con el celular (gratis): Google Drive → *+ → Escanear*, Notas del iPhone → *Escanear documentos* o Adobe Scan. Quedan más nítidas. Si sube fotos, súbalas todas en el mismo formulario y en orden: el robot las une en un solo PDF.
 3. Un robot crea el Pull Request por usted y revisa si el contenido corresponde al curso.
    Si coincide, el apunte **se publica solo** en unos minutos.
 
