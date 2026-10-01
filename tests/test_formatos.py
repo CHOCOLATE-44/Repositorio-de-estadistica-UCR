@@ -100,16 +100,19 @@ class GitHubFalso:
 
 class PruebasSubida(unittest.TestCase):
     def subir(self, enlaces: dict[str, bytes]):
+        archivo = "\n".join(f"[{n}](https://github.com/user-attachments/files/{i}/{n})" for i, n in enumerate(enlaces))
+        gh = GitHubFalso({f"https://github.com/user-attachments/files/{i}/{n}": d for i, (n, d) in enumerate(enlaces.items())})
+        return self.subir_cuerpo(archivo, gh)
+
+    def subir_cuerpo(self, archivo: str, gh):
         raiz = Path(tempfile.mkdtemp())
         shutil.copy(sdi.RAIZ / "config.json", raiz)
         shutil.copy(sdi.RAIZ / "cursos.json", raiz)
-        cuerpo = "### Curso\n\nXS-2130 — Modelos de regresión aplicados\n\n### Título\n\nRepaso\n\n### Archivo\n\n" + \
-                 "\n".join(f"[{n}](https://github.com/user-attachments/files/{i}/{n})" for i, n in enumerate(enlaces))
+        cuerpo = "### Curso\n\nXS-2130 — Modelos de regresión aplicados\n\n### Título\n\nRepaso\n\n### Archivo\n\n" + archivo
         issue = {"number": 5, "title": "Apunte: Repaso", "body": cuerpo, "labels": [{"name": "subir-apunte"}],
                  "user": {"login": "ana", "id": 1}}
         evento = raiz / "evento.json"
         evento.write_text(json.dumps({"issue": issue}))
-        gh = GitHubFalso({f"https://github.com/user-attachments/files/{i}/{n}": d for i, (n, d) in enumerate(enlaces.items())})
         salidas = {}
         with mock.patch.object(sdi, "RAIZ", raiz), mock.patch.object(sdi, "GitHub", return_value=gh), \
              mock.patch("comun.RAIZ", raiz), \
@@ -147,6 +150,18 @@ class PruebasSubida(unittest.TestCase):
         self.assertLess(pdf.stat().st_size, 2_000_000)  # se achican: no 3 fotos de 12 MP
         caja = lector.pages[0].mediabox
         self.assertAlmostEqual(float(caja.width) / 72, 8.5, places=1)  # ancho de hoja carta
+
+    def test_fotos_pegadas_sin_extension(self):
+        # Así inserta GitHub una foto arrastrada al cuadro: <img … src=".../assets/<uuid>"> o ![Image](…)
+        uuid1, uuid2 = "a49b981e-81b4-4405-9df1-72036fe23365", "b49b981e-81b4-4405-9df1-72036fe23366"
+        cuerpo = (f'<img width="4080" height="3060" alt="Image" src="https://github.com/user-attachments/assets/{uuid1}" />'
+                  f"\n![Image](https://github.com/user-attachments/assets/{uuid2})")
+        enlaces = sdi.adjuntos_de(cuerpo)
+        self.assertEqual([u.rsplit("/", 1)[-1] for _, u in enlaces], [uuid1, uuid2])
+        gh = GitHubFalso({u: foto("red") for _, u in enlaces})
+        gh.archivos[enlaces[1][1]] = b"%PDF-1.4 algo"
+        _, archivos, _ = self.subir_cuerpo(cuerpo, gh)
+        self.assertEqual(archivos, ["repaso-ana-2.pdf", "repaso-ana.pdf"])
 
     def test_fotos_y_otro_archivo(self):
         _, archivos, _ = self.subir({"clase.pptx": b"PK", "p1.jpg": foto("red")})

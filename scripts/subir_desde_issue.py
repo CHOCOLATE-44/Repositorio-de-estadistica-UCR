@@ -39,8 +39,26 @@ def fotos_a_pdf(fotos: list[bytes]) -> bytes:
                     resolution=max(72.0, paginas[0].width / 8.5))
     return salida.getvalue()
 
+# Archivos: …/user-attachments/files/123/nombre.pdf. Imágenes pegadas: …/user-attachments/assets/<uuid>
+# (sin extensión; GitHub las inserta como ![Image](…) o <img src="…">).
 ADJUNTO = re.compile(
-    r"https://github\.com/(?:user-attachments/files|[\w.-]+/[\w.-]+/files)/\d+/[^\s)\]\"'>]+", re.I)
+    r"https://github\.com/(?:(?:user-attachments/files|[\w.-]+/[\w.-]+/files)/\d+/[^\s)\]\"'>]+"
+    r"|user-attachments/assets/[0-9a-f-]{36})", re.I)
+
+
+def extension_de(url: str) -> str:
+    """Extensión del enlace; las imágenes pegadas no la traen y se averigua al descargarlas."""
+    return "" if "/user-attachments/assets/" in url else Path(url.split("?")[0]).suffix.lower()
+
+
+def es_imagen(datos: bytes) -> bool:
+    from PIL import Image
+
+    try:
+        Image.open(io.BytesIO(datos)).verify()
+        return True
+    except Exception:
+        return False
 
 
 def adjuntos_de(texto: str) -> list[tuple[str, str]]:
@@ -92,7 +110,7 @@ def main():
     permitidas = config["validacion"]["extensiones_permitidas"]
     max_bytes = config["validacion"]["tamano_maximo_mb"] * 1_000_000
     enlaces = [(nombre, url) for nombre, url in adjuntos_de(campos.get("archivo", ""))
-               if Path(url.split("?")[0]).suffix.lower() in [*permitidas, ".zip"]]
+               if extension_de(url) in [*permitidas, ".zip", ""]]
     if not enlaces:
         fallar(gh, numero, f"No encontré archivos ({', '.join(permitidas)} o .zip) en el campo «Archivo». "
                            "Arrástrelos al cuadro de texto y espere a que terminen de subir antes de enviar.")
@@ -102,14 +120,29 @@ def main():
     adjuntos: list[tuple[str, str, bytes]] = []
     temporal = RAIZ / ".adjunto"
     for nombre, url in enlaces:
-        ext = Path(url.split("?")[0]).suffix.lower()
+        ext = extension_de(url)
         try:
-            gh.descargar(url, temporal, max_bytes=max_bytes)
+            try:
+                gh.descargar(url, temporal, max_bytes=max_bytes)
+            except Exception:
+                if ext:
+                    raise
+                anonimo = GitHub(gh.repo)  # las imágenes de un repo público se ven sin iniciar sesión
+                anonimo.token = ""
+                anonimo.descargar(url, temporal, max_bytes=max_bytes)
             datos = temporal.read_bytes()
         except Exception as e:
             fallar(gh, numero, f"No se pudo descargar «{nombre}»: {e}")
         finally:
             temporal.unlink(missing_ok=True)
+        if not ext:  # imagen pegada en el cuadro: su nombre es «Image» o un código, mejor el título
+            nombre = titulo
+            if datos.startswith(b"%PDF"):
+                ext = ".pdf"
+            elif es_imagen(datos):
+                ext = ".jpg"  # cualquier imagen termina dentro del PDF de fotos
+            else:
+                fallar(gh, numero, "Uno de los archivos pegados no es una imagen ni un PDF.")
         if ext != ".zip":
             adjuntos.append((nombre, ext, datos))
             continue
