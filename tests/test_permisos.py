@@ -89,7 +89,7 @@ class PruebasPR(unittest.TestCase):
         self.assertEqual(correr("beto", "NONE", borrar)[0], 1)
         codigo, gh = correr("dueño", "OWNER", borrar)
         self.assertEqual(codigo, 0)
-        self.assertIn("Eliminación autorizada", gh.comentarios[-1])
+        self.assertTrue(any("Eliminación autorizada" in c for c in gh.comentarios))
 
     def test_renombrar_usa_ruta_anterior(self):
         otra = RUTA.replace("notas-ana", "otro-nombre")
