@@ -2,7 +2,8 @@
 
 ## Opción fácil (sin Git)
 1. En el ranking o en *Issues → New issue*, elija **📤 Subir un apunte**.
-2. Elija el curso, escriba un título y arrastre su PDF al cuadro «Archivo».
+2. Elija el curso, escriba un título y arrastre su archivo al cuadro «Archivo»: PDF, Word, PowerPoint, fotos (JPG/PNG), Markdown, R Markdown, HTML o texto.
+   Si GitHub no le deja adjuntar un formato (por ejemplo `.Rmd` o `.html`), comprímalo en un `.zip` y adjunte el `.zip`.
 3. Un robot crea el Pull Request por usted y revisa si el contenido corresponde al curso.
    Si coincide, el apunte **se publica solo** en unos minutos.
 
@@ -20,7 +21,8 @@ le preguntará qué pasó. Responda con un comentario (en el PR o en su issue) q
 2. Agregue su archivo en la carpeta del curso: `apuntes/<SIGLA-nombre>/<titulo>.pdf`.
    - Nombre en minúsculas, sin tildes ni espacios: `resumen-parcial-1.pdf`, `notas-de-clase-i-2026.pdf`.
      El nombre se muestra como título en el ranking.
-   - Formatos: PDF (preferido) o Markdown (`.md`). Máximo 50 MB.
+   - Formatos: PDF, Word (`.docx`), PowerPoint (`.pptx`), imágenes (`.jpg`, `.png`), Markdown (`.md`),
+     R Markdown (`.Rmd`, `.qmd`), HTML, texto (`.txt`) o código R (`.R`). Máximo 50 MB.
    - En la interfaz web: entre a la carpeta → *Add file → Upload files*.
 3. Abra un Pull Request. La validación automática comentará en unos minutos y, si coincide con el curso, lo publicará sola.
 
@@ -34,7 +36,8 @@ que cambien apuntes de otras personas.
 ## Reglas
 - Un PR = apuntes: solo se aceptan archivos dentro de `apuntes/<curso>/` (los demás los cambian los mantenedores).
 - No renombre ni mueva apuntes ya publicados: sus votos están ligados a la ruta.
-- Solo material propio o con permiso; nada de exámenes ni material restringido.
+- Solo material propio o con permiso. Se pueden subir exámenes, prácticas y quices; si son de un profesor
+  (o son sus presentaciones), pídale permiso antes de subirlos.
 
 ## Puntuar
 Use el botón **Puntuar** del ranking. La justificación es obligatoria y pública:

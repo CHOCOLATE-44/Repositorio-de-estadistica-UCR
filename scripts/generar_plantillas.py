@@ -20,14 +20,15 @@ def main():
     opciones = "\n".join(f"        - {q(c['sigla'] + ' — ' + c['nombre'])}" for c in cursos)
     (DESTINO / "subir-apunte.yml").write_text(f"""# Generado por scripts/generar_plantillas.py — no editar a mano.
 name: 📤 Subir un apunte
-description: Suba su PDF sin usar Git. Un robot crea el Pull Request y valida el contenido.
+description: Suba su apunte, examen o presentación sin usar Git. Un robot crea el Pull Request y valida el contenido.
 title: "Apunte: "
 labels: ["subir-apunte"]
 body:
   - type: markdown
     attributes:
       value: |
-        ¡Gracias por compartir! Complete el formulario y **arrastre su PDF** al cuadro «Archivo».
+        ¡Gracias por compartir! Complete el formulario y **arrastre su archivo** al cuadro «Archivo»: PDF, Word, PowerPoint, fotos (JPG/PNG), Markdown, R Markdown, HTML o texto.
+        Si GitHub no le deja adjuntar un formato (`.Rmd`, `.html`…), comprímalo en un `.zip`.
         Un proceso automático revisará que el contenido corresponda al curso y le avisará aquí.
   - type: dropdown
     id: curso
@@ -48,8 +49,8 @@ body:
     id: archivo
     attributes:
       label: Archivo
-      description: Arrastre aquí el PDF (máx. {cfg['validacion']['tamano_maximo_mb']} MB). Espere a que termine de subir antes de enviar.
-      placeholder: Arrastre su PDF aquí…
+      description: Arrastre aquí su archivo o un .zip (máx. {cfg['validacion']['tamano_maximo_mb']} MB). Espere a que termine de subir antes de enviar.
+      placeholder: Arrastre su archivo aquí…
     validations:
       required: true
   - type: textarea
@@ -64,7 +65,7 @@ body:
       options:
         - label: Este apunte es de mi autoría (o tengo permiso) y acepto que se publique en este repositorio público.
           required: true
-        - label: No contiene exámenes o material que el profesor haya pedido no compartir.
+        - label: Si es un examen o una presentación de un profesor, tengo su permiso para compartirlo.
           required: true
 """, encoding="utf-8")
 

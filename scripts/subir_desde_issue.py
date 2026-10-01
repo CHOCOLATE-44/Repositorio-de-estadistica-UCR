@@ -6,10 +6,12 @@ la ruta, la rama y el título. El workflow se encarga del commit y del PR.
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import re
 import sys
+import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -70,19 +72,51 @@ def main():
         fallar(gh, numero, "Falta el título del apunte.")
 
     permitidas = config["validacion"]["extensiones_permitidas"]
-    adjuntos = [(nombre, url) for nombre, url in adjuntos_de(campos.get("archivo", ""))
-                if Path(url.split("?")[0]).suffix.lower() in permitidas]
-    if not adjuntos:
-        fallar(gh, numero, f"No encontré archivos ({', '.join(permitidas)}) en el campo «Archivo». "
+    max_bytes = config["validacion"]["tamano_maximo_mb"] * 1_000_000
+    enlaces = [(nombre, url) for nombre, url in adjuntos_de(campos.get("archivo", ""))
+               if Path(url.split("?")[0]).suffix.lower() in [*permitidas, ".zip"]]
+    if not enlaces:
+        fallar(gh, numero, f"No encontré archivos ({', '.join(permitidas)} o .zip) en el campo «Archivo». "
                            "Arrástrelos al cuadro de texto y espere a que terminen de subir antes de enviar.")
+
+    # (nombre, extensión, contenido). Un .zip se abre y cada archivo válido de adentro cuenta
+    # como uno más: sirve para formatos que GitHub no deja adjuntar (.Rmd, .html…).
+    adjuntos: list[tuple[str, str, bytes]] = []
+    temporal = RAIZ / ".adjunto"
+    for nombre, url in enlaces:
+        ext = Path(url.split("?")[0]).suffix.lower()
+        try:
+            gh.descargar(url, temporal, max_bytes=max_bytes)
+            datos = temporal.read_bytes()
+        except Exception as e:
+            fallar(gh, numero, f"No se pudo descargar «{nombre}»: {e}")
+        finally:
+            temporal.unlink(missing_ok=True)
+        if ext != ".zip":
+            adjuntos.append((nombre, ext, datos))
+            continue
+        try:
+            with zipfile.ZipFile(io.BytesIO(datos)) as z:
+                miembros = [m for m in z.infolist() if not m.is_dir() and "__MACOSX" not in m.filename
+                            and not Path(m.filename).name.startswith(".")
+                            and Path(m.filename).suffix.lower() in permitidas]
+                if sum(m.file_size for m in miembros) > max_bytes:
+                    fallar(gh, numero, f"El contenido de «{nombre}» pesa más de {max_bytes // 1_000_000} MB.")
+                adjuntos += [(Path(m.filename).name, Path(m.filename).suffix.lower(), z.read(m)) for m in miembros]
+        except zipfile.BadZipFile:
+            fallar(gh, numero, f"«{nombre}» no es un .zip válido.")
+    if not adjuntos:
+        fallar(gh, numero, f"Los .zip no traen archivos válidos ({', '.join(permitidas)}).")
     if len(adjuntos) > MAX_ARCHIVOS:
         fallar(gh, numero, f"Adjunte como máximo {MAX_ARCHIVOS} archivos por formulario.")
 
     carpeta = RAIZ / CARPETA_APUNTES / curso["carpeta"]
+    carpeta.mkdir(parents=True, exist_ok=True)
     login = slug(usuario["login"], 30)
     rutas = []
-    for nombre, url in adjuntos:
-        ext = Path(url.split("?")[0]).suffix.lower()
+    for nombre, ext, datos in adjuntos:
+        if ext == ".pdf" and not datos.startswith(b"%PDF"):
+            fallar(gh, numero, f"«{nombre}» no es un PDF válido.")
         # Un archivo: se titula con el título del formulario. Varios: cada uno con su nombre.
         base = f"{slug(titulo if len(adjuntos) == 1 else Path(nombre).stem, 60)}-{login}"
         destino = carpeta / f"{base}{ext}"
@@ -90,13 +124,7 @@ def main():
         while destino.exists():
             destino = carpeta / f"{base}-{i}{ext}"
             i += 1
-        try:
-            gh.descargar(url, destino, max_bytes=config["validacion"]["tamano_maximo_mb"] * 1_000_000)
-        except Exception as e:
-            fallar(gh, numero, f"No se pudo descargar «{nombre}»: {e}")
-        if ext == ".pdf" and not destino.read_bytes().startswith(b"%PDF"):
-            destino.unlink()
-            fallar(gh, numero, f"«{nombre}» no es un PDF válido.")
+        destino.write_bytes(datos)
         rutas.append(destino.relative_to(RAIZ).as_posix())
 
     escribir_salida("ok", "true")

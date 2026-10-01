@@ -12,7 +12,7 @@ hechos por estudiantes y **puntuados por la comunidad**, para que quien llegue d
 | **Leer** apuntes | No, ni cuenta | Abra el ranking y pulse «Abrir». |
 | **Buscar o preguntar** | No | Escriba en el buscador: «mejor apunte de regresión», «DOE con más de 4 estrellas». |
 | **Puntuar** un apunte | No (solo cuenta gratis de GitHub) | Pulse «Puntuar», elija 1–5 ★ y **explique por qué** (obligatorio). |
-| **Subir** un apunte | No | Pulse «Subir un apunte», elija el curso y arrastre su PDF. |
+| **Subir** un apunte | No | Pulse «Subir un apunte», elija el curso y arrastre su archivo (PDF, Word, PowerPoint, fotos, R Markdown, HTML…). |
 | Subir por Pull Request | Sí | Ver [CONTRIBUIR.md](CONTRIBUIR.md). |
 
 Cada apunte que se sube pasa por una **validación automática** que comprueba que su contenido
@@ -45,7 +45,7 @@ general (humanidades, arte, deporte, repertorio, seminarios de realidad nacional
 ## Cómo funciona por dentro
 
 ```
- Subir apunte ──► PR ──► [Validar apuntes] texto PDF → OCR Tesseract → Gemini ──► comentario en el PR
+ Subir apunte ──► PR ──► [Validar apuntes] texto del archivo → OCR Tesseract → Gemini ──► comentario en el PR
                                                                         │
                                                   si coincide, se publica solo
                                                                         ▼
