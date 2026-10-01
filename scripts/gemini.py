@@ -84,7 +84,8 @@ def preguntar_json(prompt: str, modelo: str, imagenes: list[Path] = (), intentos
 
     partes: list[dict] = [{"text": prompt}]
     for img in imagenes:
-        partes.append({"inline_data": {"mime_type": "image/jpeg",
+        tipo = "image/png" if Path(img).suffix.lower() == ".png" else "image/jpeg"
+        partes.append({"inline_data": {"mime_type": tipo,
                                        "data": base64.b64encode(Path(img).read_bytes()).decode()}})
     cuerpo = json.dumps({
         "contents": [{"role": "user", "parts": partes}],
