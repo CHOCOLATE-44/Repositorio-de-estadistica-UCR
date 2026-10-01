@@ -77,7 +77,7 @@ class PruebasPR(unittest.TestCase):
         codigo, gh = correr("beto", "CONTRIBUTOR", self.modificado())
         self.assertEqual(codigo, 1)
         self.assertEqual(gh.estados[-1]["state"], "failure")
-        self.assertIn("No tienes permiso", gh.comentarios[-1])
+        self.assertIn("No tiene permiso", gh.comentarios[-1])
 
     def test_autor_modifica_aceptado(self):
         codigo, gh = correr("ana", "CONTRIBUTOR", self.modificado())

@@ -131,7 +131,7 @@
       const d = document.createElement("div");
       d.className = "vacio";
       d.innerHTML = datos.apuntes.length ? "Ningún apunte coincide con los filtros." :
-        `Todavía no hay apuntes. <a href="${urlGitHub("/issues/new?template=subir-apunte.yml")}">¡Sube el primero!</a>`;
+        `Todavía no hay apuntes. <a href="${urlGitHub("/issues/new?template=subir-apunte.yml")}">¡Suba el primero!</a>`;
       cont.append(d);
       return;
     }

@@ -1,14 +1,14 @@
 # Generado por scripts/generar_plantillas.py — no editar a mano.
 name: ⭐ Puntuar un apunte
-description: Da de 1 a 5 estrellas a un apunte y explica por qué.
+description: Dé de 1 a 5 estrellas a un apunte y explique por qué.
 title: "Voto: "
 labels: ["voto"]
 body:
   - type: markdown
     attributes:
       value: |
-        Lo más fácil es usar el botón **«Puntuar»** en la página del ranking: rellena el apunte por ti.
-        Cuenta un voto por persona y apunte (si votas de nuevo, vale el más reciente). Tu justificación será pública.
+        Lo más fácil es usar el botón **«Puntuar»** en la página del ranking: rellena el apunte por usted.
+        Cuenta un voto por persona y apunte (si vota de nuevo, vale el más reciente). Su justificación será pública.
   - type: input
     id: apunte
     attributes:
@@ -34,7 +34,7 @@ body:
     attributes:
       label: Justificación
       description: >-
-        Obligatoria. Explica tu puntuación con razones concretas (claridad, orden, temas que cubre,
+        Obligatoria. Explique su puntuación con razones concretas (claridad, orden, temas que cubre,
         errores, ejemplos, legibilidad…). Mínimo 4 palabras.
         Los votos «por gusto» se rechazan.
     validations:

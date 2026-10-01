@@ -40,7 +40,7 @@ def adjuntos_de(texto: str) -> list[tuple[str, str]]:
 
 def fallar(gh: GitHub, numero: int, mensaje: str):
     gh.comentar(numero, f"### ❌ No se pudo procesar el apunte\n\n{mensaje}\n\n"
-                        "Edita este issue para corregirlo y se volverá a intentar automáticamente.",
+                        "Edite este issue para corregirlo y se volverá a intentar automáticamente.",
                 "<!-- subir-apunte -->")
     escribir_salida("ok", "false")
     print(mensaje)
@@ -74,9 +74,9 @@ def main():
                 if Path(url.split("?")[0]).suffix.lower() in permitidas]
     if not adjuntos:
         fallar(gh, numero, f"No encontré archivos ({', '.join(permitidas)}) en el campo «Archivo». "
-                           "Arrástralos al cuadro de texto y espera a que terminen de subir antes de enviar.")
+                           "Arrástrelos al cuadro de texto y espere a que terminen de subir antes de enviar.")
     if len(adjuntos) > MAX_ARCHIVOS:
-        fallar(gh, numero, f"Adjunta como máximo {MAX_ARCHIVOS} archivos por formulario.")
+        fallar(gh, numero, f"Adjunte como máximo {MAX_ARCHIVOS} archivos por formulario.")
 
     carpeta = RAIZ / CARPETA_APUNTES / curso["carpeta"]
     login = slug(usuario["login"], 30)

@@ -53,20 +53,20 @@ def problemas_basicos(voto: dict, rutas_existentes: dict[str, dict], config: dic
     cfg = config["votos"]
     errores = []
     if voto["ruta"] not in rutas_existentes:
-        errores.append(f"El apunte `{voto['ruta'] or '(vacío)'}` no existe. Usa el botón «Puntuar» de la página del ranking.")
+        errores.append(f"El apunte `{voto['ruta'] or '(vacío)'}` no existe. Use el botón «Puntuar» de la página del ranking.")
     if voto["puntuacion"] is None:
         errores.append("Falta la puntuación (1 a 5 estrellas).")
     j = voto["justificacion"]
     palabras = re.findall(r"\w+", j)
     if len(j) < cfg["min_caracteres_justificacion"] or len(palabras) < cfg["min_palabras_justificacion"]:
-        errores.append(f"La justificación es muy corta: escribe al menos {cfg['min_palabras_justificacion']} palabras "
-                       f"({cfg['min_caracteres_justificacion']} caracteres) explicando por qué das esa puntuación.")
+        errores.append(f"La justificación es muy corta: escriba al menos {cfg['min_palabras_justificacion']} palabras "
+                       f"({cfg['min_caracteres_justificacion']} caracteres) explicando por qué da esa puntuación.")
     elif len({normalizar_texto(p) for p in palabras}) < max(4, len(palabras) // 4) or re.search(r"(.)\1{6,}", j):
-        errores.append("La justificación parece texto de relleno. Explica qué tiene de bueno o malo el apunte.")
+        errores.append("La justificación parece texto de relleno. Explique qué tiene de bueno o malo el apunte.")
     if not cfg.get("permitir_autovoto", False):
         apunte = rutas_existentes.get(voto["ruta"])
         if apunte and apunte.get("autor_login") and apunte["autor_login"].lower() == voto["usuario"].lower():
-            errores.append("No puedes puntuar tus propios apuntes.")
+            errores.append("No puede puntuar sus propios apuntes.")
     return errores
 
 
@@ -81,7 +81,7 @@ Acepta si da al menos una razón relacionada con el apunte (claridad, orden, com
 ejemplos, letra legible, utilidad para estudiar, cobertura de temas, etc.), aunque sea breve o informal.
 Rechaza solo si es claramente por gusto personal sin razones ("no me cae bien el autor", "porque sí"),
 ofensiva, spam o sin relación con el apunte.
-Responde SOLO JSON: {{"aceptable": bool, "motivo": "explicación breve en español"}}"""
+Responde SOLO JSON: {{"aceptable": bool, "motivo": "explicación breve en español, tratando de usted al votante"}}"""
     try:
         # Juzgar una justificación corta no necesita el modelo grande: se usa uno liviano (más cuota gratis).
         modelo = config["validacion"].get("gemini_modelo_votos") or config["validacion"]["gemini_modelo"]
@@ -139,17 +139,17 @@ def procesar_evento(ruta_evento: str) -> int:
         creada = gh.get(f"/users/{voto['usuario']}")["created_at"]
         dias = (datetime.now(timezone.utc) - datetime.fromisoformat(creada.replace("Z", "+00:00"))).days
         if dias < edad_min:
-            errores.append(f"Tu cuenta de GitHub debe tener al menos {edad_min} días para votar (evita votos duplicados).")
+            errores.append(f"Su cuenta de GitHub debe tener al menos {edad_min} días para votar (evita votos duplicados).")
     if not errores:
         motivo = revisar_justificacion_gemini(voto, config)
         if motivo:
             errores.append(f"La justificación no parece explicar la puntuación: {motivo}")
 
     if errores:
-        texto = (f"### ❌ @{voto['usuario']}, tu voto todavía no cuenta\n\n" + "\n".join(f"- {e}" for e in errores) +
-                 "\n\n**Para corregirlo**, elige una opción:\n"
-                 "- **Responde en este issue** con tu nueva justificación (desde la misma cuenta con la que votaste), o\n"
-                 "- edita tu primer mensaje (**«…» → Edit**).\n\n"
+        texto = (f"### ❌ @{voto['usuario']}, su voto todavía no cuenta\n\n" + "\n".join(f"- {e}" for e in errores) +
+                 "\n\n**Para corregirlo**, elija una opción:\n"
+                 "- **Responda en este issue** con su nueva justificación (desde la misma cuenta con la que votó), o\n"
+                 "- edite su primer mensaje (**«…» → Edit**).\n\n"
                  "El robot lo revisa de nuevo solo y, si está bien, cierra este issue.")
         gh.comentar(voto["issue"], texto, MARCADOR)
         gh.poner_etiquetas(voto["issue"], poner=[ETIQUETA_RECHAZADO], quitar=[ETIQUETA_VALIDO])
@@ -160,8 +160,8 @@ def procesar_evento(ruta_evento: str) -> int:
         return 0
 
     estrellas = "⭐" * voto["puntuacion"]
-    texto = (f"### ✅ ¡Gracias! Tu voto quedó registrado\n\n{estrellas} ({voto['puntuacion']}/5) para `{voto['ruta']}`.\n\n"
-             "El ranking se actualiza en un par de minutos. Si vuelves a votar por este apunte, cuenta solo tu voto más reciente.")
+    texto = (f"### ✅ ¡Gracias! Su voto quedó registrado\n\n{estrellas} ({voto['puntuacion']}/5) para `{voto['ruta']}`.\n\n"
+             "El ranking se actualiza en un par de minutos. Si vuelve a votar por este apunte, cuenta solo su voto más reciente.")
     gh.comentar(voto["issue"], texto, MARCADOR)
     gh.poner_etiquetas(voto["issue"], poner=[ETIQUETA_VALIDO], quitar=[ETIQUETA_RECHAZADO])
     if issue.get("state") == "open":

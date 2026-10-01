@@ -5,7 +5,7 @@ Hay dos niveles, del más barato al más potente.
 ## 1. Buscador de la página (sin IA, instantáneo)
 `sitio/consulta.js` traduce frases a filtros. Ejemplos:
 
-| Escribes | Entiende |
+| Si se escribe… | Entiende |
 |---|---|
 | ¿cuál es el mejor apunte de regresión? | XS-2130 · el mejor (muestra solo el primero y lo anuncia) |
 | apuntes de DOE con más de 4 estrellas | XS-3150 · promedio > 4 |
@@ -16,10 +16,10 @@ Hay dos niveles, del más barato al más potente.
 | XS2310 | XS-0122 (sigla equivalente del plan anterior) |
 
 Los cursos se reconocen por sigla, nombre, siglas equivalentes y **alias** (`cursos.json → alias`).
-Si la gente usa otro apodo para un curso, agrégalo ahí. Lo que no se reconoce se usa como búsqueda de texto.
+Si la gente usa otro apodo para un curso, agréguelo ahí. Lo que no se reconoce se usa como búsqueda de texto.
 Pruebas: `node tests/test_consulta.js`.
 
-## 2. «Pregúntale a la IA» (Gemini, ~30 s)
+## 2. «Pregúntele a la IA» (Gemini, ~30 s)
 Para preguntas abiertas («¿qué me sirve para repasar ANOVA?»). El enlace aparece bajo el buscador
 y abre el formulario **❓ Preguntar** con la pregunta ya escrita. El workflow `responder-pregunta.yml`
 recalcula los datos del ranking, se los pasa a Gemini con instrucciones de responder solo con ellos,

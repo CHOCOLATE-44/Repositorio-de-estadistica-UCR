@@ -1,14 +1,14 @@
 # Generado por scripts/generar_plantillas.py — no editar a mano.
 name: 📤 Subir un apunte
-description: Sube tu PDF sin usar Git. Un robot crea el Pull Request y valida el contenido.
+description: Suba su PDF sin usar Git. Un robot crea el Pull Request y valida el contenido.
 title: "Apunte: "
 labels: ["subir-apunte"]
 body:
   - type: markdown
     attributes:
       value: |
-        ¡Gracias por compartir! Completa el formulario y **arrastra tu PDF** al cuadro «Archivo».
-        Un proceso automático revisará que el contenido corresponda al curso y te avisará aquí.
+        ¡Gracias por compartir! Complete el formulario y **arrastre su PDF** al cuadro «Archivo».
+        Un proceso automático revisará que el contenido corresponda al curso y le avisará aquí.
   - type: dropdown
     id: curso
     attributes:
@@ -58,8 +58,8 @@ body:
     id: archivo
     attributes:
       label: Archivo
-      description: Arrastra aquí el PDF (máx. 50 MB). Espera a que termine de subir antes de enviar.
-      placeholder: Arrastra tu PDF aquí…
+      description: Arrastre aquí el PDF (máx. 50 MB). Espere a que termine de subir antes de enviar.
+      placeholder: Arrastre su PDF aquí…
     validations:
       required: true
   - type: textarea
