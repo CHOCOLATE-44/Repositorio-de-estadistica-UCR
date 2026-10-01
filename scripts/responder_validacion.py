@@ -65,21 +65,21 @@ def contenido_nuevo(gh: GitHub, pr: dict, usuario: str, explicacion: str) -> str
     cita = "\n".join(f"> {linea}" for linea in explicacion.splitlines()) if explicacion else "> (sin explicación)"
     gh.comentar(numero, f"### 👀 Revisión manual solicitada\n\n@{usuario} indica que es **contenido nuevo del curso** "
                         f"que no aparece en la carta al estudiante:\n\n{cita}\n\n"
-                        f"@{dueno}: revisa el apunte. Si corresponde, fusiona el PR (con *bypass* de la regla de la rama); "
-                        "si no, ciérralo explicando el motivo.", MARCADOR)
+                        f"@{dueno}: revise el apunte. Si corresponde, fusione el PR (con *bypass* de la regla de la rama); "
+                        "si no, ciérrelo explicando el motivo.", MARCADOR)
     return (f"✅ Listo, @{usuario}: marqué el PR #{numero} para **revisión manual**. "
-            "El mantenedor lo revisará y te responderá allí.")
+            "El mantenedor lo revisará y le responderá allí.")
 
 
 def cambiar_curso(gh: GitHub, pr: dict, usuario: str, sigla: str) -> str:
     cursos = cargar_cursos()
     nuevo = curso_por_sigla(sigla, cursos)
     if not nuevo:
-        return f"❌ No reconozco el curso `{sigla}`. Revisa la sigla (por ejemplo `/curso XS-0122`)."
+        return f"❌ No reconozco el curso `{sigla}`. Revise la sigla (por ejemplo `/curso XS-0122`)."
     numero, rama = pr["number"], pr["head"]["ref"]
     if (pr["head"].get("repo") or {}).get("full_name") != gh.repo:
-        return ("❌ Este PR viene de tu copia (fork) del repositorio, así que el robot no puede mover el archivo. "
-                f"Muévelo tú a `{CARPETA_APUNTES}/{nuevo['carpeta']}/` y vuelve a hacer push.")
+        return ("❌ Este PR viene de su copia (fork) del repositorio, así que el robot no puede mover el archivo. "
+                f"Muévalo usted a `{CARPETA_APUNTES}/{nuevo['carpeta']}/` y vuelva a hacer push.")
 
     archivos = [f for f in gh.paginar(f"/repos/{gh.repo}/pulls/{numero}/files")
                 if f["status"] != "removed" and len(PurePosixPath(f["filename"]).parts) == 3

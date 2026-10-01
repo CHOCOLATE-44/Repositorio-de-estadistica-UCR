@@ -69,7 +69,7 @@ class PruebasVotos(unittest.TestCase):
 
     def test_autovoto(self):
         v = extraer_voto(issue(cuerpo(), usuario="Beto"))
-        self.assertIn("No puedes puntuar tus propios apuntes.", problemas_basicos(v, self.rutas, self.config))
+        self.assertIn("No puede puntuar sus propios apuntes.", problemas_basicos(v, self.rutas, self.config))
 
     def test_url_pegada(self):
         v = extraer_voto(issue(cuerpo(apunte=f"https://github.com/o/r/blob/main/{RUTA}")))

@@ -41,8 +41,8 @@ def revisar_permiso(estado: str, usuario: str, asociacion: str, autor_original: 
     if autor_original and autor_original.lower() == usuario.lower():
         return None
     quien = f"@{autor_original} (quien lo subió)" if autor_original else "quien lo subió"
-    return (f"No tienes permiso para {ACCIONES[estado]} este apunte: solo {quien} o los "
-            "mantenedores del repositorio pueden hacerlo. Si tiene un error, avisa en un issue.")
+    return (f"No tiene permiso para {ACCIONES[estado]} este apunte: solo {quien} o los "
+            "mantenedores del repositorio pueden hacerlo. Si tiene un error, avise en un issue.")
 
 PALABRAS_VACIAS = set("""
 para como pero este esta estos estas donde cuando entre sobre desde hasta segun
@@ -236,7 +236,7 @@ Criterios:
 Responde SOLO con JSON:
 {{"es_apunte": bool, "corresponde": bool, "confianza": número entre 0 y 1,
   "curso_probable": "sigla o null", "temas_carta": ["..."],
-  "motivo": "explicación breve en español (máx. 2 oraciones)"}}"""
+  "motivo": "explicación breve en español (máx. 2 oraciones), tratando de usted a quien subió el apunte"}}"""
 
 
 def validar_archivo(archivo: Path, nombre_en_repo: str, carpeta: str, config: dict,
@@ -253,7 +253,7 @@ def validar_archivo(archivo: Path, nombre_en_repo: str, carpeta: str, config: di
                          f"Tipo de archivo `{ext}` no permitido (se aceptan {', '.join(val['extensiones_permitidas'])}).")
     if archivo.stat().st_size > val["tamano_maximo_mb"] * 1_000_000:
         return Veredicto(nombre_en_repo, False,
-                         f"El archivo pesa más de {val['tamano_maximo_mb']} MB. Comprímelo (p. ej. con ilovepdf.com).")
+                         f"El archivo pesa más de {val['tamano_maximo_mb']} MB. Comprímalo (p. ej. con ilovepdf.com).")
 
     r = extraer(archivo, val["min_caracteres_texto_directo"], val["max_paginas_ocr"],
                 val["paginas_imagen_para_gemini"] if gemini.disponible() else 0)
@@ -370,11 +370,11 @@ def pregunta_al_autor(veredictos: list[Veredicto], autor: str | None) -> str:
     ejemplo = sugeridos[0] if sugeridos else "XS-0122"
     quien = f"@{autor}, " if autor else ""
     return (f"### 🤔 {quien}¿qué pasó con este apunte?\n\n"
-            "Responde con **un comentario** en este PR (o en tu issue de subida) que empiece con una de estas opciones:\n\n"
+            "Responda con **un comentario** en este PR (o en su issue de subida) que empiece con una de estas opciones:\n\n"
             "- **`/contenido-nuevo`** — el tema **sí es del curso**, pero no aparece en la carta al estudiante "
-            "(por ejemplo, el profesor lo agregó este semestre). Puedes explicar en el mismo comentario. "
+            "(por ejemplo, el profesor lo agregó este semestre). Puede explicarlo en el mismo comentario. "
             "Un mantenedor lo revisará a mano.\n"
-            f"- **`/curso {ejemplo}`** — **te equivocaste de curso**. Escribe la sigla del curso correcto y el robot "
+            f"- **`/curso {ejemplo}`** — **se equivocó de curso**. Escriba la sigla del curso correcto y el robot "
             "moverá el apunte y lo validará de nuevo."
             + (f"\n\nSegún la revisión, podría ser de: {', '.join(f'`{x}`' for x in sugeridos)}." if sugeridos else ""))
 
@@ -400,7 +400,7 @@ def _informe(veredictos: list[Veredicto], notas: list[str], autor: str | None = 
     if pregunta:
         partes.append(pregunta)
     elif veredictos and not ok:
-        partes.append("Si crees que es un error, responde en este PR explicando por qué; "
+        partes.append("Si cree que es un error, responda en este PR explicando por qué; "
                       "el mantenedor lo revisará manualmente.")
     partes.append("\n<sub>Validación automática · texto directo → OCR (Tesseract) → Gemini (Google AI Studio)</sub>")
     return "\n".join(partes)
@@ -484,8 +484,8 @@ def validar_pr(numero: int) -> int:
     issue = issue_de_subida(pr)
     pregunta = pregunta_al_autor(veredictos, autor)
     if issue and pregunta:
-        gh.comentar(issue, f"El robot revisó tu apunte en el PR #{numero} y **no lo aprobó**. "
-                           f"Mira el motivo allí.\n\n{pregunta}", "<!-- pregunta-validacion -->")
+        gh.comentar(issue, f"El robot revisó su apunte en el PR #{numero} y **no lo aprobó**. "
+                           f"Puede ver el motivo allí.\n\n{pregunta}", "<!-- pregunta-validacion -->")
     if veredictos:
         ok = all(v.valido for v in veredictos)
         gh.poner_etiquetas(numero,

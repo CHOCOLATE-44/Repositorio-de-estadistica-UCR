@@ -43,7 +43,7 @@ def prompt(pregunta: str, datos: dict) -> str:
 y la comunidad los puntúa de 1 a 5 estrellas con una justificación.
 
 Responde la pregunta usando EXCLUSIVAMENTE los datos de abajo. Reglas:
-- En español, breve y directo (máx. ~150 palabras). Formato Markdown.
+- En español, tratando de usted a quien pregunta, breve y directo (máx. ~150 palabras). Formato Markdown.
 - Para «el mejor», usa «puntaje_ranking» (promedio bayesiano) y menciona promedio y número de votos.
 - Enlaza cada apunte que menciones: [título](url).
 - Si no hay apuntes que cumplan, dilo claramente y sugiere subir uno o puntuar los existentes.
@@ -70,12 +70,12 @@ def main():
     gh, config = GitHub(), cargar_config()
     pregunta = leer_formulario(issue.get("body") or "").get("pregunta", "").strip()
     if not pregunta:
-        gh.comentar(issue["number"], "No encontré la pregunta. Edita el issue y escríbela en el campo «Pregunta».", MARCADOR)
+        gh.comentar(issue["number"], "No encontré la pregunta. Edite el issue y escríbala en el campo «Pregunta».", MARCADOR)
         return
 
     pagina = f"https://{gh.repo.split('/')[0].lower()}.github.io/{gh.repo.split('/')[1]}/"
     if not gemini.disponible():
-        texto = f"La IA no está configurada en este repositorio. Usa el buscador del [ranking]({pagina})."
+        texto = f"La IA no está configurada en este repositorio. Use el buscador del [ranking]({pagina})."
     else:
         datos = calcular_datos()
         try:
@@ -85,9 +85,9 @@ def main():
             print(f"Error de Gemini: {e}")
             texto = ""
         if not texto:
-            texto = f"No pude responder ahora (la IA no respondió). Intenta más tarde o usa el buscador del [ranking]({pagina})."
+            texto = f"No pude responder ahora (la IA no respondió). Intente más tarde o use el buscador del [ranking]({pagina})."
     texto += ("\n\n<sub>Respuesta generada por IA (Gemini) con los datos del ranking; puede equivocarse. "
-              "Edita el issue para preguntar de nuevo.</sub>")
+              "Edite el issue para preguntar de nuevo.</sub>")
     gh.comentar(issue["number"], texto, MARCADOR)
     if issue.get("state") == "open":
         gh.cerrar_issue(issue["number"], "completed")

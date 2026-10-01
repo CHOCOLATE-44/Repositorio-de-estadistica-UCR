@@ -80,4 +80,4 @@ jobs:
             PR="${URL##*/}"
           fi
           gh workflow run validar-apunte.yml --ref "$BASE" -f pr="$PR"
-          gh issue comment "$ISSUE" --body "📄 Listo: se creó el Pull Request #$PR con tu apunte. En unos minutos el robot comentará allí si el contenido corresponde al curso. Cuando el mantenedor lo apruebe, aparecerá en el ranking y este issue se cerrará solo."
+          gh issue comment "$ISSUE" --body "📄 Listo: se creó el Pull Request #$PR con su apunte. En unos minutos el robot comentará allí si el contenido corresponde al curso. Cuando el mantenedor lo apruebe, aparecerá en el ranking y este issue se cerrará solo."

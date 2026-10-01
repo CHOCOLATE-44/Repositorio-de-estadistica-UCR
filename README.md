@@ -5,14 +5,14 @@ hechos por estudiantes y **puntuados por la comunidad**, para que quien llegue d
 
 **👉 Ranking de apuntes:** https://chocolate-44.github.io/Repositorio-de-estadistica-UCR/
 
-## ¿Cómo participo?
+## ¿Cómo participar?
 
-| Quiero… | ¿Necesito Git? | Cómo |
+| Para… | ¿Se necesita Git? | Cómo |
 |---|---|---|
-| **Leer** apuntes | No, ni cuenta | Abre el ranking y pulsa «Abrir». |
-| **Buscar o preguntar** | No | Escribe en el buscador: «mejor apunte de regresión», «DOE con más de 4 estrellas». |
-| **Puntuar** un apunte | No (solo cuenta gratis de GitHub) | Pulsa «Puntuar», elige 1–5 ★ y **explica por qué** (obligatorio). |
-| **Subir** un apunte | No | Pulsa «Subir un apunte», elige el curso y arrastra tu PDF. |
+| **Leer** apuntes | No, ni cuenta | Abra el ranking y pulse «Abrir». |
+| **Buscar o preguntar** | No | Escriba en el buscador: «mejor apunte de regresión», «DOE con más de 4 estrellas». |
+| **Puntuar** un apunte | No (solo cuenta gratis de GitHub) | Pulse «Puntuar», elija 1–5 ★ y **explique por qué** (obligatorio). |
+| **Subir** un apunte | No | Pulse «Subir un apunte», elija el curso y arrastre su PDF. |
 | Subir por Pull Request | Sí | Ver [CONTRIBUIR.md](CONTRIBUIR.md). |
 
 Cada apunte que se sube pasa por una **validación automática** que comprueba que su contenido
@@ -63,5 +63,5 @@ Guía de puesta en marcha y tareas habituales: [docs/configuracion.md](docs/conf
 Preguntas en lenguaje natural: [docs/fase-4-consultas.md](docs/fase-4-consultas.md).
 
 ## Licencia de los apuntes
-Cada apunte pertenece a su autor(a). Al subirlo, aceptas que se publique aquí para uso educativo.
-No subas exámenes ni material que el profesorado haya pedido no compartir.
+Cada apunte pertenece a su autor(a). Al subirlo, usted acepta que se publique aquí para uso educativo.
+No suba exámenes ni material que el profesorado haya pedido no compartir.

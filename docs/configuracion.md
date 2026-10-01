@@ -7,7 +7,7 @@ Todo es gratuito y **ningún paso pide tarjeta de crédito**.
    (GitHub no admite espacios; los convierte en guiones). Los enlaces antiguos redirigen solos.
 2. La rama principal debe llamarse **`main`** (los workflows publican desde ella).
    *Settings → Branches → Default branch*.
-3. Si cambias el nombre, actualiza la URL de `.github/ISSUE_TEMPLATE/config.yml`.
+3. Si cambia el nombre, actualice la URL de `.github/ISSUE_TEMPLATE/config.yml`.
 
 ## 2. GitHub Pages
 *Settings → Pages → Build and deployment → Source: **GitHub Actions***.
@@ -22,7 +22,7 @@ Recomendado en la misma página: *Fork pull request workflows from outside colla
 Require approval for first-time contributors*.
 
 ## 4. Clave gratuita de Gemini (Google AI Studio)
-1. Entra a <https://aistudio.google.com/apikey> con una cuenta de Google y crea una clave
+1. Entre a <https://aistudio.google.com/apikey> con una cuenta de Google y cree una clave
    (plan gratuito, sin tarjeta).
 2. *Settings → Secrets and variables → Actions → New repository secret*:
    nombre `GEMINI_API_KEY`, valor la clave.
@@ -33,7 +33,7 @@ productos; aquí solo se envían apuntes que de todos modos serán públicos.
 Modelos en `config.json` (según los límites del plan gratuito de la cuenta):
 - `gemini_modelo` = **gemini-3.5-flash-lite** (15/min, 500/día): valida apuntes contra la carta.
 - `gemini_modelo_votos` = **gemini-3.1-flash-lite** (15/min, 500/día, cuota aparte): revisa justificaciones.
-- `gemini_modelo_preguntas` = **gemini-3.8-flash** (5/min, 20/día): «Pregúntale a la IA».
+- `gemini_modelo_preguntas` = **gemini-3.8-flash** (5/min, 20/día): «Pregúntele a la IA».
 
 Si un modelo se queda sin cuota del día, el robot prueba otro una vez y luego sigue con las reglas simples; si choca con el límite por minuto, espera 30 s. Si Google retira un modelo, se elige solo el más nuevo del mismo tipo. Uso actual: https://ai.dev/rate-limit
 
@@ -47,8 +47,8 @@ Se crean solas la primera vez que se usan: `voto`, `voto-valido`, `voto-rechazad
 - ✅ **Restrict deletions** y ✅ **Block force pushes**.
 - ✅ **Require a pull request before merging**.
 - ✅ **Require status checks to pass** → *Add checks* → **Validación de apuntes**
-  (si no aparece en la lista, escríbelo y elige «Add Validación de apuntes»).
-- **Bypass list:** agrega el rol *Repository admin* para que tú puedas fusionar a mano si el robot se equivoca.
+  (si no aparece en la lista, escríbalo y elija «Add Validación de apuntes»).
+- **Bypass list:** agregue el rol *Repository admin* para que usted pueda fusionar a mano si el robot se equivoca.
 
 Así, un PR que cambie o borre el apunte de otra persona, o que no sea del curso, no se puede fusionar por accidente.
 
@@ -62,14 +62,14 @@ mantenedores (dueño, miembros de la organización y colaboradores del repo). Cu
 
 ## Tareas habituales del mantenedor
 
-| Quiero… | Cómo |
+| Para… | Cómo |
 |---|---|
-| Aprobar un apunte | Revisa el comentario del robot en el PR y haz *Merge*. |
-| Revisar un apunte marcado `revision-manual` | El autor dice que es contenido nuevo del curso. Revísalo: si corresponde, fusiona con *bypass*; si no, ciérralo explicando. |
-| Anular un voto abusivo | Pon la etiqueta `voto-anulado` al issue del voto. |
-| Que el buscador entienda otro apodo de un curso | Agrégalo en `alias` del curso en `cursos.json`. |
-| Agregar/editar un curso | Edita `cursos.json`, crea la carpeta en `apuntes/` y ejecuta `python scripts/generar_plantillas.py`. |
-| Mejorar la validación de un curso | Agrega temas típicos en `cursos.json`. |
+| Aprobar un apunte | Revise el comentario del robot en el PR y haga *Merge*. |
+| Revisar un apunte marcado `revision-manual` | El autor dice que es contenido nuevo del curso. Revíselo: si corresponde, fusione con *bypass*; si no, ciérrelo explicando el motivo. |
+| Anular un voto abusivo | Ponga la etiqueta `voto-anulado` al issue del voto. |
+| Que el buscador entienda otro apodo de un curso | Agréguelo en `alias` del curso en `cursos.json`. |
+| Agregar/editar un curso | Edite `cursos.json`, cree la carpeta en `apuntes/` y ejecute `python scripts/generar_plantillas.py`. |
+| Mejorar la validación de un curso | Agregue temas típicos en `cursos.json`. |
 | Subir la carta al estudiante de un curso | Ver `cartas/README.md` (ya está activa: los apuntes se comparan con ella). |
 | Ajustar reglas de votos | `config.json → votos` (largo mínimo, edad mínima de la cuenta, autovoto…). |
 

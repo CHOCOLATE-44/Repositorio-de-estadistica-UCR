@@ -20,15 +20,15 @@ def main():
     opciones = "\n".join(f"        - {q(c['sigla'] + ' — ' + c['nombre'])}" for c in cursos)
     (DESTINO / "subir-apunte.yml").write_text(f"""# Generado por scripts/generar_plantillas.py — no editar a mano.
 name: 📤 Subir un apunte
-description: Sube tu PDF sin usar Git. Un robot crea el Pull Request y valida el contenido.
+description: Suba su PDF sin usar Git. Un robot crea el Pull Request y valida el contenido.
 title: "Apunte: "
 labels: ["subir-apunte"]
 body:
   - type: markdown
     attributes:
       value: |
-        ¡Gracias por compartir! Completa el formulario y **arrastra tu PDF** al cuadro «Archivo».
-        Un proceso automático revisará que el contenido corresponda al curso y te avisará aquí.
+        ¡Gracias por compartir! Complete el formulario y **arrastre su PDF** al cuadro «Archivo».
+        Un proceso automático revisará que el contenido corresponda al curso y le avisará aquí.
   - type: dropdown
     id: curso
     attributes:
@@ -48,8 +48,8 @@ body:
     id: archivo
     attributes:
       label: Archivo
-      description: Arrastra aquí el PDF (máx. {cfg['validacion']['tamano_maximo_mb']} MB). Espera a que termine de subir antes de enviar.
-      placeholder: Arrastra tu PDF aquí…
+      description: Arrastre aquí el PDF (máx. {cfg['validacion']['tamano_maximo_mb']} MB). Espere a que termine de subir antes de enviar.
+      placeholder: Arrastre su PDF aquí…
     validations:
       required: true
   - type: textarea
@@ -70,15 +70,15 @@ body:
 
     (DESTINO / "puntuar-apunte.yml").write_text(f"""# Generado por scripts/generar_plantillas.py — no editar a mano.
 name: ⭐ Puntuar un apunte
-description: Da de 1 a 5 estrellas a un apunte y explica por qué.
+description: Dé de 1 a 5 estrellas a un apunte y explique por qué.
 title: "Voto: "
 labels: ["voto"]
 body:
   - type: markdown
     attributes:
       value: |
-        Lo más fácil es usar el botón **«Puntuar»** en la página del ranking: rellena el apunte por ti.
-        Cuenta un voto por persona y apunte (si votas de nuevo, vale el más reciente). Tu justificación será pública.
+        Lo más fácil es usar el botón **«Puntuar»** en la página del ranking: rellena el apunte por usted.
+        Cuenta un voto por persona y apunte (si vota de nuevo, vale el más reciente). Su justificación será pública.
   - type: input
     id: apunte
     attributes:
@@ -104,7 +104,7 @@ body:
     attributes:
       label: Justificación
       description: >-
-        Obligatoria. Explica tu puntuación con razones concretas (claridad, orden, temas que cubre,
+        Obligatoria. Explique su puntuación con razones concretas (claridad, orden, temas que cubre,
         errores, ejemplos, legibilidad…). Mínimo {cfg['votos']['min_palabras_justificacion']} palabras.
         Los votos «por gusto» se rechazan.
     validations:
@@ -126,8 +126,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Para búsquedas simples («mejor apunte de regresión», «DOE con más de 4 estrellas») usa el buscador
-        de la página del ranking: responde al instante. Aquí puedes hacer preguntas más abiertas,
+        Para búsquedas simples («mejor apunte de regresión», «DOE con más de 4 estrellas») use el buscador
+        de la página del ranking: responde al instante. Aquí puede hacer preguntas más abiertas,
         por ejemplo «¿qué apuntes me sirven para repasar ANOVA antes del parcial?».
         Un robot responderá en este issue en menos de un minuto.
   - type: textarea
