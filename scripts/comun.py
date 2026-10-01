@@ -109,6 +109,10 @@ class GitHub:
         contenido, _ = self._peticion("POST", ruta, datos)
         return json.loads(contenido) if contenido else None
 
+    def put(self, ruta: str, datos: dict):
+        contenido, _ = self._peticion("PUT", ruta, datos)
+        return json.loads(contenido) if contenido else None
+
     def patch(self, ruta: str, datos: dict):
         contenido, _ = self._peticion("PATCH", ruta, datos)
         return json.loads(contenido) if contenido else None

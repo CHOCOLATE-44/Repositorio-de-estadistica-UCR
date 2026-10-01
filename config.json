@@ -22,8 +22,7 @@
     "umbral_heuristico": 5
   },
   "publicacion": {
-    "confianza_minima": 0.8,
-    "exigir_carta": true
+    "automatica": true
   },
   "ranking": {
     "votos_previos": 3,

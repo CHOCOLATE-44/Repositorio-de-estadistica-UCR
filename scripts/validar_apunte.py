@@ -203,11 +203,6 @@ class Veredicto:
     detalles: list[str] = field(default_factory=list)
     preguntar: bool = False              # rechazo por contenido: se pregunta al autor qué pasó
     curso_sugerido: str | None = None    # sigla del curso donde probablemente encaja
-    por_gemini: bool = False             # la decisión la tomó Gemini (no solo las reglas simples)
-    confianza: float | None = None       # confianza que reportó Gemini (0 a 1)
-    con_carta: bool = False              # se comparó con la carta al estudiante del curso
-    es_examen: bool = False              # Gemini cree que es un examen o su solución
-    nuevo: bool = True                   # archivo agregado (no modifica, renombra ni borra uno existente)
 
 
 def _prompt(curso: dict, otros: list[dict], texto: str, carta: str, hay_imagenes: bool) -> str:
@@ -232,8 +227,6 @@ TEXTO EXTRAÍDO DEL DOCUMENTO (puede venir de OCR y tener errores):
 
 Criterios:
 - "es_apunte": false si es spam, algo sin relación con estudiar, o un documento vacío/ilegible.
-- "es_examen": true si el documento es un examen, quiz, prueba corta o su solución (enunciados de evaluación,
-  «Examen parcial», «Nombre: ___ Carné: ___», puntajes por pregunta…). Un resumen PARA estudiar para un examen no es un examen.
 - "corresponde": true si el contenido trata mayoritariamente de los temas del curso de la carpeta.
   Temas compartidos con otros cursos son aceptables si encajan razonablemente en este curso.
 {"- HAY CARTA AL ESTUDIANTE: compara el documento con su temario. 'corresponde' es true solo si los temas"
@@ -241,7 +234,7 @@ Criterios:
  " hasta 5 temas de la carta que el documento trata (vacío si ninguno)." if carta else ""}
 - Si claramente pertenece a otro curso de la lista, indica su sigla en "curso_probable".
 Responde SOLO con JSON:
-{{"es_apunte": bool, "es_examen": bool, "corresponde": bool, "confianza": número entre 0 y 1,
+{{"es_apunte": bool, "corresponde": bool, "confianza": número entre 0 y 1,
   "curso_probable": "sigla o null", "temas_carta": ["..."],
   "motivo": "explicación breve en español (máx. 2 oraciones), tratando de usted a quien subió el apunte"}}"""
 
@@ -348,17 +341,9 @@ def validar_archivo(archivo: Path, nombre_en_repo: str, carpeta: str, config: di
             if carta and res.get("temas_carta"):
                 detalles.append("Temas de la carta que cubre (según Gemini): " + ", ".join(map(str, res["temas_carta"][:5])))
             detalles.append(f"Gemini: confianza {res.get('confianza')}; heurística: {'✅' if heur_valido else '❌'}")
-            try:
-                confianza = float(res.get("confianza"))
-            except (TypeError, ValueError):
-                confianza = None
-            es_examen = bool(res.get("es_examen"))
-            if es_examen:
-                detalles.append("⚠️ Gemini cree que el documento es un examen o su solución: requiere revisión del mantenedor.")
             return Veredicto(nombre_en_repo, valido, motivo or "Sin motivo.", detalles,
                              preguntar=not valido and bool(res.get("es_apunte")),
-                             curso_sugerido=sugerido["sigla"] if sugerido else None,
-                             por_gemini=True, confianza=confianza, con_carta=bool(carta), es_examen=es_examen)
+                             curso_sugerido=sugerido["sigla"] if sugerido else None)
         except Exception as e:
             detalles.append(f"Gemini no disponible ({e}); se usó solo la heurística.")
 
@@ -421,26 +406,22 @@ def _informe(veredictos: list[Veredicto], notas: list[str], autor: str | None = 
     return "\n".join(partes)
 
 
-def motivo_revision_manual(veredictos: list[Veredicto], notas: list[str], config: dict) -> str | None:
-    """None si el PR está listo para publicar; si no, el motivo por el que conviene revisarlo con calma."""
-    pub = config.get("publicacion", {})
-    if not veredictos or not all(v.valido for v in veredictos):
-        return "no todos los apuntes pasaron la validación"
-    if notas:
-        return "el PR toca otros archivos o cambia apuntes existentes"
-    minimo = pub.get("confianza_minima", 0.8)
-    for v in veredictos:
-        if not v.nuevo:
-            return f"`{v.archivo}` reemplaza, renombra o borra un apunte existente"
-        if not v.por_gemini:
-            return f"`{v.archivo}` lo aprobaron solo las reglas simples (Gemini no estaba disponible)"
-        if v.es_examen:
-            return f"`{v.archivo}` parece un examen o su solución"
-        if pub.get("exigir_carta", True) and not v.con_carta:
-            return f"`{v.archivo}` es de un curso sin carta al estudiante"
-        if v.confianza is None or v.confianza < minimo:
-            return f"Gemini tuvo poca confianza con `{v.archivo}` ({v.confianza} < {minimo})"
-    return None
+def publicar(gh: GitHub, pr: dict) -> bool:
+    """Fusiona el PR ya validado, borra su rama y relanza la publicación del ranking."""
+    numero = pr["number"]
+    try:  # con el sha: solo se fusiona exactamente lo que se validó
+        gh.put(f"/repos/{gh.repo}/pulls/{numero}/merge",
+               {"merge_method": "merge", "sha": pr["head"]["sha"], "commit_title": f"Publicar apunte (#{numero})"})
+    except Exception as e:
+        print(f"Aviso: no se pudo publicar el PR automáticamente: {e}")
+        return False
+    if (pr["head"].get("repo") or {}).get("full_name") == gh.repo:
+        gh.delete(f"/repos/{gh.repo}/git/refs/heads/{pr['head']['ref']}")
+    try:  # lo que fusiona el robot no dispara otros workflows: se lanza la publicación a mano
+        gh.post(f"/repos/{gh.repo}/actions/workflows/publicar.yml/dispatches", {"ref": pr["base"]["ref"]})
+    except Exception as e:
+        print(f"Aviso: no se pudo relanzar la publicación: {e}")
+    return True
 
 
 def issue_de_subida(pr: dict) -> int | None:
@@ -473,11 +454,13 @@ def validar_pr(numero: int) -> int:
     asociacion = pr.get("author_association", "NONE")
     mantenedor = asociacion in ROLES_MANTENEDOR
 
+    otros_archivos = False  # el PR cambia algo fuera de apuntes/ (código): nunca se publica solo
     for f in gh.paginar(f"/repos/{gh.repo}/pulls/{numero}/files"):
         ruta = PurePosixPath(f["filename"])
         partes = ruta.parts
         es_apunte = (len(partes) == 3 and partes[0] == CARPETA_APUNTES and ruta.name.lower() != "readme.md")
         if not es_apunte:
+            otros_archivos = True
             if mantenedor:
                 notas.append(f"`{ruta}` ({f['status']}) está fuera de `apuntes/<curso>/`: revísalo antes de fusionar.")
             else:
@@ -496,8 +479,7 @@ def validar_pr(numero: int) -> int:
                 continue
             quien = "mantenedor" if mantenedor else "autor del apunte"
             if f["status"] == "removed":
-                veredictos.append(Veredicto(str(ruta), True, f"Eliminación autorizada ({quien}). Se perderán sus votos.",
-                                            nuevo=False))
+                veredictos.append(Veredicto(str(ruta), True, f"Eliminación autorizada ({quien}). Se perderán sus votos."))
                 continue
             if f["status"] == "renamed":
                 notas.append(f"`{original}` → `{ruta}` ({quien}): renombrar hace que el apunte pierda sus votos.")
@@ -511,9 +493,7 @@ def validar_pr(numero: int) -> int:
             veredictos.append(Veredicto(str(ruta), False, f"No se pudo descargar el archivo: {e}"))
             continue
         print(f"Validando {ruta}…", flush=True)
-        v = validar_archivo(destino, str(ruta), partes[1], config, cursos)
-        v.nuevo = f["status"] == "added"
-        veredictos.append(v)
+        veredictos.append(validar_archivo(destino, str(ruta), partes[1], config, cursos))
 
     autor = autor_real(gh, pr)
     texto = _informe(veredictos, notas, autor)
@@ -542,16 +522,11 @@ def validar_pr(numero: int) -> int:
         })
     except Exception as e:
         print(f"Aviso: no se pudo publicar el estado del commit: {e}")
-
-    if ok and veredictos:
-        motivo = motivo_revision_manual(veredictos, notas, config)
-        if motivo is None:
-            gh.comentar(numero, "### ✅ Listo para publicar\n\nGemini aprobó el contenido con alta confianza "
-                                "comparándolo con la carta al estudiante y no parece un examen. "
-                                "Un mantenedor solo tiene que fusionar el PR.", "<!-- publicacion -->")
-        else:
-            gh.comentar(numero, "### ⏸️ Conviene revisarlo antes de publicar\n\n"
-                                f"Motivo: {motivo}.", "<!-- publicacion -->")
+    if ok and veredictos and not otros_archivos and config.get("publicacion", {}).get("automatica"):
+        if publicar(gh, pr):
+            gh.comentar(numero, "### 🚀 Publicado\n\nEl contenido coincide con el curso, así que el apunte se "
+                                "publicó automáticamente. Aparecerá en el ranking en un par de minutos.",
+                        "<!-- publicacion -->")
     print(texto)
     escribir_salida("valido", str(ok).lower())
     return 0 if ok else 1

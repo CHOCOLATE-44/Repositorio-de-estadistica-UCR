@@ -64,7 +64,7 @@ mantenedores (dueño, miembros de la organización y colaboradores del repo). Cu
 
 | Para… | Cómo |
 |---|---|
-| Aprobar un apunte | Revise el comentario del robot en el PR y haga *Merge*. |
+| Aprobar un apunte | No hace falta: si coincide con el curso, el robot lo publica solo. Para apagarlo, ponga `"automatica": false` en `publicacion` de `config.json`. |
 | Revisar un apunte marcado `revision-manual` | El autor dice que es contenido nuevo del curso. Revíselo: si corresponde, fusione con *bypass*; si no, ciérrelo explicando el motivo. |
 | Anular un voto abusivo | Ponga la etiqueta `voto-anulado` al issue del voto. |
 | Que el buscador entienda otro apodo de un curso | Agréguelo en `alias` del curso en `cursos.json`. |

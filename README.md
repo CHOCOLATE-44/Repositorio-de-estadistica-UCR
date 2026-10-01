@@ -47,7 +47,7 @@ general (humanidades, arte, deporte, repertorio, seminarios de realidad nacional
 ```
  Subir apunte ──► PR ──► [Validar apuntes] texto PDF → OCR Tesseract → Gemini ──► comentario en el PR
                                                                         │
-                                                         mantenedor hace merge
+                                                  si coincide, se publica solo
                                                                         ▼
  Puntuar ──► issue «voto» ──► [Procesar voto] valida y cierra ──► [Publicar] recalcula ranking ──► GitHub Pages
 ```
