@@ -163,8 +163,12 @@
     }
   }
 
-  // Ranking de quienes suben apuntes: más apuntes, luego más votos recibidos, luego mejor promedio.
+  // Ranking de quienes suben apuntes: calidad por encima de cantidad. Se usa el promedio bayesiano
+  // de todos los votos que recibieron sus apuntes (como en el ranking de apuntes): con pocos votos
+  // el puntaje se acerca a la media previa, así 1 voto de 5★ no supera a 20 votos de 4.7★.
+  // Subir muchos apuntes no sube el puntaje; solo desempata.
   function contribuyentes() {
+    const previos = datos.config?.votos_previos ?? 3, media = datos.config?.media_previa ?? 3.5;
     const porAutor = new Map();
     for (const a of datos.apuntes) {
       if (!a.autor || a.autor === "desconocido") continue;
@@ -174,8 +178,12 @@
       c.suma += a.votos ? a.promedio * a.votos : 0;
       porAutor.set(a.autor, c);
     }
-    const lista = [...porAutor.values()].map((c) => ({ ...c, promedio: c.votos ? c.suma / c.votos : null }));
-    lista.sort((x, y) => y.apuntes - x.apuntes || y.votos - x.votos || (y.promedio ?? 0) - (x.promedio ?? 0)
+    const lista = [...porAutor.values()].map((c) => ({
+      ...c,
+      promedio: c.votos ? c.suma / c.votos : null,
+      calidad: (previos * media + c.suma) / (previos + c.votos),
+    }));
+    lista.sort((x, y) => y.calidad - x.calidad || y.votos - x.votos || y.apuntes - x.apuntes
       || x.autor.localeCompare(y.autor));
     return lista;
   }
@@ -205,8 +213,8 @@
       nombre.textContent = `@${c.autor}`;
       const cifras = document.createElement("span");
       cifras.className = "cifras";
-      cifras.textContent = `${c.apuntes} apunte${c.apuntes === 1 ? "" : "s"} · ${c.votos} voto${c.votos === 1 ? "" : "s"}`
-        + (c.promedio != null ? ` · ${c.promedio.toFixed(1)} ★` : "");
+      cifras.textContent = (c.votos ? `${c.promedio.toFixed(1)} ★ (${c.votos} voto${c.votos === 1 ? "" : "s"})` : "Sin votos aún")
+        + ` · ${c.apuntes} apunte${c.apuntes === 1 ? "" : "s"}`;
       const datosC = document.createElement("div");
       datosC.className = "datos";
       datosC.append(nombre, cifras);
