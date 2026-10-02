@@ -1,0 +1,276 @@
+---
+title: "Laboratorio No.5 - Diseños Multinivel"
+output:
+  html_document:
+    highlight: tango
+    theme: cerulean
+
+---  
+
+### Diseño con 2 niveles y factor fijo en ambos niveles
+
+Un fabricante de papel está interesado en tres métodos para preparar la pulpa y cuatro temperaturas de cocción de la pulpa. Aunque la temperatura es una variable continua, solo se van a estudiar 4 temperaturas.
+
+El fabricante desea estudiar el efecto del método y de la temperatura sobre la resistencia a la tensión del papel, que es el esfuerzo máximo a tensión obtenido durante una prueba hasta la ruptura bajo unas condiciones prescritas. El esfuerzo es expresado como la fuerza por unidad del ancho de la muestra puesta a prueba, medido en kg/cm. 
+
+El experimento se lleva a cabo de la siguiente forma:
+
++ Produce tres lotes de pulpa con cada uno de los tres métodos que está estudiando en un orden aleatorio. En total produce 9 lotes de pulpa. 
+
++ Cada vez que produce un lote lo divide en cuatro partes o muestras y realiza la cocción de cada muestra a una temperatura diferente.
+
+
+1.	Utilice los datos que se encuentran en el archivo `papel.Rdata`. Asegúrese que están bien definidos los factores método y temperatura.
+
+```{r}
+setwd("~/UCR/Ciclos/V Ciclo/Modelos Lineales Avanzados/Disenos_Multinivel")
+load("papel.Rdata")
+str(base)
+base$metodo = factor(base$metodo)
+levels(base$metodo)=c("M1","M2","M3")
+base$temp = factor(base$temp)
+base$lote=factor(base$lote)
+str(base)
+```
+
++ La variable `lote` indica los lotes de pulpa, y se enumeran de 1 a 9 para diferenciar todos los lotes.   Ponga juntas las variables metodo y lote para observar la correspondencia de los lotes con los métodos.
+
+```{r}
+base[,c(2,4)]
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;**Los lotes 1, 4 y 6 fueron producidos con el método 1. En la variable `lote` se denominan 1, 2  y 3.  Los lotes 2, 3  y 8 fueron producidos con el método 2 y también se denominan 1, 2 y 3 en la variable `lote`.  Finalmente, los lotes 5, 7, 9 fueron producidos con el método 3 y también se denominan 1, 2 y 3 en la variable `lote`.**
+
++ Haga una representación gráfica de los datos para ver el comportamiento de la respuesta según método y temperatura. Analice primero la interacción entre método y temperatura. Use `type="a"` en la función `xyplot`.  En los diseños de parcela divididas se pone más énfasis al factor que está en la subparcela, por lo que ese factor debe colocarse en `groups`, mientras que el factor de parcela se coloca en el eje X.  
+
+
+``` {r,fig.align="center", fig.height = 3.5, fig.width = 4}
+library(lattice)  
+xyplot(res ~ metodo, groups = temp,type="a",auto.key=list(columns=4),
+       xlab="método",ylab="resistencia",data=base)
+```
+
+``` {r}
+library(lattice)  
+xyplot(res ~ metodo, groups = temp,type="a",auto.key=list(columns=4),
+       xlab="método",ylab="resistencia",data=base)
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;**En el gráfico parece haber interacción entre temperatura y método ya que la distancia en el M3 entre los promedios de las temperaturas 200 y 225 son nulas, mientras que con el M1 son más diferentes. Sin embargo, esto puede causar dudas, pues en el resto de las comparaciones las diferencias se ven muy parecidas en todos los métodos.**
+
++ Basado en lo que ve en el gráfico, se espararía un efecto de la temperatura?
+
+&nbsp;&nbsp;&nbsp;&nbsp;**Los promedios para la temperatura 275 siempre son más altos que para la temperatura 200, las distancias son bastante grandes, por lo que sí se podría esperar un efecto. Sin embargo, es importante ver la variabilidad que hay en cada tratamiento.**
+
++ 	¿Qué implicaciones tendría una interacción entre método y temperatura?
+
+&nbsp;&nbsp;&nbsp;&nbsp;**Si hubiera interacción entre método y temperatura se esperaría que el efecto que tiene la temperatura fuera diferente para cada método.**
+
+2. Haga el análisis usando la función `lmer` de la librería `lme4`.  Las unidades del Nivel 2 son los lotes, mientras que en el Nivel 1 se tiene cada muestra dentro del lote. Los lotes son aleatorios, y la parte aleatoria se separan con un `+` de la parte fija del modelo y se pone entre paréntesis `(1|lote)`. La instrucción completa debe quedar de la siguiente forma: `lmer(Y~F2*F1+(1|lote))`, donde `F2` indica el factor del Nivel 2 que, en este caso, es el método y `F1` es el factor del Nivel 1 que es la temperatura. 
+
+```{r, message=F}
+library(lme4)
+options(contrasts = c("contr.treatment", "contr.poly"))
+mod1=lmer(res~metodo*temp+ (1|lote),data=base)
+```
+
++  La función `drop1` permite probar hipótesis sobre los términos fijos, y  debe usarse con `test="Chisq"` para hacer la prueba de razón de verosimilitud (LRT). Haga la prueba de la hipótesis sobre la interacción. En esta prueba también se obtiene el AIC de cada modelo y puede decidirse a partir de la comparación de los AIC, recordando que se prefiere el modelo con el menor AIC.
+
+```{r}
+drop1(mod1,test="Chisq")
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;**La probabilidad asociada a esta prueba es menor que el nivel de significancia (p=0.018), por lo que no se rechaza la hipótesis de no interacción. También al observa el AIC, el modelo completo tiene un AIC más bajo (179.97) que el que elimina la interacción (183.32). De esta forma se mantiene la interacción y se concluye que el efecto de la temperatura no es el mismo para cada método.**
+
+3.  Asumiendo que hay interacción entre METODO y TEMPERATURA, se pueden comparar las temperaturas dentro de cada método haciendo el ajuste de Bonferroni. Para esto se usa la función `emmeans` en la librería con el mismo nombre.  Se debe indicar  `emmeans(mod, pairwise~F1|F2, adjust="bonferroni")`.
+
+```{r}
+library(emmeans)
+emmeans(mod1, pairwise~temp|metodo, adjust="bonferroni")$contrasts
+```
+
+```{r}
+a = emmeans(mod1, pairwise~temp|metodo, adjust="bonferroni")$contrasts
+# Convertir y extraer en un solo paso
+p_valores <- as.data.frame(a)$p.value
+
+2*p_valores < 0.05
+```
+
+```{r}
+b = emmeans(mod1, pairwise~metodo|temp, adjust="bonferroni")$contrasts
+```
+
+
+```{r}
+p_valores <- as.data.frame(b)$p.value
+
+2*p_valores < 0.05
+```
+
+
+```{r}
+xyplot(res ~ temp, groups = metodo,type=c("p","a"),auto.key=list(columns=4),
+       xlab="método",ylab="resistencia",data=base)
+```
+
+
+
+```{r}
+library(dplyr)
+which(base$res == min(base$res))
+base2 = base[-26,]
+mod2=lmer(res~metodo*temp+ (1|lote),data=base2)
+drop1(mod2,test="Chisq")
+```
+
+
+**Nota**: Esta es la razón por la cuál solo en la temperatura 225 hay diferencias
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;**Mientras que con el M1 y M2 se encuentran diferencias entre 200 y las demás, con el M3 suceden cosas diferentes, tal como se ve que 200 solo se diferencia de 275, pero además que 275 es diferente de 225 y 250.**
+
++ Haga el ejercicio de reconstruir los resultados que da la función "emmeans" utilizando contrastes. Note que se pueden obtener sin problema los errores estándar y los valor de t, sin embargo, las probabilidades no conciden. Esto se debe a que en los modelos mixtos se usa un ajuste llamado Kenward-Roger.
+
+```{r}
+b=summary(mod1)$coef[,1]
+c200=c(1,0,0,0,0,0,0,0,0,0,0,0)
+c225=c(1,0,0,1,0,0,0,0,0,0,0,0)
+c250=c(1,0,0,0,1,0,0,0,0,0,0,0)
+c275=c(1,0,0,0,0,1,0,0,0,0,0,0)
+c225.200=c225-c200
+c250.200=c250-c200
+c275.200=c275-c200
+c250.225=c250-c225
+c275.225=c275-c225
+c275.250=c275-c250
+cont=cbind(c225.200,c250.200,c275.200,c250.225,c275.225,c275.250)
+L=t(cont)%*%b
+ee=sqrt(diag(t(cont)%*%vcov(mod1)%*%cont))
+t=L/ee
+round(pt(t,18,lower.tail = F),5)
+```
+
+```{r}
+confint(a)
+```
+
+```{r}
+t = qt(1-0.05/6,18) #solo un t porque en todos los grupos hay la misma cantidad de diferencias
+```
+
+
+HACER INTERVALOS DE CONFIANZA CORREGIDOS
+
+### Diseño con 3 niveles
+
+Como variante del ejercicio anterior, suponga que la capacidad de la planta solo permite realizar 15 corridas por día y se sospecha que de un día a otro se pueden experimentar diferencias en la resistencia. Entonces el fabricante decide considerar los días como bloques y corre una réplica en cada uno de tres días. Lleva a cabo el experimento así:
+
++ Cada día  produce tres lotes de pulpa, cada lote con uno de los tres métodos que está estudiando en un orden aleatorio.
+
++ Cada lote se divide en cuatro partes o muestras y realiza la cocción de cada muestra con una temperatura diferente, asignada aleatoriamente.
+
+1. Utilice los datos que se encuentran en el archivo `papel2.Rdata`. Asegúrese que están bien definidos los factores `metod` y`temp`, así como `dia` y `lote`.
+
+```{r}
+load("papel2.Rdata")
+str(base)
+base$dia = factor(base$dia)
+base$metodo = factor(base$metodo)
+base$lote=factor(base$lote)
+base$lote1=factor(base$lote1)
+levels(base$metodo)=c("M1","M2","M3")
+base$temp = factor(base$temp)
+```
+
++ Represente los datos usando `xyplot` con `lote` en el eje X, con páneles separados por `método` y dentro de cada panel líneas para cada `temperatura`.
+
+```{r}
+xyplot(res~lote|metodo,groups=temp,data=base,type=c("a","p"),
+       auto.key=list(columns=2),layout=c(3,1))
+```
+
+
+
+```{r}
+xyplot(res~lote1|metodo,groups=temp,data=base,type=c("a","p"),
+       auto.key=list(columns=2),layout=c(3,1))
+```
+
+
+```{r}
+xyplot(res ~ metodo|dia, groups = temp,type=c("p","a"),auto.key=list(columns=4),
+       xlab="método",ylab="resistencia",data=base)
+```
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;**En el método 1 y 2 hay poca diferencia entre temperaturas 275 y 250, mientras que la temperatura 200 tiene resultados más bajos en todos los lotes. Por otro lado, en el método 3 los resultados de temperatura 275 son mayores que los de las otras temperaturas, y los de temperatura 200 ya no son tan diferentes de  los de 225.**
+
+2. Empiece con el modelo con interacción entre `metodo` y `temp` e incluya `dia` como bloque. Hágalo directamente con la función `lmer` y agregue el día como un término aleatorio de Nivel 3, para esto indique `(1|dia/lote1)`, de esta forma se está diciendo que lo lotes son de Nivel 2 y están dentro de los días que son de Nivel 3.
+
+```{r}
+mod5=lmer(res~metodo*temp+(1|dia/lote1),data=base)
+mod6 =lmer(res~metodo*temp+(1|dia)+(1|lote1), data = base) #Estos dos códigos son los mismo
+```
+```{r}
+VarCorr(mod6)
+```
+
+
+
++ Pruebe la hipótesis de no interacción con LRT.
+
+```{r}
+drop1(mod5,test="Chisq")
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;**No se detecta que haya interacción entre método y temperatura ya que la probabilidad asociada es mayor que el nivel de significancia (p=0.14).**
+
+3. Use el modelo sin interacción y pruebe si hay un efecto del método y de la temperatura.
+
+```{r}
+mod6=lmer(res~metodo+temp+(1|dia/lote1),data=base)
+drop1(mod6,test="Chisq")
+```
+
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;**Tanto método como temperatura tienen probabilidades asociadas menores al nivel de significancia (p=0.005 para método y p<0.0001 para temperatura), por lo que se concluye que ambos factores tienen un efecto sobre la resistencia promedio.**
+
+
++ Como se vio que el método tiene un efecto sobre la resistencia promedio, es importante comparar los promedios de resistencia entre los diferentes métodos. Haga un gráfico para comparar la resistencia según los diferentes métodos.
+
+``` {r,fig.align="center", fig.height = 3, fig.width = 3}
+  bwplot(res~metodo,ylab="resistemcia",xlab="método",data=base)
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;**Se podría esperar que haya diferencia entre los promedios de los métodos 2 y 3, mientras que el método 1 está ubicado en el medio de los otros 2.**
+
++ Haga la comparación usando la función `emmeans`.
+
+```{r}
+emmeans(mod6, pairwise~metodo, adjust="bonferroni")
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;**A pesar de que en la prueba LRT se concluyó que sí hay diferecias entre los métodos, al hacer las comparaciones por pares no se logra rechazar ninguna hipótesis, solo entre M2 y M3 se obtuvo una probabilidad levemente mayor a 0.05. Es recomendable aumentar el número de lotes para tener una mayor potencia, esto se lograría haciendo el experimento en un número mayor de días.**
+
++ También se vio que la temperatura tiene un efecto sobre la resistencia promedio. Haga un gráfico para comparar la resistencia según las diferentes temperaturas. También haga la comparación formal.
+
+``` {r,fig.align="center", fig.height = 3, fig.width = 3}
+  bwplot(res~temp,ylab="resistencia",xlab="temperatura",data=base)
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;**En este caso parece haber diferencias entre todos los pares de temperaturas, siendo que a mayor temperatura se tiene una resistencia promedio mayor.**
+
+```{r}
+emmeans(mod6, pairwise~temp, adjust="bonferroni")
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;**No se detectaron diferencias en todos los pares; específicamente no se puede decir que el promedio de resistencia para una temperatura de 250 grados sea diferente del de la temperatura de 225, así como tampoco que el de 275 grados sea diferente del de 250 grados.  Se ha probado que la resistencia promedio a una temperatura de 275 sí es mayor que la de temperaturas bajas como 200 y 225 grados. De igual forma, para las temperaturas de 225 y 250 sí se tiene una resitencia promedio mayor que para 200 grados.**
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;**Conclusión: para lograr altas resistencias parece que el método 2 produce resistencias promedio que son mayores a las de los otros métodos, sin embargo, no se ha logrado demostrarlo con los datos que se tienen.  En cuanto a la tempertura, se puede ver que el efecto que esta tiene sobre la resistencia promedio es el mismo en todos los métodos, lo  cual simplifica la decisión de escoger una temperatura para la producción del papel. Aunque los resultados para 275 no son necesariamente mejores que los de 250, sí lo son con respecto a las temperaturas más bajas.**
+
+
+

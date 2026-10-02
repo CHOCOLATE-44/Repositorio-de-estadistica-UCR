@@ -1,0 +1,483 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: console
+---  
+
+\section{DISEÑOS ANIDADOS}
+
+En este laboratorio se presentan tres ejercicios con factores anidados. Los tres ejercicios tienen una estructura similar. En el primer ejercicio llamado **Escuelas**, el factor fijo `instructor` está anidado dentro del factor fijo `escuela`, mientras que en el segundo llamado **Pastas**, el factor aleatorio `barrica` está anidado dentro del factor aleatorio `lote`.  También se retoma el ejercicio del laboratorio anterio llamado **Espectofotómetro** que es equivalente al de **Pastas**.
+
+Cuando los factores son fijos se puede usar la función `lm` con una instrucción especial para indicar el anidamiento, y cuando los factores son aleatorios se utiliza la función `lmer` de la librería `lme4` (Bates, Maechler, Bolker & Walker, 2015). 
+
+\subsection*{Escuelas}
+
+Una compañía manufacturera tiene tres escuelas de mecánica regionales, una en cada una de sus regiones de operación. Cada escuela tiene dos instructores que dan cursos de tres semanas a 15 mecánicos aproximadamente. La compañía está interesada en conocer el efecto de la escuela (factor A) y el instructor (factor B) en el aprendizaje logrado. Se hace un experimento en el que se forman grupos en cada región y se asigna cada grupo a uno de los instructores.  A cada instructor se le asignan dos grupos.  
+
+Para determinar el efecto de la escuela y el
+instructor en el aprendizaje, se hace una prueba a los 
+estudiantes y se obtiene el puntaje promedio del grupo
+como variable respuesta.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Ejercicios}
+
+1.	Lea los datos del archivo `escuelas.Rdata`. Defina `escuela` como factor. Ponga nombres a las escuelas: `Región K` (1), `Región D` (2) y `Central` (3).  Observe que hay dos variables para referirse a los instructores: `instructor` tiene valores 1 y 2 para los instructores de todas las escuelas, mientras que `instructor1` no repite el número del instructor en diferentes escuelas, por lo que los instructores van del 1 al 6.  Redefina esas dos variables como factor.
+
+```{r}
+setwd("~/V ciclo statistics/Avanzados/Disenos_anidados") # cambiar la dirección según corresponda
+load("escuelas.Rdata")
+base$escuela=factor(base$escuela)
+base$instructor=factor(base$instructor)
+base$instructor1=factor(base$instructor1)
+levels(base$escuela)=c("Región K","Región D","Central")
+```
+
+
+  + Haga una representación gráfica de los datos para ver el comportamiento de la respuesta según escuela e instructor. Use la función `dotplot` en la librería `lattice` de la siguiente forma: `dotplot(puntaje ~ instructor | escuela)`.  Hágalo usando tanto `instructor` como `instructor1` y vea cuál de las dos formas es más conveniente.
+  
+```{r}
+library(lattice)
+dotplot(puntaje ~ instructor | escuela,xlab="instructor",
+layout = c(3,1),data=base)
+```
+
+
+```{r}
+dotplot(puntaje ~ instructor1| escuela,xlab="instructor",
+layout = c(3,1),data=base)
+```
+
+**Es más conveniente usar instructor porque la otra forma guarda el campo para todos los instructores en todas las escuelas, lo cual no tiene sentido.**
+
+
++ ¿Se puede esperar que exista interacción entre el instructor y la escuela?
+
+**No se analiza la interacción cuando el diseño es anidado ya que los instructores que están en una escuela no son los mismos que están en otra escuela.**
+
++ Comente si se espera que haya un efecto del instructor sobre el puntaje promedio dentro de cada escuela?
+
+**Apartir de este gráfico, sí parece haber diferencias entre los puntajes promedio de los diferentes instructores dentro de cada escuela.**
+
+
++ Busque una forma de analizar gráficamente las diferencias entre escuelas.  ¿Qué se puede concluir?
+
+```{r}
+bwplot(puntaje~escuela,xlab="escuela",ylab="puntaje",data=base)
+```
+
+**Se nota que algunas escuelas tienen puntajes promedio más altos que otras, por lo que sí se esperaría un efecto de la escuela en el aprendizaje. En particular, se notan mayores diferencias entre la escuela Central y Región K. Sin embargo, aquí no se está aislando la variabilidad que producen los instructores, lo que hace que esas diferencias no sean tan claras.**
+
+2. Efectos de instructor:
+
++ Obtenga manualmente los efectos de instructor dentro de escuela.
+
+```{r}
+medinst=with(base,tapply(puntaje,list(instructor,escuela),mean))
+medinst
+```
+
+
+```{r}
+medesc=with(base,tapply(puntaje,escuela,mean))
+medesc
+```
+
+
+```{r}
+bj.1=medinst[,1]-medesc[1]
+bj.2=medinst[,2]-medesc[2]
+bj.3=medinst[,3]-medesc[3]
+efinst=rbind(bj.1,bj.2,bj.3)
+efinst
+```
+
+
++ Obtenga manualmente la suma de cuadrados de instructor dentro de escuela. 
+
+```{r}
+with(base,table(instructor,escuela))
+```
+
+```{r}
+r=2
+scinst=sum(r*efinst^2)
+scinst
+```
+
++ ¿Cuántos grados de libertad tiene el factor anidado instructor?
+
+```{r}
+gl=(2-1)*3
+gl
+```
+
+
+**Dentro de cada escuela hay dos instructores diferentes por lo que hay un grado de libertad para los instructores de cada escuela. Como son 3 escuelas se tiene en total 3 grados de libertad.**
+
+
+
++ Calcule el cuadrado medio de instructor dentro de escuela y explique su significado.
+
+```{r}
+cminst=scinst/gl
+cminst
+```
+
+**El cuadrado medio de instructor dentro de escuela es 189.2. Esta es una medida de la variabilidad entre los promedios } obtenidos por los instructores de cada escuela.**
+
+3.	Comparación de instructores.
+
++ Establezca con  palabras la hipótesis nula al comparar los instructores.
+
+**Los puntajes promedio para cada par de instructores dentro de cada escuela son iguales.**
+
++ Haga el análisis de variancia. Introduzca `escuela` e `instructor` pero no agregue interacción. Note que instructor no resulta significativo y que tiene únicamente un grado de libertad cuando en realidad hay 6 instructores distintos.
+
+
+```{r}
+mod1=lm(puntaje~escuela+instructor,data=base)
+anova(mod1)
+```
+
+**El factor instructor tiene solo un grado de libertad cuando debería tener 3. La probabilidad asociada es 0.22, por lo que no se rechaza la hipótesis de igualdad de medias de instructores dentro de cada escuela.**
+
++ Estime de nuevo  el mismo modelo pero usando `instructor1` y llámelo `mod2`. ¿Qué es lo que está pasando? ¿Cuál es el análisis correcto, con `instructor` o con `instructor1`?
+
+```{r}
+mod2=lm(puntaje~escuela+instructor1,data=base)
+anova(mod2)
+```
+
+**Cuando se usa instructor no se considera la estructura anidada y por eso se tiene solo un grado de libertad, aunque en realidad sean 6. En cambio cuando se usa instructor1 se tiene un grado de libertad para instructor dentro de cada escuela, por lo que resultan 3 grados de libertad. El análisis con instructor1 es correcto.**
+
++ Use `model.tables(aov(mod2))` para obtener las estimaciones de los efectos. Observe que los efectos de instructor suman 0 dentro de cada escuela.
+
+```{r}
+model.tables(aov(mod2))
+```
+
+
+**Los efectos están bien estimados y se observa que los efectos de cada par de instructores suman cero dentro de cada escuela. Por ejemplo, el efecto del instructor 1 es 7.25 y el del instructor 2 es -7.25. Así con el 3 y 4 (-5.75 y 5.75) y con el 5 y 6 (7.5 y-7.5).**
+
+4.  Uso del factor anidado:
+
++ Se puede usar el factor anidado con el formato en que aparece `instructor`, pero indicando la estructura anidada dentro de la función `lm` de la siguiente forma:	`lm(puntaje~escuela+escuela/instructor)`.  De esta forma se indica que el factor `instructor` está anidado dentro del factor `escuela`.  Use el modelo de suma nula y llámelo `mod3`.
+
+```{r}
+options(contrasts=c("contr.sum","contr.poly")) #Suma nula
+mod3=lm(puntaje~escuela+escuela/instructor,data=base)
+```
+
+
++ Obtenga el anova del modelo anidado y note que  tiene una línea que parece una interacción que dice `escuela:instructor`, pero que en realidad debería leerse `instructor(escuela)`, es decir, instructor dentro de escuela.  
+
+```{r}
+anova(mod3)
+```
+
+**El resultado es idéntico al de mod2.**
+
++ Observe el cuadrado medio de instructor y compárelo con el obtenido anteriormente. ¿Se rechaza la hipótesis nula referente al instructor?
+
+**El cuadrado medio de instructor es 189.2, el cual coincide con el obtenido anteriormente. El cuadrado medio residual es 7, con esto se obtiene un valor de F igual a 27.0, el cual tiene una probabilidad asociada muy pequeña (0.0007). De esta forma se decide rechazar la hipótesis de igualdad de medias para los instructores dentro de cada escuela. En al menos una escuela los instructores no tienen los mismos puntajes promedio.**
+
++ Obtenga los efectos de instructor y compárelos con los anteriores.
+
+```{r}
+model.tables(aov(mod3))
+```
+
+**Los efectos son los mismos que los obtenidos anteriormente, pero la tabla es más ordenada**
+
+5. Comparaciones entre instructores:
+
++ Obtenga los coeficientes del modelo. Hágalo con `mod2` y `mod3`. Observe que `mod2` tiene la desventaja de que hay muchos NA, mientras que `mod3` da solo los coeficientes que se han estimado. 
+
+```{r}
+mod2$coef
+```
+
+```{r}
+mod3$coef
+```
+
+
++ ¿A qué corresponden los últimos 3 coeficientes en `mod3`?
+
+```{r}
+mod3$coef[4:6]
+```
+
+**Esos 3 coeficientes son los efectos del primer instructor dentro de cada escuela**
+
++ Haga las comparaciones que tengan sentido entre los instructores. No tiene sentido comparar todos los pares de instructores, puesto que no todos pertenecen a las mismas escuelas. Por ejemplo, no tiene sentido comparar un instructor de la Región D con un instructor de la Región K. Puesto que dentro de cada región solo hay 2 instructores, no es necesario realizar ninguna corrección.  Estas comparaciones se pueden hacer con `emmeans` de forma similar a cuando se hacen comparaciones con interacciones, en este caso se indica el anidamiento con un línea vertical de esta forma: `emmeans(modelo,pairwise~instructor|escuela)`.  Observe la nota que arroja esta función.
+
+```{r}
+library(emmeans)
+(em2=emmeans(mod3,pairwise~instructor|escuela))
+```
+
+
+```{r}
+(em3=emmeans(mod2,pairwise~instructor1|escuela))
+```
+
+**Las probabilidades resultantes se comparan con $\alpha = 0,05$ directamente. Se observan diferencias entre los pares de instructores dentro de todas las escuelas.Se hace la aclaración de que hay una estructura anidada de instructor dentro de escuela.**
+
+**Ahora se construyen los tres intervalos de forma independiente**
+
+```{r}
+confint(em2)
+```
+
+**En la Región K, el puntaje promedio del instructor 1 es entre 8 y 21 puntos mayor que el del instructor 2, en la Región D, el puntaje promedio del instructor2 es entre 5 y 18 puntos mayor que el del instructor 1, y en la Región Central, el puntaje promedio del instructor 1 es ebtre 8.5 y 21.5 puntos mayor que el del instructor 2. Cada uno de esos intervalos tiene 95% de confianza y son independientes.**
+
+
+6.	Haga las comparaciones entre las diferentes escuelas usando Tukey. Puede usar `TukeyHSD` o `emmeans`.   
+
+```{r}
+TukeyHSD(aov(mod3),"escuela")
+```
+
+**Se observan diferencias entre la Región K y la Central.**
+
++ Obtenga el intervalo de confianza para la diferencia de medias entre los pares de escuelas en que encontró diferencias.
+
+```{r}
+t=qt(1-0.05/2,6)
+round(c(8.75-t*1.87,8.75+t*1.87),2)
+```
+
+**Con 95% de confianza global se puede esperar que el puntaje promedio de la Región K sea entre 4.17 y 13.33 puntos mayor que el de la Región Central.**
+
+7.	¿Cómo se alteran las conclusiones si se considera que hay muchos instructores en cada región y en el experimento los que participaron fueron una muestra?
+
+**Se debe usar un modelo mixto. Para analizar el efecto de instructor cambia la hipótesis. En tal caso $H_0: \sigma^2_\beta = 0$. Además no tendría sentido hacer comparaciones entre instructores a pesar de que se haya demostrado un efecto del instructor. Para comparar las escuelas se usa la prueba LRT**
+
+
+```{r}
+library(lme4)
+mod4=lmer(puntaje~escuela+(1|instructor1),data=base)
+drop1(mod4,test="Chisq")
+```
+
+```{r}
+summary(mod4)
+```
+
+
+```{r}
+confint(mod4)
+```
+
+
+**La probabilidad asociada es 0.48 en la prueba LRT, lo cual hace que nose rechace lahipótesisnula referente a la igualdad de medias entre escuelas.Por otra parte,se siguen viendo diferencias entre los instructores dentro de escuelas ya que lavarianzade instructor a instructor es 91.08 comparada con 7 para la varianza residual.El intervalo de confianza para la desviación estándar de instructora instructor va de 3.7 a 13.7,el cual,aunque esmuy amplio, senota alejado del cero.Enestecasono interesacomparar los instructores de forma específica,y no tiene sentido hacer intervalos de confianza.**
+
+**Conclusión:parahacerelanálisisdeesteejerciciosecompararondiferentes formas de estimar el modelo, y se vio que la forma más simple es especificar el anidamiento entre dos factores dentro de la función `lm` cuando se toman los instructores fijos. Es importante verificar siempre que los grados de libertad estén bien calculados para el factor anidado.**
+
+
+**Se encontró que la escuela de la Región K obtiene calificaciones promedio más altas que la Región Central,pero además dentro de cada escuela,hay diferencias entre los dos instructores.Del gráfico que se presenta al inicio, se observa que uno de los instructores de la Región K tiene calificaciones mayores y, aunque su compañero tiene calificaciones más bajas que las de él juntos hacen que esta escuela sobre salga.Cabe preguntarse si el desempeño de estos dos instructores se debe a mejores condiciones en esta escuela,a que los estudiantes que llegan tienen mayor motivación,o a que realmente estos instructores dan más atención a sus estudiantes.El desempeño de la escuela no puede desligarse del desempeño de los instructores,y la causa de los puntajes altos en la Región K no es clara pues toque los estudiantes no fueron asignados aleatoriamente a las escuelas.**
+
+
+\newpage
+
+\subsection*{Cemento}           
+
+El cemento es el material más activo de la mezcla de concreto, por tanto, sus características y sobre todo su contenido (proporción) dentro de la mezcla tienen una gran influencia en la resistencia del concreto a cualquier edad. La resistencia a la compresión simple es la característica mecánica principal del concreto. Se define como la capacidad para soportar una carga por unidad de área, y se expresa en términos de esfuerzo, generalmente en $kg/cm^2$.
+
+Un experimento trata de analizar la calidad  en la producción de cemento, el cual se produce por lotes y se empaca en sacos. Se sospecha que hay variabilidad entre los lotes en que se ha producido el cemento, así como puede haberla entre los sacos provenientes de cada lote. Rutinariamente se seleccionan aleatoriamente 3 sacos de cada lote para tenerlos como referencia.  Se escogen aleatoriamente 10 lotes y se hacen 2 pruebas analíticas de resistencia de cada uno de los 30 sacos resultantes.  
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Ejercicios}
+  
+8. Justifique si los factores están cruzados o anidados.
+
+**El factor `saco` está anidado dentro del factor `lote`, ya que los 3 sacos que se eligen dentro de cada lote obviamente son diferentes en los diferentes lotes.**
+
++	Cuando los factores están anidados se debe tener cuidado con la definición del factor anidado, ya que no pueden repetirse los niveles de este factor en los diferentes niveles del factor externo. Abra el archivo `cemento.Rdata`, observe que los sacos tienen los mismos nombres en todos los lotes. Para comprender los datos haga una tabla cruzada de las variables lote y saco.
+
+```{r}
+load("cemento.Rdata")
+with(base,table(saco,lote))
+```
+
+**Aquí se observa que los sacos se llaman siempre a, b y c en todos los lotes llamados A, B, C, etc. Además en cada combinación hay 2 datos, es decir, hay dos réplicas en cada saco dentro de cada lote.**
+
+
++	Puede cruzar las dos variables y hacer una nueva variable llamada `saco1` usando la combinación de ambas variables: `base$lote:base$saco`. 
+
+```{r}
+base$saco1=base$lote:base$saco
+```
+
+
++	Obtenga la tabla cruzada de `lote` y `saco1`. Note la diferencia.
+
+```{r}
+head(with(base,table(saco1,lote)))
+```
+
+**Ahora solo los sacos llamados A:a, A:b y A:c tienen datos en el lote A que es el lote al que pertenecen esos sacos. Aquí se nota la estructura anidada que exige la función `lmer`.**
+
+9. Haga un gráfico para ver el comportamiento de la respuesta en los sacos de cada lote.
+
+**Hay que notar que aquí hay que usar la variable saco que tiene los mismos nombres para todos los lotes para que haga bien el gráfico.**
+
+```{r}
+dotplot(resist~saco|lote,xlab="saco",ylab="resistencia",
+layout=c(5,2),data=base)
+```
+
+
+**Dentro de algunos lotes los promedios de resistencia son muy diferentes de un saco a otro, por ejemplo en los lotes C, D, I.**
+
+```{r}
+library(ggplot2)
+qplot(lote,resist,geom="boxplot",ylab="resistencia",data=base)
+```
+
+**Hay grandes diferencias en resistencia entre algunos de los lotes, por ejemplo, el lote A tiene un promedio bastante alto y mucho mayor que el del lote E cuyo promedio es muy bajo.**
+
+
+10.	Analice las fuentes de variabilidad que pueden estar incidiendo en la resistencia del cemento. Haga el análisis de diversas formas. ¿Son consistentes los resultados obtenidos con los diferentes enfoques?
+
+**Un primer enfoque es obtener los componentes de variancia y ver el porcentaje que cada componente aporta a la variabilidad total. Hay que notar que no se incluye la interacción en ningún momento debido a que los factores están anidados.**
+
+```{r}
+mod0=lmer(resist~1+(1|saco1)+(1|lote),data=base)
+summary(mod0)
+```
+
+**La variancia total es 10.768 (8.434+1.657+0.678). La proporción que corres ponde al saco es 0.78 (8.434/10.768), mientras que la parte que corresponde a lote es 0.15 (1.657/10.768). Entonces, se ve claramente que la mayor fuente de variabilidad se debe a las diferencias entre los sacos de un mismo lote, mientras que entre un lote y otro no hay tanta variabilidad, ya que la de saco es el 78% mientras que la de lote es solo el 15%.**
+
+**Ahora se construyen intervalos de 95% de confianza para las desviaciones estándar.**
+
+```{r}
+confint(mod0)
+```
+
+**En estos resultados, `sig01` es la desviación estándar de saco, mientras que `sig02` es la desviación estándar de lote. El intervalo correspondiente a lote tiene como límite inferior cero, lo cual es una indicación de que esa fuente de variabilidad no es importante.**
+
+
+**Podríamos probar el efecto del saco (dentro de lote) comparando dos modelos.**
+
+```{r}
+mod2=lmer(resist~1+(1|saco1)+(1|lote),data=base)
+mod3=lmer(resist~1+(1|lote),data=base)
+anova(mod2,mod3,test="LRT")
+```
+
+
+**Es claro el efecto del saco dentro de lote, puesto que se obtiene un valor de Chi-cuadrado de 54.6, con un grado de libertad, y la probabilidad asociada es menor a 0.0001. Con este método no se prueba el efecto del lote porque no tendría sentido hacer un modelo sin el lote, ya que los sacos están anidados en los lotes.**
+
+**Conclusión: en este ejercicio se utilizaron 4 formas de análisis: 1) descomposición de la variabilidad total y análisis de la contribución de cada fuente de variación (con la función `lmer` y la variable `saco1`), 2) criterio con intervalos de confianza para las desviaciones estándar (con la función `confint` a partir del mismo modelo del punto anterior), 3) comparación de dos modelos (modelocompleto contra modelo eliminando saco1 también con lmer), y 4) prueba F apartir de las esperanzas de los cuadrados medios, ajustando la F obtenida de la función `lm`.**
+
+
+**El primer enfoque da resultados que ayudan a ver que la mayor fuente de variabilidad es de saco a saco, mientras que la variabilidad de lote a lote no es muy alta. Con este enfoque no se hace ninguna prueba, pero se complementa con el segundo enfoque, donde el intervalo de confianza de la desviación estándar de lote apoya la conclusión de que esta no es una fuente de variabilidad importante. El tercer enfoque tiene la limitante de que no permite probar si hay un efecto del lote, pues no se puede hacer un modelo eliminando el `factor lote`.**
+
+\newpage
+
+\subsection*{Espectofotómetro - máquina aleatoria}
+
+Se cuenta con muchas máquinas y se seleccionan 4 de ellas para realizar el experimento. Hay dos posibilidades: 1) las 4 máquinas seleccionadas aleatoriamente son las mismas todos los días, 2) cada día se seleccionan aleatoriamente 4 máquinas (con reemplazo).  
+
+En ambos casos las 4 máquinas en cada día son etiquetadas como A, B, C y D. Cada día se preparan 8 replicaciones de muestras de suero en sangre. Dos muestras de suero se asignan aleatoriamente a cada una de las 4 máquinas en cada uno de los 4 días para un diseño completamente al azar con 2 repeticiones de cada tratamiento. En todas las muestras se usó el mismo lote de reactivos
+
+Se usan los mismos datos del ejemplo del laboratorio anterior.
+
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Las mismas máquinas todos los días}
+
+11. Considere la primera opción donde se seleccionan 4 máquinas y se usan las mismas máquinas todos los días. Ajuste el modelo que tiene en la parte de efectos fijos solo el intercepto y en la parte de efectos aleatorios el día `(1|dia)` y la máquina `(1|maq)`. Haga las estimaciones usando Máxima Verosimilitud Restringida (REML, siglas en inglés) que es el método que se usa por defecto, y también hágalo usando Máxima Verosimilitud (ML, siglas en inglés) poniendo `REML = F`.
+
+
+```{r}
+trigli=c(142.3, 144.0, 148.6, 146.9, 142.9, 147.4, 133.8,
+133.2, 134.9, 146.3, 145.2, 146.3, 125.9, 127.6,
+108.9, 107.5, 148.6, 156.5, 148.6, 153.1, 135.5,
+138.9, 132.1, 149.7, 152.0, 151.4, 149.7, 152.0,
+142.9, 142.3, 141.7, 141.2)
+dia=factor(rep(1:4,each=8))
+maq=factor(rep(c("A","B","C","D"),4,each=2))
+```
+
+
+```{r}
+mod2=lmer(trigli~1+(1|dia)+(1|maq))
+mod2a=lmer(trigli~1+(1|dia)+(1|maq),REML = F)
+```
+
+
++ Obtenga las estimaciones de las variancias correspondientes a este modelo.  Calcule el porcentaje de la variabilidad total debido a las máquinas.  
+
+```{r}
+summary(mod2)
+```
+
+```{r}
+summary(mod2a)
+```
+
+
+```{r}
+63.27/(50.24+63.27+42.89)*100
+```
+
+```{r}
+52.22/(42.58+52.22+42.99)*100
+```
+
+
+**Cuando se hace la estimacion por REML hay mayor variabilidad de máquina a máquina (63.27) que de día a día (50.24). Esta fuente de variabildad representa el 40.4% de la variabilidad total. Cuando se usa ML el porcentaje baja a 37.9%**
+
+\subsubsection*{Máquinas seleccionadas cada día}
+
+12. Considere la segunda opción donde cada día se seleccionan 4 máquinas. Como son máquinas diferentes haga una nueva variable llamada **maq2** que indetifique las máquinas de 1 a 16. Ajuste el modelo que tiene en la parte de efectos fijos solo el intercepto y en la parte de efectos aleatorios el día `(1|dia)` y la máquina `(1|maq2)`.  Haga las estimaciones usando tanto REML como ML.
+
+
+```{r}
+maq2=factor(rep(c(1:16),each=2))
+mod3=lmer(trigli~1+(1|dia)+(1|maq2))
+mod3a=lmer(trigli~1+(1|dia)+(1|maq2),REML=F)
+```
+
+
++ Obtenga las estimaciones de las variancias correspondientes a este modelo.  Calcule el porcentaje de la variabilidad total debido a las máquinas. Compárelo con el obtenido en el punto anterior.
+
+
+```{r}
+summary(mod3)
+```
+
+```{r}
+summary(mod3a)
+```
+
+
+```{r}
+92.44/(92.44+30.26+17.90)*100
+```
+
+
+```{r}
+92.44/(92.44+16.35+17.90)*100
+```
+
+**Cuando se hace la estimacion por REML, la variabilidad de máquina a máquina representa el 73.0% de la variabilidad total. Cuando se usa ML el porcentaje baja a 65.7%. En este caso el porcentaje atribuido a las máquinas aumenta con respecto al caso anterior**

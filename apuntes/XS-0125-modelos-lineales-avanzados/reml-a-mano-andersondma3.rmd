@@ -1,0 +1,33 @@
+
+
+```{r}
+trigli=c(142.3, 144.0, 148.6, 146.9, 142.9, 147.4, 133.8,
+133.2, 134.9, 146.3, 145.2, 146.3, 125.9, 127.6,
+108.9, 107.5, 148.6, 156.5, 148.6, 153.1, 135.5,
+138.9, 132.1, 149.7, 152.0, 151.4, 149.7, 152.0,
+142.9, 142.3, 141.7, 141.2)
+dia=factor(rep(1:4,each=8))
+maq=factor(rep(c("A","B","C","D"),4,each=2))
+```
+
+
+$$H_0: \mu_{1\bullet} = \mu_{2\bullet} = \mu_{3\bullet} = \mu_{4\bullet}$$
+
+```{r}
+library(lme4)
+mod1=lmer(trigli~1+maq+(1|dia))
+drop1(mod1, test = "Chisq")
+#mod1_int=lmer(trigli~1+maq+(1|dia)+(1|dia:maq))
+```
+
+
+
+```{r}
+mod1=lmer(trigli~1+maq+(1|dia), REML = F)
+mod2=lmer(trigli~1+(1|dia), REML = F)
+LRT=-2*logLik(mod2)+2*logLik(mod1)
+p = pchisq(LRT,3, lower.tail = F)
+cat("Prueba de razón de verosimilitud", LRT, "\nProbabilidad de la prueba chi-cuadrado es", p)
+```
+
+

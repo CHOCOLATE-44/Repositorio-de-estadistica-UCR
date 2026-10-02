@@ -1,0 +1,646 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: inline
+---  
+
+\section{MODELOS DE EFECTOS ALEATORIOS}
+
+Los modelos mixtos tienen una amplia gama de aplicaciones. En este laboratorio se presentan 3 ejercicios para introducir los modelos de efectos aleatorios.  En el primer ejercicio llamado **Colorantes** se tiene un solo factor aleatorio que son lotes de producción, y se quiere verificar si la variabiliad existente entre los promedios de los lotes es mucho mayor que la variabilidad del error.  En el segundo ejercicio llamado **Espectofotómetro** se incluyen dos factores aleatorios para analizar las fuentes de variabilidad presentes.  Finalmente se presenta un tecer ejercicio llamado **Escarabajos** donde la respuesta es binaria y se incluyen bloques aleatorios.
+
+Se utiliza la librería `lme4` (Bates et al., 2015) para la estimación de modelos mixtos.  Cuando la respuesta es normal se usa la función `lmer`, mientras que cuando la respueta es binaria se usa la función `glmer`.  Además se usa la librería `lattice` (Sarkar, 2008) para visualización de los datos.
+
+\subsection*{Colorantes}
+
+En una investigación sobre la elaboración de un colorante se sospecha que la variación del producto final puede estar siendo determinada por variaciones en la calidad de un producto intermedio (ácido H). Se quiere encontrar cuánta de la variación entre lote y lote  del ácido H contribuye a la variación en la producción del colorante hecho con este producto.  Se analiza la variabilidad total y se separa la variabilidad que introducen los lotes que son materia prima, de tal forma que la variabilidad restante es atribuida al proceso productivo. Por lo tanto, si la variabilidad total está fuertemente determinada por la variabilidad de los lotes, el productor de colorantes debe llamar la atención al proveedor del ácido H para lograr que su producto sea más estable.
+
+Se toman 6 lotes de producto intermedio (ácido H) y de cada uno se hacen 5 preparaciones de colorante en el laboratorio.  Se determina la producción de cada preparación mediante gramos de color estándar.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Diseño con 2 niveles}
+
+1. Abra el archivo `colorantes.Rdata`. Haga un gráfico para ver el comportamiento de la respuesta de lote a lote. Haga un análisis descriptivo.  En la librería `ggplot2` puede usar la función `qplot` de la siguiente forma: `qplot(X,Y,geom="boxplot")`.
+
+```{r}
+setwd("~/V ciclo statistics/Avanzados/Modelos_mixtos")
+load("colorantes.Rdata")
+library(ggplot2)
+qplot(lote,prod,geom="boxplot",ylab="producción",data=base)
+```
+**Hay algunos lotes que tienen producciones muy bajas mientras que otros las tienen muy altas, aunque no interesa identificar cuáles son los lotes con producción más baja o más alta puesto que los lotes son aleatorios.**
+
++ Verifique cuántas observaciones hay por cada lote y cuántos lotes hay en total.
+
+```{r}
+table(base$lote)
+```
+
+
++ ¿Cuántos tipos de unidades estadísticas hay en este diseño? ¿Cuántos niveles tiene el diseño? ¿En qué nivel está cada unidad estadística?
+
+**Hay dos tipos de unidades estadística, los lotes y las preparaciones. Estas unidades están en 2 niveles, las preparaciones están en el nivel 1 y los lotes en el nivel 2, puesto que un grupo de preparaciones están dentro de un lote.**
+
++ Escriba el modelo matemático asociado.
+
+$$y_{ij}= \beta_0+\delta_i+\varepsilon_{j(i)}$$
+
+$$\delta_{i}\sim \mathcal{N}(0,\sigma^2_\delta)$$
+
+$$\varepsilon_{j(i)}\sim \mathcal{N}(0,\sigma^2_\varepsilon)$$
+$$Y|i\sim \mathcal{N}(\mu_i,\sigma^2_\varepsilon)$$
+
+$$V(\mu_j)=V(\mu+\delta_i)\\
+= V(\delta_i)$$
+
+
++ ¿Cuántos parámetros tiene este modelo?
+
+**Este modelo cuenta con el intercepto ($\beta_0$) y dos varianzas:**
+
+**1) la varianza de lote a lote $\sigma^2_{\delta}$**
+
+**2) la varianza del error $\sigma^2_{\varepsilon}$.** 
+
+*En total son 3 parámetros*
+
+\newpage
+
+2. Ajuste el modelo mixto con la función `lmer` de la librería `lme4`.  El modelo tiene en la parte de efectos fijos solo el intercepto (ponga un uno pero no es indispensable) y en la parte de efectos aleatorios el lote `(1|lote)` – en esta parte el 1 representa el promedio: `mod1=lmer(prod~1+(1|lote))` es equivalente a `mod1=lmer(prod~(1|lote))`.
+
+```{r}
+library(lme4)
+mod1=lmer(prod~(1|lote),data=base)
+```
+
+```{r}
+mod1.2=lmer(prod~(1|lote),data=base, REML = F) #Modelo con la  máxima verosimilitud no restringida
+```
+
++ Obtenga del `summary` del **mod1** las estimaciones de los parámetros del modelo. En la parte fija se obtiene el intercepto y en la parte aleatoria las variancias.
+
+```{r}
+summary(mod1)
+summary(mod1.2)
+```
+**El intercepto es 1527.5. La variancia de las medias de lote a lote es 1764,mientras que la la variancia residual es 2451. A partir de la descomposición de la variancia se obtiene el porcentaje de la variabilidad debida a las diferencias producidas por los lotes. De esta forma se obtiene el porcentaje:**
+
+```{r}
+1764/(1764+2451)*100
+```
+**El 41.8% de la variabilidad es debida a los lotes**
+
++ Asegúrese que puede obtener manualmente esas estimaciones a partir del anova de un modelo lineal.
+
+```{r}
+mod2=lm(prod~lote,data=base)
+anova(mod2)
+```
+**Se parte de las esperanzas de los cuadrados medios:**
+
+$$E[CMLote] = \sigma^2_{\varepsilon}+n\sigma^2_\delta$$
+
+$$E[CMRes] = \sigma^2_{\varepsilon}$$
+
+**Se empieza estimando $\sigma^2_epsilon$ con el CMRes y se sustituye en la primera ecuación:**
+
+$$CMLote = CMRes+n\sigma^2_\delta$$
+
+**Por lo tanto:**
+
+$$\hat{\sigma^2_\delta}=\frac{CMLote-CMRes}{n}$$
+
+```{r}
+(11271.5-2451.2)/5
+```
+
+
+3. Obtenga los intervalos de confianza para los parámetros del modelo (por default R usa un nivel de confianza de 0.95):  `confint(mod1a,level=0.95)`.  En el resultado se debe interpretar `sigma` como la desviación estándar del error y `sigma01` la desviación estándar de lote.
+
+```{r}
+confint(mod1)
+```
+
+*Nota:* Se le llama `sigma` a la desviación estándar del error, `sig01` es la del lote. Para obtener la varianza recuerde elevar al cuadrado los resultados. Además note que los intervalos no son simétricos, debido  a que el $\pm$ en el intervalo de confianza de varianzas no se utliza. Si el limite inferior da cero quiere decir que el interavlo no se tuvo que haber realizado, debido a que la varianza puede ser cero.
+
+
+**Puesto que el intervalo de 95% de confianza va de 12.2 a 84.1 (no llega al extremo de cero), se confirma que la fuente de variabilidad de lote a lote no es nula.**
+
+**Conclusión: se tiene una estimación de la variancia de los lotes que representa el 41.8% de la variabilidad total, lo cual es una indicación bastante fuerte de que la estabilidad en la producción del colorante está siendo bastante afectada por la materia prima. Si los lotes de ácido H fueran más estables se tendría un colorante más estable también.**
+
+
+4. Tome la desviación estándar estimada de lote a lote y la desviación residual. Extraiga 6 efectos de lote de una distribución normal con media cero y la desviación de lote observada.  Sume cada efecto de lote a la media general similar a la observad (tome $\mu=1500$) para obtener las medias de cada lote ($\mu_j$).
+
+```{r}
+sd.lote=42 #sigma delta
+n=6
+med=1500
+ef.lote=rnorm(n,0,sd.lote) #simulación de los deltas
+(muj=med+ef.lote)
+```
+
+```{r}
+sd.lote1=42 #sigma delta
+n1=60
+med1=1500
+(muj.2=rnorm(n1,med1,sd.lote1)) #simulación de los deltas
+```
+
+
++ Para simular la respuesta, extraiga 5 observaciones de cada lote de distribuciones normales, es decir 5 observaciones con cada media de lote. Use la desviación estándar residual observada.   Puede repetir las medias de lote 5 veces y ponerlas en un solo vector para  hacer la extracción. 
+
+```{r}
+sd.res = 49.51
+r = 10
+mujs = rep(muj,each=r)
+y = rnorm(n*r,mujs,sd.res)
+```
+
+```{r}
+n = 3
+Lote2 = factor(rep(1:n, each = r))
+mod1.3 = lmer(y ~ 1 + (1|Lote2))
+summary(mod1.3)
+```
+```{r}
+CI = confint(mod1.3)
+ci = t(CI)
+diff(ci)
+```
+
+
++ Haga un gráfico con los valores simulados y colóquelo al lado del gráfico con los datos observado. Llame a cada gráfico **p1** y **p2**, respectivamente. Use la función `grid.arrange` de la librería `gridExtra` colocando los adentro **p1** y **p2** con el número de columnas adecuado, de la siguiente forma: `grid.arrange(p1, p2, ncol = 2)`.
+
+```{r}
+library(gridExtra)
+p1 = qplot(lote,prod,geom="boxplot",ylab="producción",data=base)
+p2 = qplot(lote,y,geom="boxplot",ylab="producción simulada",data=base)
+grid.arrange(p1, p2, ncol = 2)
+```
+
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+
+\newpage
+
+\subsection*{Espectofotómetro - máquina fija}
+
+Se está desarrollando un nuevo modelo de espectrofotómetro para uso en laboratorios clínicos con el objetivo de cuantificar sustancias y microorganismos. Se quiere evaluar  el funcionamiento de estos instrumentos sabiendo que un componente crítico del desempeño es la consistencia de las mediciones de un día a otro, y de una máquina a otra. Se quiere saber si la variabilidad de las mediciones entre las máquinas operadas durante varios días está dentro de los estándares aceptables.
+
+Se cuenta con 4 máquinas etiquetadas como A, B, C y D. Cada día se preparan 8 replicaciones de muestras de suero en sangre. Dos muestras de suero se asignan aleatoriamente a cada una de las 4 máquinas en cada uno de los 4 días para un diseño completamente al azar con 2 repeticiones de cada tratamiento. En todas las muestras se usó el mismo lote de reactivos
+
+Se miden los niveles de triglicéridos (mg/dl) en las muestras de suero. Los datos se muestran  a continuación:
+
+\begin{table}[h!]
+  \begin{center}
+    \begin{tabular}{c|c|c|c|c|c|c|c|c} 
+      \hline
+\textbf{Día} & \textbf{A} & \textbf{A} & \textbf{B} & \textbf{B} & \textbf{C} &     \textbf{C} & \textbf{D} & \textbf{D}\\
+\hline
+1   & 142.3 & 144.0 & 148.6 & 146.9 & 142.9 & 147.4 & 133.8 & 133.2\\
+2   & 134.9 & 146.3 & 145.2 & 146.3 & 125.9 & 127.6 & 108.9 & 107.5\\
+3   & 148.6 & 156.5 & 148.6 & 153.1 & 135.5 & 138.9 & 132.1 & 149.7\\
+4   & 152.0 & 151.4 & 149.7 & 152.0 & 142.9 & 142.3 & 141.7 & 141.2\\
+\hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Diseño con 2 niveles - factor en el nivel 1}
+
+5. Introduzca los datos. Defina `dia` y `maquina` como factor. Haga gráficos para ver el comportamiento de la respuesta de día a día y de máquina a máquina. Haga un análisis descriptivo.
+
+```{r}
+trigli=c(142.3, 144.0, 148.6, 146.9, 142.9, 147.4, 133.8,
+133.2, 134.9, 146.3, 145.2, 146.3, 125.9, 127.6,
+108.9, 107.5, 148.6, 156.5, 148.6, 153.1, 135.5,
+138.9, 132.1, 149.7, 152.0, 151.4, 149.7, 152.0,
+142.9, 142.3, 141.7, 141.2)
+dia=factor(rep(1:4,each=8))
+maq=factor(rep(c("A","B","C","D"),4,each=2))
+```
+
+```{r}
+library(lattice)
+dotplot(trigli~dia|maq,xlab="día",ylab="triglicéridos")
+```
+
+
+```{r}
+dotplot(trigli~maq|dia,xlab="día",ylab="triglicéridos")
+```
+
+
+
+
+*Notas:* Este gráfico se utiliza debido a que es una cantidad de observaciones pequeña.
+
+En este experimento se tiene un estudio con 2 niveles con un factor en el nivel 1 , lo que corresponde a lo que conocemos como un diseño de bloques.
+
+Tenenos dos varianzas: $\sigma_{\varepsilon}$ varianza del error la cual corresponde, a la de muestra a muestra dentro de un día y una muestra. Por otro lado $\sigma_{\delta}$ varianza de los efectos del día.
+
+
+```{r}
+xyplot(trigli~dia,groups=maq,type=c("p","a"),xlab="día",
+ylab="triglicéridos",auto.key=T)
+```
+*Nota*: Observe que las maquinas no son consistentes, debido a que estas no dan los mismos resultados a lo largo de los días. Lo mismos sucede para los días, ya que en todos los días los resultados son distintos
+
+*Colocar ejemplos de maquinas consistentes y días consistentes mediante una simulación de datos*
+
+**En el primer gráfico se pueden observar las diferencias de día a día dentro de cada máquina, las que no son muy fuertes, excepto en el día 2 en la máquina D. La variabilidad residual es muy pequeña, la cual se puede apreciar en las diferencias que hay entre los 2 puntos para cada máquina en un mismo día. En el segundo gráfico se ven las diferencias de máquina a máquina, donde las máquinas A y B tienden a tener valores más altos.**
+
+**Apartir de los gráficos parece que existe una interacción entre día y máquina; sin embargo, esta interacción podría venir de una situación particular en lugar de tratarse de algo general, pues se vio que en el día 2 la máquina D dio resultados de triglicéridos más bajos de lo normal**
+
+
+6. Ajuste el modelo que tiene en la parte de efectos fijos la máquina y en la parte de efectos aleatorios el día `(1|dia)`. Se podría incluir la interacción `(1|dia:maq)`, sin embargo, en este caso no se hace pues esta interacción no tiene sentido desde el punto de vista teórico. Ponga el resultado en un objeto llamado **mod1**.
+
+```{r}
+library(lme4)
+mod1=lmer(trigli~1+maq+(1|dia))
+mod1_int=lmer(trigli~1+maq+(1|dia)+(1|dia:maq))
+```
+
+
+*NOTA:* Realizar una guía pequeña sobre como se coloca la interacción, los aleatorios y fijos en el modelo. `(1|dia)`
+
+## Comparación de modelos 
+
+Hipótesis a probar 
+
+$$H_0:\sigma_{\tau \delta} = 0\\
+H_1: \sigma_{\tau \delta} > 0$$
+
+```{r}
+anova(mod1, mod1_int, test = "LRT")
+# También se puede de esa manera anova(mod1, mod1_int, test = "Chisq"), depende de la versión del R
+```
+
+
++ Obtenga las estimaciones de las variancias correspondientes a este modelo. Para esto use `summary`.
+
+```{r}
+summary(mod1)
+```
+**a variancia de día a día es 50.24 y la variancia residual es 42.89.**
+
++ Obtenga e interprete los intervalos de 95% de confianza para las desviaciones estándar. Use `confint`. La estimaciones van en el orden en que aparecen en el summary, es decir, desviación estándar de días (`sig01`) y desviación estándar residual (`sigma`).
+
+```{r}
+confint(mod1)
+```
+**Al observar el intervalo de 95% de confianza se tiene que la desviación estándar de día a día está entre 2.9 y 15.7. Esto confirma que esta fuente de variabilidad es importante. Por lo tanto, hay evidencia que hay fuentes de variabilidad que deben revisarse para que este moldeo de espectofotómetro funcione mejor. Se esperaría mayor consitencia de uno a otro día.**
+
+7. Para determinar si los promedios difieren entre máquinas, se usa la prueba de razón de verosimilitud (LRT, siglas en inglés). Para esto se compara el modelo enterior con otro modelo en el que no se incluye el factor **maq**. Esto se puede realizar con la función `drop1` indicando `drop1(mod1,test="Chisq")`.
+
+```{r}
+drop1(mod1,test="Chisq")# En este caso, nos sirve para probar un factor fijo.
+pchisq(26.058,3, lower.tail = F) # Fórmula a pie, para el chisq
+drop1(mod1_int,test="Chisq") # ESTE CÓDIGO ESTA MAL, YA QUE drop1, SOLO SIRVE PARA FIJOS
+```
+
+`drop1` nos sirve para probar si las medias de las 4 maquinas son iguale,s que es lo mismo que probar si los efectos de las 4 maquinas son iguales a cero.
+
+$$H_0:\alpha_i = 0 \space \forall_i \text{ ó }  \alpha_2 = \alpha_3 = \alpha_3$$
+
+
++ Observe los grados de libertad y explique a qué corresponden.
+
+
+**Son 3 grados de libertad porque el modelo que incluye máquina tiene 3 coeficientes más que el que no tiene este factor. Son 3 coeficientes porque son 4 máquinas.**
+
+
++ Explique cuál es la hipótesis que se está poniendo a prueba y cuál es el resultado.
+
+**La hipótesis nula es que las 4 máquinas dan el mismo promedio. Con $p<0.001$ en la prueba LRT se rechaza esta hipótesis y se concluye que no se están obteniendo los mismos promedios en todas las máquinas.**
+
+8. En este modelo no se hacen comparaciones entre días específicos ya que el día es una unidad aleatoria; en cambio, sí se pueden comparar las 4 máquinas ya que representan un factor fijo.  Haga la comparación usando la función `emmeans` de la librería con el mismo nombre.  En los modelos mixtos no se usa Tukey sino que se usa corrección de Bonferroni de la siguiente forma: `emmeans(modelo, pairwise~factor, adjust="bonferroni")`. Ponga el resultado en un objeto llamado **em.mod1**.
+
+```{r}
+#install.packages("emmeans")
+library(emmeans)
+em.mod1=emmeans(mod1,pairwise~maq,adjust="bonferroni")
+em.mod1
+# Explicación de como funciones `emmeans(modelo, pairwise~factor, adjust="bonferroni")`
+em.mod2=emmeans(mod1,pairwise~maq) #prueba tuckey
+```
+
+El `p-value` se compara contra $\alpha$, ya que la función hace la correción de una vez.
+
+
+*COLOCAR TABLA DE EMMEANS, CREADA EN CLASE*
+
++ Construya vectores para hacer alguna de las comparaciones y verifique que puede obtener el error estándar. Compárelo con el obtenido con `emmeans`.
+
+```{r}
+contrasts(maq)
+```
+
+```{r}
+A=c(0,0,0,0)
+B=c(0,1,0,0)
+C=c(0,0,1,0)
+D=c(0,0,0,1)
+AB=A-B
+CD=C-D
+AD =A-D
+AC = A-C
+BC = B-C
+BD = B-D
+h =cbind(AB, AC, AD, BC, BD, CD)
+coef = fixef(mod1)
+L = t(h)%*%coef
+ee = sqrt(diag(t(h)%*%vcov(mod1)%*%h))
+q = abs(L)/ee
+p = pt(q,25,lower.tail = F) 
+p < 0.05/12 # dos colas
+p < 0.05/6 #una cola
+round(p*12,3)
+round(p,3)
+round(p*6,3)
+```
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+
+CD=C-D
+sqrt(t(CD)%*%vcov(mod1)%*%CD)
+```
+
+
+
+
+
+
+
+
+
+```{r}
+A=c(0,0,0,0)
+B=c(0,1,0,0)
+AB=A-B
+ee = as.numeric(sqrt(t(AB)%*%vcov(mod1)%*%AB))
+coef = fixef(mod1)
+t = t(AB)%*%coef
+t_calculado = as.numeric(t / ee)
+n = nrow(datos)
+p = length(coef)
+gl = n-p
+p_valor = 2 * pt(abs(t_calculado), df =gl, lower.tail = FALSE)
+cat("Estimación:", t, "\nSE:", ee, "\nt-stat:", t_calculado, "\np-val:", p_valor)
+```
+
++ Observe los grados de libertad de las comparaciones de medias y compárelos con los grados de libertad residuales de un modelo similar pero que no considera el día como aleatorio (con `lm`).
+
+```{r}
+anova(lm(trigli~maq+dia))
+```
+
+
++ Con la información que da `emmeans` puede construir intervalos de confianza para las diferencias que resultaron significativas. Para obtenerlos use `confint(em.mod1)`. Observe que esta función hace los intervalos de todas los pares.
+
+```{r}
+confint(mod1)
+```
+
+
+
+```{r}
+confint(em.mod1)
+```
+
+```{r}
+d = confint(em.mod1)$contrasts[3:5,2]
+ee = confint(em.mod1)$contrasts[3:5,3]
+t = qt(1-0.05/6,25)
+ic = cbind(d-t*ee,d+t*ee)
+ic
+```
+
+
++ Para extraer la información convierta el resultado anterior en un `data.frame`.  A partir de ahí use las estimaciones de las diferencias que requiera y sus errores estándar para construir solo los intervalos de confianza necesarios. Use el valor de t con la corrección apropiada de Bonferroni.  Primero obtenga los intervalos con la correción que usó la función para hacer todos los pares. Luego use la correción adecuada para solo 3 intervalos. Compare los resultados.
+
+```{r}
+(df.mod1=as.data.frame(confint(em.mod1)))
+```
+
+```{r}
+(ee=df.mod1[7:9,4])
+```
+
+```{r}
+(dif=df.mod1[7:9,8])
+```
+
+```{r}
+t=qt(1-0.05/12,25)
+round(cbind(dif-t*ee,dif+t*ee),2)
+```
+
+```{r}
+t=qt(1-0.05/6,25)
+round(cbind(dif-t*ee,dif+t*ee),2)
+```
+
+
+**Conclusión: el espectofotómetro no está listo para tomar las mediciones de forma precisa ya que estas no son consistentes de una máquina a otra puesto que hay diferencias muy grandes entre la máquina D y las máquinas A y B, de igual forma de un día a otro no hay consistencia puesto que la variabilidad de día a día es un poco superior a la variabilidad residual. Sería importante repetir el experimento puesto que parece que una de las máquinas tuvo un comportamiento especial en el día 2. Dada esta sospecha sería importante verificar si al tener más días en el experimento se repite este tipo de comportamiento.**
+
+
+9. Tome la desviación estándar estimada de día a día y la desviación residual. Extraiga 4 efectos de día de una distribución normal con media cero y la desviación de día observada.  Sume cada efecto de dia a la media general similar a la observada (tome $\mu=147$) para obtener las medias de cada día ($\mu_j$).
+
+```{r}
+sd.dia=7.1
+n=4
+ef.dia=rnorm(n,0,sd.dia)
+med=147
+muj=med+ef.dia
+muj
+```
+
+Realización con 40 mujs
+
+```{r}
+sd.dia=7.1
+n=4
+ef.dia=rnorm(n,0,sd.dia)
+med=147
+muj=med+ef.dia
+muj
+mean(muj)
+```
+
+
+
++ Para simular la respuesta, extraiga 8 observaciones de cada día de distribuciones normales, es decir 8 observaciones con cada media de día. Use la desviación estándar residual observada.   Puede repetir las medias de día 8 veces y ponerlas en un solo vector para  hacer la extracción. 
+
+```{r}
+sd.res = 6.55
+n = 4
+r = 8
+mujs = rep(muj,each=r)
+y = rnorm(n*r,mujs,sd.res)
+Dia = factor(rep(1:n, each = r))
+tapply(y,Dia, mean)
+```
+
+
++ Hasta aquí se ha realizado la simulación de la respuesta sin tomar en cuenta las máquinas, simplemente se ha introducido el efecto para diferentes días. Ahra hay que tomar los efectos de las máquinas y sumar cada efecto a 2 observaciones por día.  Suponga que hay una diferencia entre la media de la máquina más baja y la más alta de 15 unidades, entonces defina los efectos como 0, 7.5, 7.5 y 15. Luego sume esos efectos adecuadamente a la respuesta anterior.
+
+```{r}
+n = 6
+r = 16
+alfa=c(0,7.5,9,15)
+(alfai=rep(alfa,each=r/4,n)) #Número de observaciones entre 4(maquinas), n es el número de días 
+```
+
+
+
+```{r}
+n = 6
+r = 16
+alfa=c(0,-7.5,7.5,0)
+(alfai=rep(alfa,each=r/4,n)) #Número de observaciones entre 4 días, n es el número de días 
+```
+
+
+```{r}
+y = rnorm(n*r,mujs,sd.res)
+y1 = y+alfai
+```
+
+
+```{r}
+maquina = factor(rep(1:4,each = r/4,n))
+Dia = factor(rep(1:n, each = r))
+```
+
+```{r}
+tabla = tapply(y1, list(Día = Dia, Máquina = maquina), mean)
+print(tabla)
+```
+
+
+```{r}
+mod3 = lmer(y1~maquina+(1|Dia))
+```
+
+
+```{r}
+summary(mod3)
+```
+
+
+```{r}
+n = 20
+r = 32
+mujs = rep(muj,each=r)
+y = rnorm(n*r,mujs,sd.res)
+Dia = factor(rep(1:n, each = r))
+maquina = factor(rep(1:4,each = r/4,n))
+alfa=c(0,-7.5,7.5,0)
+(alfai=rep(alfa,each=r/4,n))
+y1 = y+alfai
+mod4 = lmer(y1~maquina+(1|Dia))
+```
+
+```{r}
+summary(mod4)
+```
+
+
++ Haga gráfico de la respuesta observada y también de la respuesta simulada final contra las máquinas.  Además, haga gráfico de ambas respuestas centradas por día contra las máquinas. Ponga los 4 gráficos juntos con `grid.arrange(p1, p2, p3, p4, ncol=2,nrow=2)`. Use una escala en el eje Y de 100 a 170 para que todos los gráficos sean comparables.}
+
+```{r}
+sd.res = 6.55
+n = 4
+r = 8
+mujs = rep(muj,each=r)
+y = rnorm(n*r,mujs,sd.res)
+Dia = factor(rep(1:n, each = r))
+alfa=c(0,-7.5,7.5,0)
+(alfai=rep(alfa,each=r/4,n))
+y1 = y+alfai
+tapply(y,Dia, mean)
+```
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+p1 = qplot(maq,trigli,geom="boxplot",ylab="respuesta observada",
+xlab="máquina", ylim=c(100,170))
+trigli2= trigli-lm(trigli~dia)$fit+mean(trigli) #Centramos trigli por día
+p2 = qplot(maq,trigli2,geom="boxplot",ylab="respuesta observada\ncentrada",
+xlab="máquina", ylim=c(100,170))
+p3 = qplot(maq,y1,geom="boxplot",ylab="respuesta simulada",
+xlab="máquina", ylim=c(100,170))
+y2 = y1-lm(y1~dia)$fit+mean(y1)
+p4 = qplot(maq,y2,geom="boxplot",ylab="respuesta simulada\ncentrada",
+xlab="máquina", ylim=c(100,170))
+grid.arrange(p1,p2, p3,p4,ncol=2,nrow=2)
+```
+
+
+```{r}
+n=6       # Número de Lotes (Nivel 2)
+r=5         # Unidades por Lote (Nivel 1)
+k=10    # Cuántas de iteraciones
+
+sd.res=49.51
+muj=1500     # Media global de referencia
+anchos=numeric(k) # Vector vacío para guardar los resultados, de forma más rápida
+
+for(i in 1:k) {
+  # 1. Generamos los efectos de los lotes
+  # Suponemos una desviación estándar entre lotes 
+  sd.lote=15 
+  efectos_lote=rnorm(n, 0, sd.lote)
+  
+  # 2. Generamos la respuesta 
+  mujs=rep(muj + efectos_lote, each = r)
+  y=rnorm(n * r, mujs, sd.res)
+  Lote=factor(rep(1:n, each = r))
+  
+  # 3. Ajustamos el modelo y calculamos el IC
+  # Se usa Wald y parm para que sea rápido en las 10 iteraciones
+  mod1.3=lmer(y ~ 1 + (1|Lote), control = lmerControl(calc.derivs = FALSE))
+  CI=confint(mod1.3, parm = "(Intercept)", method = "Wald")
+  
+  # 4. Guardamos la diferencia (el ancho)
+  anchos[i]=diff(as.vector(CI))
+}
+
+promedio_ancho=mean(anchos)
+
+print(c("El promedio del ancho es",round(promedio_ancho,3)))
+```
+
+
+
+
