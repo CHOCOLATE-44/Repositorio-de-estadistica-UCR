@@ -1,0 +1,238 @@
+Seguimos con el caso hipotético: Una ingeniera industrial está analizando cuántos días duran los solicitantes de créditos semilla para microempresas en completar los trámites para acceder al crédito.  El problema del análisis es que se está incluyendo dentro de la muestra a aquellos que tienen que retirarse del proceso porque se les define como inelegibles o bien que se retiran del proceso porque se cansan de los trámites.  Los datos están en credindustria.dta. 
+
+El objetivo es determinar los predictores de la tasa de logro del crédito.  Para ello, recoge la información de las siguientes variables:  
+•	id:  Identificador del cliente
+•	completo:  Variable dummy.  Es igual a 1 si el solicitante logró el crédito.  Es 0 si se le considera inelegible en alguna etapa o se retira del proceso. 
+•	tiempo:  Tiempo en días para recibir el crédito o para ser declarado inelegible o para retirarse del proceso. 
+•	edad:  Edad del solicitante.
+•	capital:  Capital solicitado en millones de colones.
+•	porcequipo: Porcentaje del crédito destinado a compra de equipo (en puntos porcentuales).
+•	tecnologico: Variable dummy: Es 1 si la microempresa está orientada a la industria tecnológica. 
+
+
+Se cargan las librerías que se van a usar
+
+```{r, warning=FALSE}
+library(survival)
+library(survminer)
+library(dplyr)
+library(flexsurv)
+library(rms)
+library(stats4)
+library(survMisc)
+library(reshape)
+library(dplyr)
+library(spatstat.utils)
+library(casebase)
+library(car)
+library(splines)
+#install.packages("visreg")
+library(visreg)
+```
+
+1. Se carga el archivo credindustria.
+```{r}
+setwd("~/V ciclo statistics/Demografía/lab_analisis_supervivencia")
+library(haven)
+credindustria <- read_dta("credindustria.dta")
+head(credindustria)
+```
+
+2. Se va a crear un objeto surv que utiliza la variable de tiempo y la de ocurrencia del evento.
+```{r}
+so.1 <- Surv(time = credindustria$tiempo, event = credindustria$completo)
+so.1
+fit1=survfit(so.1~1)
+```
+¿Por qué hay valores que tienen un + en el so.1?
+Comentar:
+
+Son los datos censurados a la derecha
+
+
+3. Seguidamente se empezará con un modelo de cox simple de una sola variable predictora: Tecnologico (si son empresas tecnológicas o no). Se utilizará el modelo de Hazard.
+```{r}
+
+# 2. Cargar la librería en tu sesión actual (debes hacerlo siempre al inicio de tu script)
+library(casebase)
+library(splines)
+mod1 <- fitSmoothHazard(completo~ns(log(tiempo),df=4)
+                        +as.factor(tecnologico), 
+                        data=credindustria,
+                        time="tiempo")
+plot(mod1,
+     hazard.params=list(xvar="tiempo",
+                        by="tecnologico",
+                        #alpha=0.05,
+                        ylab="Curva de hazards",xlab="Tiempo"))
+
+
+```
+
+*Para cada unidad estadística tenemos una curva*
+
+*La distancia entre linea es el cociente de ambas lineas, la cual se mantiene constante atraves del tiempo*. Supuestos de riesgos proporcionales
+
+
+
+Conclusión resumida: 
+Como se dijo antes, la tasa de logro del crédito es mayor entre las empresas tecnológicas que entre las no tecnológicas.  O sea, concluyen antes el procedimiento. Recuérdese que las empresas tecnológicas son tecnologico = 1 y las empresas no tecnológicas tecnologico = 0.  Así que, cuando se estime un modelo de regresión de Cox solo con la variable de tecnologico, el coeficiente (en bruto es positivo), el coeficiente exponenciado es mayor a 1.
+
+** Observer con str(base) como se conforman las variables y como las usan para realizar el modelo.**
+
+a. Modelo de Cox
+
+```{r}
+cox.1 =coxph(so.1 ~ tecnologico, 
+             data = credindustria)
+summary(cox.1)
+```
+
+Noten varias cosas:
+
+a) El coeficiente es positivo y el coeficiente exponenciado es mayor a 1.  De hecho, el coeficiente exponenciado de 2.24 significa que los hazards de completar el proceso de crédito en las empresas tecnológicas es 2.24 veces los hazards de completar el proceso entre las empresas no tecnológicas.  El 2.24 es un HR (Hazard Ratio)
+
+b) También si hace (2.24-1)*100%=124%, entonces se dice que los hazards (o riesgos de concluir el proceso) son 124% mayores entre las empresas tecnológicas que entre las no tecnológicas.
+
+c) Noten también que la "salida" ("output") de R tiene el exp(coef) y el exp(-coef), el cual es el inverso del Hazard Ratio.  En otras palabras, los hazards de completar el proceso de crédito en las empresas No tecnológicas es 0.447 veces los hazards de completar el proceso entre las empresas tecnológicas.
+
+d) Al ser una regresión, hay un pvalue.  Corresponde a la H0: Beta1=0 (H1: Beta1 <> 0), que es equivalente a H0:HR=1 (H1: HR <> 1).  Al 5% de significancia, hay suficiente evidencia estadística para rechazar a H0: HR=1.  Esto quiere decir que en la población, los hazards de completar el proceso son distintas entre las empresas tecnológicas y las no tecnológicas.
+
+`Concordance:` Es una bondad de ajuste si es menor a 0.5, quiere decir que no hay un buen ajuste y si es mayor a 0.5 tiene un buen ajuste 
+
+En este caso, como el modelo solo tiene una variable predictora binaria, no es necesario analizar el supuesto de linealidad.  Pero sí se puede analizar el supuesto de riesgos proporcionales.  En el gráfico de hazards habría sospechas del no cumplimiento del supuesto, porque las curvas están juntas al principio, pero separadas al final.  Sin embargo, esto se puede deber a los pocos casos al inicio del tiempo.
+```{r}
+plot(mod1,
+     hazard.params=list(xvar="tiempo",
+                        by="tecnologico",
+                        #alpha=0.05,
+                        ylab="Curva de hazards",xlab="Tiempo"))
+```
+
+4. Análisis con el gráfico de residuos de Schoenfeld.
+Primero se crea el objeto a partir de la función cox.zph para hacer el gráfico. Se crea el objeto prop.haz.1.
+```{r}
+prop.haz.1=cox.zph(cox.1)
+plot(prop.haz.1,xlab="Tiempo")
+```
+Se espera ver una nube horizontal con una curva lo más horizontal posible.  No se observa eso, por lo que el gráfico sugiere que no se cumple el supuesto.
+
+
+Se puede plantear la prueba de hipótesis para verificar:
+H0: HR_sub1(t)=k. 
+
+En otras palabras, que el Hazard ratio es constante a través del tiempo.
+
+```{r}
+prop.haz.1
+```
+Conclusión: 
+Al 5% de significancia, se rechaza la hipótesis nula de proporcionalidad para la covariable de tecnologico.  S
+
+##Se supone que habría que hacer una corrección para poder interpretar el HR.  En este curso aún no se estudia cómo corregir ese problema.##
+
+
+5. Se estimará el modelo con las otras variables predictoras:  edad, capital y porcequipo.
+```{r}
+cox.2 =coxph(so.1 ~ tecnologico+edad+capital+porcequipo, 
+             data = credindustria)
+summary(cox.2)
+```
+El único HR significativamente distinto de 1 es el de tecnologico. Sin embargo, se va a interpretar descriptivamente el HR de edad y porcequipo.
+HR de edad=1.0128.  
+Esto quiere decir que por cada año adicional de edad del solicitante, los hazards de terminar el proceso se multiplican por 1.0128.  O bien, (1.0128-1)*100%=1.28%.  Por cada año adicional de edad del solicitante, los hazards de terminar el proceso aumentan en 1.28%.
+HR de porcequipo=0.996.  
+Esto quiere decir que por cada punto porcentual destinado a compra de equipo,  los hazards de terminar el proceso se multiplican por 0.996.  O bien, (0.996-1)*100%=-0.4%.  Por cada año punto porcentual destinado a compra de equipo, los hazards de terminar el proceso disminuyen en 0.4%.
+
+
+6. Prueba global de proporcioalidad (sabemos que se viola el supuesto con la variable tecnologica).
+```{r}
+prop.haz.2=cox.zph(cox.2)
+prop.haz.2
+```
+Solo se rechaza la H0 de proporcionalidad en tecnologico.
+
+A continuación, los gráficos, en donde se tiene un gráfico por cada covariable.
+```{r}
+plot(prop.haz.2,xlab="Tiempo")
+```
+Los gráficos para el resto de covariables se ven horizontales, por lo que no se viola el supuesto.
+
+
+
+7. Supuesto de linealidad con las 3 variables cuantitativas.
+Se hace con los residuos martingala.  Se estima un modelo excluyendo cada una de las variables cuantitativas.
+```{r}
+cox.sin.edad =coxph(so.1 ~ tecnologico+capital+porcequipo, 
+             data = credindustria)
+cox.sin.capital =coxph(so.1 ~ tecnologico+edad+porcequipo, 
+             data = credindustria)
+cox.sin.porcequipo =coxph(so.1 ~ tecnologico+edad+capital, 
+             data = credindustria)
+
+mg.sin.edad <- residuals(cox.sin.edad,type="martingale")
+mg.sin.capital <- residuals(cox.sin.capital,type="martingale")
+mg.sin.porcequipo <- residuals(cox.sin.porcequipo,type="martingale")
+
+lineal.sin.edad <- predict(cox.sin.edad,type="lp")
+lineal.sin.capital <- predict(cox.sin.capital,type="lp")
+lineal.sin.porcequipo <- predict(cox.sin.porcequipo,type="lp")
+
+```
+
+Gráfico para linealidad de edad
+```{r}
+suav <- loess(mg.sin.edad~credindustria$edad, span=1.25)
+plot(mg.sin.edad~credindustria$edad,
+     xlab="Edad",
+     ylab="Res de Martingala")
+j <- order(credindustria$edad)
+lines(credindustria$edad[j],suav$fitted[j],col="red",lwd=3)
+```
+Gráfico para linealidad de capital
+```{r}
+suav <- loess(mg.sin.capital~credindustria$capital, span=1.25)
+plot(mg.sin.capital~credindustria$capital,
+     xlab="Capital",
+     ylab="Res de Martingala")
+j <- order(credindustria$capital)
+lines(credindustria$capital[j],suav$fitted[j],col="red",lwd=3)
+
+```
+Gráfico para linealidad de porcequipo
+```{r}
+suav <- loess(mg.sin.porcequipo~credindustria$porcequipo, span=1.25)
+plot(mg.sin.porcequipo~credindustria$porcequipo,
+     xlab="% dedicado a equipo",
+     ylab="Res de Martingala")
+j <- order(credindustria$porcequipo)
+lines(credindustria$porcequipo[j],suav$fitted[j],col="red",lwd=3)
+
+```
+En este último gráfico hay una ligera curva de linealidad, pero no varía la interpretación.
+Si el profe dice que hay linealidad yo difiero de esto. Observen que para que haya linealidad se espera que los residuales Martingala estén cerca de la linea de tendencia, sin embargo por la naturaleza de los datos, los residuales no se encuentran cerca de esto. Ojo que el hecho que la línea de tendencia esté lineal no significa que los residuales generen que sea lineal, son cosas distintas. 
+
+
+
+8. Por último, hay un gráfico de bondad de ajuste con los residuos de Cox-Snell.  R no tiene una función para calcularlos automáticamente, entonces hay que estimarlos "a pie".
+
+A diferencia de otros paquetes, R no tiene los residuos de Cox-Snell.  Sin embargo, se pueden calcular a partir de los residuos de martingala y la variable del evento
+
+```{r}
+martingala1 <- residuals(cox.2,type="martingale")
+coxsnell1 <- credindustria$completo-martingala1
+
+qqPlot(coxsnell1,distribution = "exp", main="QQPlot para res de CoxSnell",
+       xlab="Cuantilos de la distrib exponencial",
+       ylab="Residuos de CoxSnell")
+```
+Si los puntos están cerca de la línea de 45° y dentro de las bandas de confianza parece haber un buen ajuste.  Eso se observa en este gráfico.
+
+Difiero un poco también. Y esto porque existe una gran cantidad de datos fuera de los cuantilos a pesar de que se vean abajo, entonces difiero sobre el buen ajuste. Sé que el profesor va a decir que puedo ser muy conservador o estricto, sin embargo me baso en que la gran cantidad de datos acumulados entre 0 y 1 se encuentran afuera. 
+
+
+```{r}
+predict(cox.2, type = "survival")
+```
+
+

@@ -1,0 +1,34 @@
+```{r}
+library(readxl)
+base = read_excel("C:/Users/Ander/Documents/V ciclo statistics/Demografía/lab composición población/razones_lab1.xlsx")
+
+head(base)
+```
+
+```{r}
+library(tidyverse)
+
+
+df_long <- base %>%
+  pivot_longer(
+    cols = c(`1973`, `1984`, `2000`, `2011`), 
+    names_to = "Anio", 
+    values_to = "Razon_Masculinidad"
+  ) %>%
+  mutate(Anio = as.numeric(Anio)) # Convertir año a número para el eje X
+```
+
+```{r}
+ggplot(df_long, aes(x = Edadsimple, y = Razon_Masculinidad, color = factor(Anio))) +
+  geom_line(size = 1) +
+  geom_point() +
+  labs(
+    title = "Razón de masculinidad en Costa Rica en los años \n1973,1984, 2000, 2011
+",
+    x = "Edad Simple",
+    y = "Razón de Masculinidad",
+    color = "Año"
+  ) +
+  theme_minimal()
+```
+

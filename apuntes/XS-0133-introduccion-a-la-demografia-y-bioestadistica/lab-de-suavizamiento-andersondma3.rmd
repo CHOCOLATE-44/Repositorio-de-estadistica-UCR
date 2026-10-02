@@ -1,0 +1,427 @@
+---
+title: "Lab de suavizamiento"
+output: pdf_document
+date: "2026-03-25"
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+Librerias
+
+```{r}
+library(readxl)
+library(ggplot2)
+library(ggpubr)
+library(dplyr)
+```
+
+
+
+Se cargan los datos.
+
+```{r}
+setwd("~/V ciclo statistics/Demografía/lab_suavizamiento")
+defGuana2017 = read_excel("datos para suavizamiento.xlsx", sheet = "Guanacaste 2017", range = "A1:C110")
+defGuana1519 = read_excel("datos para suavizamiento.xlsx", sheet = "Guana 1519", range = "A1:C113")
+pobGuana17 = read_excel("datos para suavizamiento.xlsx", sheet = "Poblacion", range = "A1:C92") 
+TVH2010 = read_excel("TaVida-CR2010.xlsx", sheet = "TV Masc 2010_2015", range = "B2:D92")
+TVM2010 = read_excel("TaVida-CR2010.xlsx",sheet = "TV Fem 2010_2015", range = "B2:D92")
+```
+
+
+defGuana2017 tiene las defunciones de Guanacaste solo en 2017
+defGuana1519 tiene las defunciones de Guanacaste en el período 2015-2019.  Nótese que el año central es 2017
+pobGuana17 tiene las poblaciones estimadas por el INEC para Guanacaste al 1 de julio de 2017
+TVH2010 contiene las primeras funciones de la tabla de vida de hombres para Costa Rica para el período 2010-2015
+TVM2010 contiene las primeras funciones de la tabla de vida de mujeres para Costa Rica para el período 2010-2015
+
+
+
+La población estimada del INEC llega hasta la edad 90 y más, por lo que hay que sumar las defunciones de 90 y más para que queden en un solo grupo.
+
+Aparte, se empieza con las defunciones de 2017, y se nota que hay una sola defunción con edad ignorada, por lo que se omite ese caso.  O sea, se considera que los casos con edad ignorada no afectan a los cálculos.
+
+Se calculan las tasas en un solo arreglo:
+
+```{r}
+def1H <- c(defGuana2017$Hombre[1:90],sum(defGuana2017$Hombre[91:108])) #Juntamos las defunciones para que sean de 90 o más
+def1M <- c(defGuana2017$Mujer[1:90],sum(defGuana2017$Mujer[91:108]))
+
+tasa1H <- def1H/pobGuana17$Hombres
+tasa1M <- def1M/pobGuana17$Mujeres
+```
+
+Se hace el gráfico tanto en escala aritmética como en escala logarítmica
+
+```{r}
+data1 <- data.frame(edades=c(0:90,0:90),tasas=c(tasa1H,tasa1M),sexo=c(rep("H",91),rep("M",91)))
+
+a1=ggplot(data=data1,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+coord_cartesian(ylim = c(0.0000001, 1))
+
+b1=ggplot(data=data1,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+scale_y_log10()+coord_cartesian(ylim = c(0.0000001, 1))
+
+ggarrange(a1,b1,align="v")
+  
+```
+
+Noten que hay edades con 0 defunciones porque Costa Rica es un país muy pequeño, y Guanacaste es una provincia relativamente poco poblada.
+
+Además, nótese el "ruido blanco".
+
+El primer paso para eliminar el ruido blanco es calcular las tasas para 2017, pero tomando en cuenta todo el período 2015-2019.
+Insisto que 2017 es el año central.
+
+Este es el primer método para suavizar.
+
+
+Sin embargo, como hay más defunciones con edad ignorada, se hace el prorrateo.  Esto significa distribuir proporcionalmente las defunciones con edades.
+
+```{r}
+def2H.sin.prorrateo <- c(defGuana1519$Hombre[1:90],sum(defGuana1519$Hombre[91:110]))
+def2M.sin.prorrateo <- c(defGuana1519$Mujer[1:90],sum(defGuana1519$Mujer[91:110]))
+
+dist2H <- def2H.sin.prorrateo/sum(def2H.sin.prorrateo)# Se crea la distribución relativa
+dist2M <- def2M.sin.prorrateo/sum(def2M.sin.prorrateo)
+
+def2H <- def2H.sin.prorrateo+dist2H*defGuana1519$Hombre[111] # Se hace el prorrateo
+def2M <- def2M.sin.prorrateo*dist2M*defGuana1519$Mujer[111]
+
+```
+
+
+Se calculan las tasas suavizadas con el quinquenio en un solo arreglo.  Estas se pueden entender también como tasas quinquenales anualizadas.
+
+```{r}
+tasa2H <- def2H/pobGuana17$Hombres
+tasa2M <- def2M/pobGuana17$Mujeres
+```
+
+Y se hace el gráfico.  
+
+```{r}
+data2 <- data.frame(edades=c(0:90,0:90),tasas=c(tasa2H,tasa2M),sexo=c(rep("H",91),rep("M",91)))
+
+a2=ggplot(data=data2,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+coord_cartesian(ylim = c(0.0000001, 1))
+
+b2=ggplot(data=data2,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+scale_y_log10()+coord_cartesian(ylim = c(0.0000001, 1))
+
+ggarrange(a2,b2,align="v")
+  
+```
+Se reduce el ruido blanco, pero todavía hay edades con cero defunciones, especialmente entre hombres muy jóvenes.
+
+El siguiente método es hacerlo con promedios móviles.  Esto se pudo hacer con las tasas basadas en información de solo 2017, o tasas suavizadas con el quinquenio.
+
+Se sigue entonces con suavizamiento por promedios móviles.  Se puede hacer con 3 años de edad, o con 5 años de edad.  Se va a hacer con 5 años.  Esto quiere decir que las tasas de la edad 10 se componen del promedio entre la edad 8 y la edad 12.
+
+Se empieza entonces a partir de la edad 3 y hasta la edad 87 para no tomar en cuenta las defunciones extremas de las edades 0,1,2, 88, 89 y 90 y más.
+
+
+
+```{r}
+def3H <- def2H
+def3M <- def2M
+
+
+for (i in 4:88) {
+  
+  def3H[i] <- mean(def2H[i-2:i+2])
+  def3M[i] <- mean(def2M[i-2:i+2])
+  
+}
+
+```
+
+Se calculan las tasas y se grafican
+     
+```{r}
+tasa3H <- def3H/pobGuana17$Hombres
+tasa3M <- def3M/pobGuana17$Mujeres
+
+
+data3 <- data.frame(edades=c(0:90,0:90),tasas=c(tasa3H,tasa3M),sexo=c(rep("H",91),rep("M",91)))
+
+a3=ggplot(data=data3,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+coord_cartesian(ylim = c(0.0000001, 1))
+
+b3=ggplot(data=data3,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+scale_y_log10()+coord_cartesian(ylim = c(0.0000001, 1))
+
+ggarrange(a3,b3,align="v")
+
+```
+Ahora hay más suavizamiento, aunque se nota una diferencia muy marcada entre hombres y mujeres en edades muy bajas.
+
+A partir de aquí se puede usar el método del logito de Brass, o métodos con modelos.  
+
+Se empieza con el logito de Brass.
+
+*A continuación se le presenta la fórmula del logito de Brass*
+
+$$\log\left(\frac{m_x^{des}}{1-m_x^{des}}\right)=\hat{\beta_0}+\hat{\beta_1}\log\left(\frac{m_x^{s}}{1-m_x} \right)$$
+Se prefiere hacerlo con probabilidades (como la qx o la lx) pero se ilustrará con las mx.
+
+Se toma de base la tabla de vida de Costa Rica para el quinquenio 2010_2015.  Aquí no importa el período.  Lo que se prefiere es un conjunto de datos ya suavizado y con una estructura similar.
+
+Nótese que se quita la última tasa de 90 años y más porque no es comparable.  En las tasas que se vienen trabajando con datos el grupo es de 90 y más, mientras que en la tabla de vida representa solo a la tasa de la edad 90.  Para transformarla en tasa de 90 años y más, habría que hacer unos cuantos cálculos de la Tabla de Vida que ustedes aún no conocen. 
+
+Por eso se deja afuera la fila 91.
+
+El sistema del logito de Brass estima un modelo lineal de regresión por mínimos cuadrados en donde la variable predictora es una transformación de las tasas modelo (en este caso las tasas de la Tabla de vida de 2010-2015) y la variable predicha es el logito de las tasas calculadas con los datos y que no están suavizadas.
+
+Las tasas suavizadas serían las predichas con el modelo.
+
+Hombres
+```{r}
+logito_obs_H <- log(tasa3H[-91]/(1-tasa3H[-91])) #Se realiza con la tasa suavizada
+logito_base_H<- log(TVH2010$mxaju/(1-TVH2010$mxaju)) #Se hace con las tasa de origen
+
+
+mod1H <- lm(logito_obs_H~logito_base_H) #Se creo el modelo se regresión 
+mod1H$fitted #Se calculan los valores ajustados 
+mxsuavH <- exp(mod1H$fitted)/(1+exp(mod1H$fitted)) # Se coloca una exponencial para obtener el valor 
+
+tasasuavH=c(mxsuavH,tasa3H[91])
+
+dfH <- data.frame(edad=(0:90),tasa3H,tasasuavH)
+
+
+
+suavH <- ggplot(dfH,aes(x=edad,y=tasasuavH))+
+  geom_line()+scale_y_log10()+geom_line(aes(x=edad,y=tasa3H))
+suavH
+
+summary(mod1H)
+```
+*Los comentarios del bloque anterior aplican para el siguiente*
+
+Mujeres
+
+```{r}
+logito_obs_M <- log(tasa3M[-91]/(1-tasa3M[-91]))
+logito_base_M<- log(TVM2010$mxaju/(1-TVM2010$mxaju))
+
+
+mod1M <- lm(logito_obs_M~logito_base_M)
+mod1M$fitted
+mxsuavM <- exp(mod1M$fitted)/(1+exp(mod1M$fitted))
+
+tasasuavM=c(mxsuavM,tasa3M[91])
+
+dfM <- data.frame(edad=(0:90),tasa3M,tasasuavM)
+
+
+
+suavM <- ggplot(dfM,aes(x=edad,y=tasasuavM))+
+  geom_line()+scale_y_log10()+geom_line(aes(x=edad,y=tasa3M))
+suavM
+
+summary(mod1M)
+```
+
+
+Las tasas modelo se parecen más a las observadas entre las mujeres que entre los hombres.
+
+
+Ahora se hace el gráfico que se viene mostrando en los casos anteriores.
+
+Las tasas finales se completan con las tasas observadas a las edades 0, 1, 2, 88, 89 y 90.
+
+
+
+
+```{r}
+tasa4H <- tasasuavH
+tasa4M <- tasasuavM
+
+
+data4 <- data.frame(edades=c(0:90,0:90),tasas=c(tasa4H,tasa4M),sexo=c(rep("H",91),rep("M",91)))
+
+a4=ggplot(data=data4,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+coord_cartesian(ylim = c(0.0000001, 1))
+
+b4=ggplot(data=data4,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+scale_y_log10()+coord_cartesian(ylim = c(0.0000001, 1))
+
+ggarrange(a4,b4,align="v")
+
+```
+
+Este gráfico muestra un mayor suavizamiento aún.
+
+También se puede usar un modelo.  En demografía y actuariado, se usa el modelo Gompertz o el Gompertz-Makeham.
+
+El modelo Gompertz supone que  $m_x = \alpha* exp(\beta*edad)$, 
+
+Esto es equivalente a:  $\log(m_x)=\log(\alpha)+\beta*edad$, lo cual se puede estimar con un modelo de regresión lineal por mínimos cuadrados en donde $\log(m_x)=\bar{Y}$, $\log(\alpha)=\beta_0$, $\beta=\beta_1$, y $edad=x$.
+
+En mortalidad humana no se recomienda usar el modelo para edades más jóvenes, y hay un debate entre los demógrafos si el modelo de Gompertz se puede ajustar con edades superiores a 90.  Aquí vamos a usar el modelo para las edades entre 10 y 89 años con las tasas suavizadas con promedios móviles.  Se agregan después manualmente las tasas de 0 a 9 años, y la tasa de 90 años.
+
+
+1. Primero el modelo
+
+
+```{r}
+edad.mod.gomp <- 10:89
+mod.gompertz.H <- lm(log(tasa3H[11:90])~edad.mod.gomp)
+mod.gompertz.M <- lm(log(tasa3M[11:90])~edad.mod.gomp)
+
+```
+
+2. las tasas estimadas son las suavizadas
+
+```{r}
+tasa5H <- c(tasa3H[0:10],exp(mod.gompertz.H$fitted),tasa3H[91])
+tasa5M<- c(tasa3M[0:10],exp(mod.gompertz.H$fitted),tasa3M[91])
+
+data5 <- data.frame(edades=c(0:90,0:90),tasas=c(tasa5H,tasa5M),sexo=c(rep("H",91),rep("M",91)))
+
+a5=ggplot(data=data5,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+coord_cartesian(ylim = c(0.0000001, 1))
+
+b5=ggplot(data=data4,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+scale_y_log10()+coord_cartesian(ylim = c(0.0000001, 1))
+
+ggarrange(a5,b5,align="v")
+
+
+
+```
+
+También se puede suavizar con la función loess.  En estadística, el nombre técnico es regresión local.  Se le puede dar distintos valores de parámetros para que suavice más o menos.
+
+Nuevamente, se utilizarán los datos quinquenales sin los promedios móviles, y sin la tasa de la edad 90 que se agrega después, pero se sustituye el valor de 0 por el menor de los valores
+
+
+```{r}
+##Con el default de loewss
+
+data2H <- data2[data2$sexo=="H" & data2$edades<90,]
+data2M <- data2[data2$sexo=="M" & data2$edades<90,]
+mod.loess.H <- loess(data=data2H,tasas ~ edades)
+mod.loess.M <- loess(data=data2M,tasas ~ edades)
+
+```
+
+
+```{r}
+tasa6Ha <- c(predict(mod.loess.H),tasa2H[91])
+tasa6Ma <- c(predict(mod.loess.M),tasa2M[91])
+
+
+data6a <- data.frame(edades=c(0:90,0:90),tasas=c(tasa6Ha,tasa6Ma),sexo=c(rep("H",91),rep("M",91)))
+
+a6a=ggplot(data=data6a,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+coord_cartesian(ylim = c(0.0000001, 1))
+
+b6a=ggplot(data=data6a,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+scale_y_log10()+coord_cartesian(ylim = c(0.0000001, 1))
+
+ggarrange(a6a,b6a,align="v")
+
+```
+
+Nótese que por los ceros y por las diferencias en las tasas, el algoritmo del loess no logra estimar los valores para las edades jóvenes.
+
+Se recomienda entonces:
+a) Transformar a logaritmo
+b) Sustituir el valor NA por el valor mínimo en logaritmo
+c) Aplicar el loess a los logaritmos.
+d) Transformar de vuelta a las tasas
+
+Ahora el loess con un grado mayor de suavizamiento y los datos con promedios móviles
+
+
+```{r}
+
+min.logmx.H <- min(log(tasa2H[tasa2H>0])) #Se obtiene el mínimo para cada sexo 
+min.logmx.M <- min(log(tasa2M[tasa2M>0]))
+
+logtasa6Hb <- ifelse(tasa2H==0,min.logmx.H,log(tasa2H)) #Para aquellos valores que son cero se reemplazan por el mínimo
+logtasa6Mb <- ifelse(tasa2M==0,min.logmx.M,log(tasa2M))
+
+
+data6Hb <- data.frame(edades=(0:89),logtasa=logtasa6Hb[-91]) #Se crea un df, con las edades y la tasa solo que son la de 91 años
+data6Mb <- data.frame(edades=(0:89),logtasa=logtasa6Mb[-91])
+
+##Con el default de loewss
+mod.loess.H <- loess(data=data6Hb,logtasa ~ edades)
+mod.loess.M <- loess(data=data6Mb,logtasa ~ edades)
+
+
+
+
+tasa6Hb <- c(exp(predict(mod.loess.H)),tasa2H[91])
+tasa6Mb <- c(exp(predict(mod.loess.M)),tasa2M[91])
+
+
+data6b <- data.frame(edades=c(0:90,0:90),tasas=c(tasa6Hb,tasa6Mb),sexo=c(rep("H",91),rep("M",91)))
+
+a6b=ggplot(data=data6b,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+coord_cartesian(ylim = c(0.0000001, 1))
+
+b6b=ggplot(data=data6b,aes(y=tasas,x=edades,color=sexo))+
+  geom_line()+scale_y_log10()+coord_cartesian(ylim = c(0.0000001, 1))
+
+ggarrange(a6b,b6b,align="v")
+
+```
+Note que con la transformación logarítmica se obtiene una mejor curva, pero disminuye demasiado la tasa para las edades 0 y 1.
+
+
+Por último, una técnica que no es exactamente suavizamiento, pero sí elimina el ruido blanco, sobre todo en informes oficiales es usar grupos quinquenales de edad.  Se ilustra este caso con las defunciones del período 2015-2019.
+
+
+```{r}
+
+
+data7.preliminar <- data.frame(edad=c(0:90,0:90),
+                                defunciones=c(def2H,def2M),
+                                pob=c(pobGuana17$Hombres,pobGuana17$Mujeres),
+                                sexo=c(rep("H",91),rep("M",91)))
+
+data7.preliminar$edadq <- 5*trunc(data7.preliminar$edad/5)+2 # trunc es lo mismo que la función entero en r en este caso
+
+data7 <- data7.preliminar %>%
+  group_by(edadq,sexo) %>%
+  summarise(
+    tasas = sum(defunciones)/sum(pob))
+```
+Se cambia la edad de cada grupo de edad a la edad central sumándole 2 años.  Por ejemplo, el valor 10 corresponde al grupo de 10 a 14 años, por lo que se le asigna el valor 12=10+2.
+
+Y se hace el gráfico
+
+```{r}
+a7=ggplot(data=data7,aes(y=tasas,x=edadq,color=sexo))+
+  geom_line()+coord_cartesian(ylim = c(0.0000001, 1))
+
+b7=ggplot(data=data7,aes(y=tasas,x=edadq,color=sexo))+
+  geom_line()+scale_y_log10()+coord_cartesian(ylim = c(0.0000001, 1))
+
+ggarrange(a7,b7,align="v")
+
+```
+
+
+Se hace ahora una sola matriz de datos con todos los gráficos en escala semilogarítmica.
+
+
+```{r}
+
+
+b1 <- b1+ggtitle("Edades simples 2017")
+b2 <- b2+ggtitle("Ed simples 2015-2019")
+b3 <- b3+ggtitle("Prom móviles")
+b4 <- b4+ggtitle("Logito de Brass")
+b5 <- b5+ggtitle("Gompertz")
+b6a <- b6a+ggtitle("Loess sin log")
+b6b <- b6b+ggtitle("Loess con log")
+b7 <- b7+ggtitle("Ed quinquenales")
+ggarrange(b1,b2,b3,b4,b5,b6a,b6b,b7,ncol=2,nrow=4)
+```
+

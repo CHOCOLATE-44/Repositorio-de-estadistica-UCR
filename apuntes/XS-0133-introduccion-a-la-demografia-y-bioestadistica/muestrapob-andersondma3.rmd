@@ -1,0 +1,78 @@
+---
+title: "Untitled"
+output: html_document
+date: "2026-03-22"
+---
+```{r}
+setwd("~/V ciclo statistics/Demografía")
+base = read.csv("muestrapob.csv")
+library(dplyr)
+library(lubridate)
+```
+
+1.	Calcule cuántas defunciones hubo en 2015
+
+```{r}
+base_def = base %>% 
+  filter(anyodefun == 2015 & murio == 1) %>% 
+  summarise(numero_muertes= n()) 
+
+base_def
+```
+
+2. calcule la población al 1 de julio de 2015.  Con estos dos datos, calcule la Tasa Bruta de Mortalidad.
+
+```{r}
+def_julio <- base %>% 
+  filter(anyodefun == 2015 & mesdefun < 7 | is.na(anyodefun)) %>% 
+  summarise(muertes_julio = sum(murio == 1))
+
+Poblacion_julio = 13996-41
+tbm= base_def$numero_muertes/Poblacion_julio*1000
+
+print(def_julio)
+print(paste("La tasa bruta de mortalidad es", round(tbm,3)))
+
+
+```
+
+
+3. Con los mismos datos, tome a la población al 1 de enero de 2015, y calcule cuántos años/persona de vida contribuyeron durate ese año.
+
+
+
+```{r}
+base_enero2015 <- base %>% 
+  filter(anyodefun >= 2015  | is.na(anyodefun)) %>% # Se filtran los datos para enero del 2015
+    mutate(
+    # Se crea la fecha de defunción
+    fecha_muerte = make_date(year = anyodefun, month = mesdefun, day = diadefun),
+    
+    # Fecha de referencia
+    inicio_anio = ymd("2015-01-01"),
+    
+    # Cálculo con ifelse
+    tiempo_vivido = ifelse(!is.na(anyodefun) & anyodefun == 2015,
+                           as.numeric(fecha_def - inicio + 1) / 365,
+                           1)
+  )
+```
+
+
+4.Sume esos años/persona vididos, y use ese valor como denominador para calcular nuevamente la Tasa Bruta de Mortalidad.
+
+```{r}
+# Cálculo de la Tasa Bruta de Mortalidad (TBM)
+total_muertes <- sum(c(base_enero2015$murio == 1 & base_enero2015$anyodefun == 2015), na.rm = TRUE)
+total_anos_persona <- sum(base_enero2015$tiempo_vivido, na.rm = TRUE)
+
+tbm_exacta <- (total_muertes / total_anos_persona) * 1000
+
+print(paste("Años-persona totales:", round(total_anos_persona, 2)))
+print(paste("TBM Exacta:", round(tbm_exacta, 5)))
+```
+
+
+
+
+

@@ -1,0 +1,239 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r}
+library(purrr)
+library(readxl)
+library(tidyverse)
+setwd("~/V ciclo statistics/Demografía/lab_piramides")
+```
+
+
+```{r}
+hojas <- excel_sheets("Laboratorio piramides de población.xlsx") #Recolectamos el nombre de las hojas del excel
+
+df_final <- hojas[2:5] %>% 
+  set_names() %>% 
+  map_df(~read_excel("Laboratorio piramides de población.xlsx", sheet = .x), .id = "Anio")
+```
+
+
+```{r}
+df_final <- df_final %>%
+  # 1. Pasamos las columnas de sexo a una sola
+  pivot_longer(
+    cols = c(Masculino, Femenino), 
+    names_to = "Sexo", 
+    values_to = "Poblacion"
+  )
+```
+
+
+
+```{r}
+# Creación de las piramides
+ggplot(df_final, aes(x = Edadsimple, y = Poblacion, fill = Sexo)) +
+  geom_bar(stat = "identity", width = 1) + #Gráfico de barras 
+  coord_flip() + #Se colocan en posición horizontal las barras
+  
+  
+  facet_wrap(~Anio, ncol = 2) + #Creamos la matriz de los gráficos por año
+  
+  # Limpiamos el eje Y (que ahora es el X por coord_flip)
+  scale_y_continuous(labels = abs) + 
+  
+  # Colores  (Azul cielo y Coral)
+  scale_fill_manual(values = c("Masculino" = "skyblue", "Femenino" = "coral")) +
+  
+  labs(
+    title = "Evolución de la Estructura Poblacional: Costa Rica",
+    subtitle = "Comparativa de los Censos 1973, 1984, 2000 y 2011",
+    x = "Edad",
+    y = "Población",
+    fill = "Sexo"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold", size = 12) # Estilo de los títulos de cada cuadro
+  )
+```
+# Razones de dependencia
+
+```{r}
+base = read_excel("datos_finales.xlsx", sheet = 1)
+head(base)
+```
+
+**Razón de Dependencia Total**
+
+$$RD = \frac{N_{0-14}+N_{65+}}{N_{15-64}}\cdot100$$
+
+*Código en r*
+
+```{r}
+p_0_14   = sum(base$Poblacion_H[base$Edad <= 14] + base$Poblacion_M[base$Edad <= 14])
+p_65_mas = sum(base$Poblacion_H[base$Edad >= 65] + base$Poblacion_M[base$Edad >= 65])
+p_15_64  = sum(base$Poblacion_H[base$Edad >= 15 & base$Edad <= 64] + base$Poblacion_M[base$Edad >= 15 & base$Edad <= 64])
+Dep_Total = ((p_0_14 + p_65_mas) / p_15_64) * 100
+```
+
+
+
+
+**Razón de Dependencia Joven**
+
+$$RDJ = \frac{N_{0-14}}{N_{15-64}}\cdot100$$
+*Código en r*
+
+```{r}
+Dep_Joven = (p_0_14 / p_15_64) * 100
+```
+
+**Razón de Dependencia Mayor**
+
+$$RDM = \frac{N_{65+}}{N_{15-64}}\cdot100$$
+*Código en r*
+
+```{r}
+Dep_Mayor = (p_65_mas / p_15_64) * 100
+```
+
+
+**Razón de Envejecimiento**
+
+$$RE = \frac{N_{65+}}{N_{0-14}}\cdot100$$
+
+
+*Código en r*
+
+```{r}
+Enjevece = (p_65_mas / p_0_14) * 100
+```
+
+**Razón de dependencia Niño Mujer**
+
+$$RE = \frac{N_{0-4}}{N_{15-49}}\cdot100$$
+```{r}
+ninos_0_4 = sum(base$Poblacion_H[base$Edad <= 4] + base$Poblacion_M[base$Edad <= 4])
+mujeres_15_49  = sum(base$Poblacion_M[base$Edad >= 15 & base$Edad <= 49])
+```
+
+
+Basado en lo anterior se hacen estos mismos cálculos para el data frame y hacer el gráfico
+
+```{r}
+# 1. Calculamos las razones demográficas por año
+razones_finales <- base %>%
+  group_by(Anio) %>%
+  summarise(
+    # Población por grandes grupos funcionales
+    p_0_14   = sum(Poblacion_H[Edad <= 14] + Poblacion_M[Edad <= 14]),
+    p_15_64  = sum(Poblacion_H[Edad >= 15 & Edad <= 64] + Poblacion_M[Edad >= 15 & Edad <= 64]),
+    p_65_mas = sum(Poblacion_H[Edad >= 65] + Poblacion_M[Edad >= 65]),
+    
+    # Específicos para Razón Niño/Mujer (d)
+    ninos_0_4      = sum(Poblacion_H[Edad <= 4] + Poblacion_M[Edad <= 4]),
+    mujeres_15_49  = sum(Poblacion_M[Edad >= 15 & Edad <= 49])
+  ) %>%
+  mutate(
+    # (a) Razón de Dependencia Total
+    Dep_Total = ((p_0_14 + p_65_mas) / p_15_64) * 100,
+    
+    # (b) Razón de Dependencia Joven
+    Dep_Joven = (p_0_14 / p_15_64) * 100,
+    
+    # (c) Razón de Dependencia Mayor
+    Dep_Mayor = (p_65_mas / p_15_64) * 100,
+    
+    # (d) Razón den Envejecimiento
+    Envejece = (p_65_mas / p_0_14) * 100,
+    
+    # (e) Razón Niño/Mujer
+    Nino_Mujer = (ninos_0_4 / mujeres_15_49) * 100
+  )
+
+```
+
+```{r}
+ggplot(razones_finales, aes(x = Anio)) +
+  geom_line(aes(y = Dep_Joven, color = "Dependencia Joven"), size = 1) +
+  geom_line(aes(y = Dep_Mayor, color = "Dependencia Mayor"), size = 1) +
+  geom_line(aes(y = Dep_Total, color = "Dependencia Total"), size = 1) +
+  geom_line(aes(y = Envejece, color = "Envejecimiento"), size = 1)+
+  geom_line(aes(y = Nino_Mujer, color = "Niño/ Mujer"), size = 1)+
+  scale_color_manual(values = c("Dependencia Joven" = "steelblue", "Dependencia Mayor" = "firebrick", "Dependencia Total" = "black","Envejecimiento" = "gray" ,"Niño/ Mujer" = "pink2" )) +
+  labs(title = "Costa Rica: Transición de la Dependencia (1950-2025)",
+       y = "Razón (por cada 100 personas en edad de trabajar)",
+       x = "Año",
+       color = "Indicador") +
+  theme_minimal()
+```
+
+
+
+
+```{r}
+edades_medias = read_excel("datos_finales.xlsx", sheet = 2)
+head(edades_medias)
+```
+
+```{r}
+edades_medias = edades_medias %>% 
+  pivot_longer(
+    cols = -Año, 
+    names_to = "Anio", 
+    values_to = "Valor"
+  ) %>%
+  # PASO 2: "Ensanchamos" solo Hombres y Mujeres para que sean columnas
+  pivot_wider(
+    names_from = Año, 
+    values_from = Valor
+  )
+
+```
+
+# Cálculo de edad promedio y unión con los datos de la edad media
+
+```{r}
+# Tabla A: Promedios
+tabla_promedio <- base %>%
+  group_by(Anio) %>%
+  summarise(promedio =sum(Edad * Poblacion_Total) / sum(Poblacion_Total))  %>%
+  mutate(Anio = as.numeric(Anio)) # Aseguramos que sea número
+
+# Tabla B: Medianas (o lo que tengas en la otra base)
+# Supongamos que se llama 'base_mediana'
+tabla_mediana <- edades_medias %>%
+  select(Anio, mediana = Total) %>% # Renombramos 'Total' a 'mediana' de una vez
+  mutate(Anio = as.numeric(Anio))
+
+edades_final <- tabla_promedio %>%
+  left_join(tabla_mediana, by = "Anio")
+```
+
+
+```{r}
+ggplot(edades_final, aes(x = Anio)) +
+  # Línea para el promedio
+  geom_line(aes(y = promedio, color = "Edad Promedio"), linewidth = 1.2) +
+  # Línea para la mediana
+  geom_line(aes(y = mediana, color = "Edad Mediana"), linewidth = 1.2, linetype = "dashed") +
+  scale_color_manual(values = c("Edad Promedio" = "darkblue", "Edad Mediana" = "orange")) +
+  labs(
+    title = "Costa Rica: Evolución del Envejecimiento (1950-2025)",
+    subtitle = "Tendencia central de la estructura por edad",
+    x = "Año",
+    y = "Edad (años)",
+    color = "Indicador"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+
+
