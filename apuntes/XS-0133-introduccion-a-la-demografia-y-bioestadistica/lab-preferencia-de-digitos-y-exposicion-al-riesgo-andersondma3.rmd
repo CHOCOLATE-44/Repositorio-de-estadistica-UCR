@@ -1,0 +1,76 @@
+---
+title: "Untitled"
+output: html_document
+date: "2026-03-20"
+---
+
+```{r}
+setwd("~/V ciclo statistics/Demografía")
+library(readxl)
+base = read_excel("datos1984_2011.xlsx")
+```
+
+
+```{r}
+library(dplyr)
+
+indice_whipple <-  base %>% 
+  filter(Edadsimple >= 23 & Edadsimple <= 62) %>%
+  group_by(Año) %>% # Agrupamos por año 
+  summarise(
+    # Numerador: Suma de poblaciones en edades terminadas en 0 o 5
+    sum_0_5 = 5*sum(Total[Edadsimple %in% seq(25, 60, by = 5)]), #De cada edad que este en la columna suma cada secuencia de 5
+    
+    # Denominador: Población total del rango
+    p_total_rango = sum(Total),
+    
+    # Cálculo final
+    Whipple = (sum_0_5 / (p_total_rango)) * 100
+  )
+```
+
+
+```{r}
+print(indice_whipple)
+```
+
+```{r}
+library(tidyverse)
+
+# Rango de edades: 10 a 79
+rango_myers <- base %>%
+  filter(Edadsimple >= 10 & Edadsimple <= 79) %>%
+  mutate(Digito = Edadsimple %% 10) # Extrae el último dígito de la edad
+
+# 1. Calculamos la población por dígito en dos bloques
+# Bloque A: Edades 10 o más | Bloque B: Edades 20 o más
+myers_calculo <- rango_myers %>%
+  group_by(Año, Digito) %>%
+  summarise(
+    v_j = sum(Total[Edadsimple >= 10]),
+    v_jprima = sum(Total[Edadsimple >= 20 ])
+  ) %>%
+  mutate(
+    # 2. Aplicamos los Pesos de Myers
+    j_mas_uno = Digito + 1,
+    diez_menos_j = 10 - Digito,
+    # 3. Población "Mezclada" (Blended Population)
+    m_j = (v_j * j_mas_uno) + (v_jprima * diez_menos_j)
+  )
+
+# 4. Cálculo del Índice Final por Año
+indice_myers_final <- myers_calculo %>%
+  group_by(Año) %>%
+  mutate(
+    Suma_Total_Mezclada = sum(m_j),
+    Porcentaje_Real = abs((m_j / Suma_Total_Mezclada)-0.1)) %>% summarise(indice = sum(Porcentaje_Real)*100)
+```
+
+
+
+```{r}
+print(indice_myers_final)
+```
+
+
+

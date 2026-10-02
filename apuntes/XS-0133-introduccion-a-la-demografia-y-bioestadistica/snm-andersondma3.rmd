@@ -1,0 +1,142 @@
+
+
+
+```{r}
+# Cargar librerías
+library(flextable)
+library(magrittr)
+
+# Crear el data frame
+datos <- data.frame(
+  Sexo = c("Hombre", "Mujer", "Total"),
+  Censo_2000 = c(1909614, 1907565, 3817179),
+  Nacimientos = c(413603, 394397, 808000),
+  Defunciones = c(104828, 78111, 182939),
+  Censo_2011 = c(2106063, 2195649, 4301712)
+)
+```
+
+
+
+```{r}
+tabla <- flextable(datos) %>%
+  # Cambiar nombres de columnas para que se vean bien
+  set_header_labels(
+    Censo_2000 = "Censo 2000",
+    Censo_2011 = "Censo 2011"
+  ) %>%
+  # Formato de números con separador de miles
+  colformat_double(big.mark = " ", digits = 0) %>%
+  colformat_int(big.mark = " ") %>%
+  # Estética general
+  theme_booktabs() %>% 
+  autofit() %>%
+  # Resaltar la fila de Total
+  bold(i = ~ Sexo == "Total", bold = TRUE) %>%
+  # Centrar contenido
+  align(align = "center", part = "all") %>%
+  align(j = 1, align = "left", part = "all")
+
+# Mostrar la tabla
+tabla
+```
+
+*Notas:* La población para el Censo 2000 se tomó el 8 de junio del 2000, mientras que la del 2011 se tomó al 30 de mayo del 2011.
+
+**Ejercicio**
+
+Cálcule el Saldo Neto Migratorio para los hombres y las mujeres al primero de enero del año 2000 y 2011, utlizando el modelo de crecimiento Geométrico.
+
+*A continuación se le presentan las fórmulas para el modelo de crecimiento Geométrico*
+
+$$N_t = N_{pivote} (1 + r_g)^{t^\prime}$$
+
+$$r_g = \frac{N_F}{N_0}^{1/t}-1$$
+
+Se calcula el $t$ tiempo transcurrido entre el momento inicial y final 
+
+*Se le recuerda la forma manual*
+
+$$t = A_{Final}-A_{Inicial}+(M_{Final}-M_{Inicial})/12+(D_{Final}-D_{Inicial})/365.25$$
+*A continuación se le presenta la fórmula automática en r*
+
+```{r}
+library(lubridate)
+n0 = 1907565
+nf= 2195649
+f_inicial = ymd("2000/06/28")
+f_objetivo = ymd("2011/05/30")
+t = as.numeric(difftime(f_objetivo,f_inicial, units = "days")/365.25)
+t = round(t,2)
+
+```
+
+
+
+```{r}
+rg = (nf/n0)^(1/t)-1
+
+
+f_inicial2 = ymd("2011/01/01")
+f_objetivo2 = ymd("2011/05/30")
+t_prima2 = round(as.numeric(difftime(f_objetivo2,f_inicial2, units = "days")/365.25),2)
+```
+
+
+**Para el caso de los Hombres**
+
+```{r}
+rg = (nf/n0)^(1/t)-1 #cálculo de la tasa
+f_inicial1 = ymd("2000/01/01")
+f_final1 = ymd("2000/6/28")
+t_prima1 = round(as.numeric(difftime(f_inicial1, f_final1, units = "days")/365.25),2) # como en este caso la conocida es la inicial por eso se coloca de primera 
+Np_2000 = 1902614
+Np_2011 = 2106063
+N_enero_2000_h = Np_2000*(1+rg)^t_prima1
+N_enero_2000_h
+f_inicial2 = ymd("2011/01/01")
+f_final2 = ymd("2011/05/30")
+t_prima2 = round(as.numeric(difftime(f_inicial2,f_final2, units = "days")/365.25),2)
+N_enero_2011_h = Np_2011*(1+rg)^t_prima2
+N_enero_2011_h
+```
+Ya conocemos el prima entonces solo debemos aplicar lo mismo para el caso de las mujeres
+
+*MUjeres*
+
+```{r}
+Np_2000 = 1907565
+Np_2011 = 2195649
+N_enero_2000_m = Np_2000*(1+rg)^t_prima1
+N_enero_2000_m
+N_enero_2011_m = Np_2011*(1+rg)^t_prima2
+N_enero_2011_m
+```
+Con los resultados podemos calclualr el Saldo neto migratorio para los años 2000 y 2011 con la siguiente fórmula:
+
+$$SNM^{t,t+k} =N^{t+k}- N^{t} - Nac^{t,t+k} + Def^{t,t+k}$$
+
+*Hombres*
+
+```{r}
+Nac_h = 413603
+Def_h = 104828
+SNM_h = N_enero_2011_h-N_enero_2000_h-Nac_h+Def_h
+```
+
+*Mujeres*
+
+
+```{r}
+Nac_m = 394397
+Def_m = 78111
+SNM_m = N_enero_2011_m-N_enero_2000_m-Nac_m+Def_m
+```
+
+
+```{r}
+print(c("El Saldo neto migratorio, para los hombres es", as.integer(SNM_h)))
+print(c("El Saldo neto migratorio, para las mujeres es", as.integer(SNM_m)))
+
+```
+

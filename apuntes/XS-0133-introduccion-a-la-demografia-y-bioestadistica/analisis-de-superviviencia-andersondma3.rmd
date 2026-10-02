@@ -1,0 +1,294 @@
+Laboratorio de Análisis de supervivencia.
+
+Caso: Una ingeniera industrial está analizando cuántos días duran los solicitantes de créditos semilla para microempresas en completar los trámites para acceder al crédito.  El problema del análisis es que se está incluyendo dentro de la muestra a aquellos que tienen que retirarse del proceso porque se les define como inelegibles o bien que se retiran del proceso porque se cansan de los trámites.  Los datos están en credindustria.dta. 
+
+El objetivo es determinar los predictores de la tasa de logro del crédito.  Para ello, recoge la información de las siguientes variables:  
+•	id:  Identificador del cliente
+•	completo:  Variable dummy.  Es igual a 1 si el solicitante logró el crédito.  Es 0 si se le considera inelegible en alguna etapa o se retira del proceso. 
+•	tiempo:  Tiempo en días para recibir el crédito o para ser declarado inelegible o para retirarse del proceso. 
+•	edad:  Edad del solicitante.
+•	capital:  Capital solicitado en millones de colones.
+•	porcequipo: Porcentaje del crédito destinado a compra de equipo (en puntos porcentuales).
+•	tecnologico: Variable dummy: Es 1 si la microempresa está orientada a la industria tecnológica. 
+
+
+Librerias a utilizar. 
+```{r,warning=FALSE,  message=FALSE}
+library(survival)
+#install.packages("survminer")
+library(survminer)
+library(dplyr)
+#install.packages("flexsurv")
+library(flexsurv)
+#install.packages("rms")
+library(rms)
+library(stats4)
+#install.packages("survMisc")
+#library(survMisc) #este tiene un error
+#install.packages("reshape")
+library(reshape)
+library(spatstat.utils)
+#install.packages("casebase")
+library(casebase)
+```
+
+
+1. Lectura del archivo
+```{r}
+library(haven)
+setwd("~/V ciclo statistics/Demografía/lab_analisis_supervivencia")
+credindustria <- read_dta("credindustria.dta")
+head(credindustria)
+```
+
+Para el objeto tipo Surv, hay que tener la variable de tiempo, y la variable de ocurrencia del evento.
+
+
+$$S(1) = 1-\frac{1}{214}$$
+
+```{r}
+(1-(1/214)) #Esto es la primera estimación de la siguiente tabla de vida
+```
+
+
+$$S(2) = \left(1-\frac{1}{214}\right)\cdot\left(1-\frac{5}{212}\right)$$
+
+Note que hay una censura a la derecha debido a que no hay 213 y no 212
+
+```{r}
+(1-(1/214))*(1-(5/212))
+```
+
+
+
+```{r}
+so.1 <- Surv(time = credindustria$tiempo, event = credindustria$completo)
+fit1=survfit(so.1~1)
+fit1
+summary(fit1)
+# Survival es la función Kaplan Merer
+```
+
+**Interpretación:** De las 214 empresas hay una que obtiene un crédito en un día y el 0.9953 la probabilidad de seguir el proceso de solicitar el crédito.
+
+
+Intervalos simétricos:
+
+$$\hat{S}(t)=\pm \space Z_{1-\alpha/2}\cdot ee(\hat{S}(t))$$
+
+
+Intervalos asimétricos:
+
+
+$$\ln{(\hat{S}(t))}=\pm \space Z_{1-\alpha/2}\cdot ee(\ln{(\hat{S}(t))})$$
+
+```{r}
+lim_sup = 0.9719+1.96*0.01133   
+lim_inf = 0.9719-1.96*0.01133 
+ic = cbind(lim_inf,lim_sup)
+ic
+```
+
+
+
+Noten que las estimaciones de la St y de los intervalos de confianza son aproximadamente iguales, pero la función del paquete survival hace que los límites superiores que sean mayores a 1 se recodifiquen a 1.
+
+* ¿Por qué el tiempo 74 tiene 1 en n.risk?
+
+* ¿Qué tipo de modelo es el que se creó para fit1?
+
+Otra forma de ver la tabla completa con los casos censurados es hacer un cbind con los subobjetos:
+```{r}
+tab.fit1 <- summary(fit1)
+tabla.resumen <- cbind(tab.fit1$time,tab.fit1$n.risk,tab.fit1$n.censor,tab.fit1$n.event,tab.fit1$surv)
+colnames(tabla.resumen) <- c("Tiempo","En riesgo","Censuras","Eventos","KM")
+tabla.resumen
+```
+
+Cómo calcular esta tabla "a pie" o paso por paso?
+
+Se crea una variable de censura
+```{r}
+credindustria$censura <- 1-credindustria$completo
+```
+
+
+¿Qué fue lo que se hizo?
+
+Censuro/ NO censuro
+
+
+Primero hay que agrupar los datos según tiempo
+
+```{r}
+datos.ini <- credindustria %>% 
+  group_by(tiempo) %>% 
+  summarise(unidades = n(),completo=sum(completo),censura=sum(censura)) 
+```
+
+Y ahora se crea la columna de expuestos al riesgo con un cumsum inverso
+
+```{r}
+#install.packages("spatstat.utils")
+library(spatstat.utils)
+datos.ini$exp.riesgo <- revcumsum(datos.ini$unidades)
+```
+
+Se crea la columna S(t) que contiene el estimador de la probabilidad de supervivencia de Kaplan-Meier
+
+```{r}
+###Agregar la columna Y
+
+fin <- dim(datos.ini)[1]
+datos.ini$St=0
+datos.ini$Y=0
+
+for (i in 2:fin) {
+  datos.ini$Y[1] <- fin
+  datos.ini$Y[i] <- datos.ini$Y[i-1]-datos.ini$completo[i]
+  
+  
+}
+
+datos.ini
+```
+Se crea la tabla tal y como está en el documento de Word
+
+
+```{r}
+tabla1 <- cbind(datos.ini$tiempo,datos.ini$exp.riesgo,datos.ini$completo,datos.ini$censura)
+tabla1a <- rbind(c(0,datos.ini$exp.riesgo[1],0,0),tabla1)
+
+colnames(tabla1a) <- c("Tiempo","Sobrevivientes","Eventos","Censuras")
+tabla1a
+```
+Se crea ahora la columan de S(t)
+
+```{r}
+lineas <- length(datos.ini$tiempo)+1
+St <- rep(NA,lineas)
+for (i in 2:lineas){
+  St[1] <- 1-tabla1a[1,3]/tabla1a[1,2]
+  St[i] <- St[i-1]*(1-tabla1a[i,3]/tabla1a[i,2])
+}
+
+tabla1b = cbind(tabla1a,St)
+colnames(tabla1b) <- c("Tiempo","Sobrevivientes","Eventos","Censuras","St")
+tabla1b
+
+```
+
+Ahora se va a completar la tabla con los intervalos de confianza utilizando la fórmula de la Variancia del log(S(t))
+```{r}
+lineas <- length(datos.ini$tiempo)+1
+Var.log.St <- rep(NA,lineas)
+lim.inf.star <- rep(NA,lineas)
+lim.sup.star <- rep(NA,lineas)
+lim.inf <- rep(NA,lineas)
+lim.sup <- rep(NA,lineas)
+
+for (i in 2:lineas){
+  Var.log.St[1] <- 0
+  Var.log.St[i] <- Var.log.St[i-1]+(tabla1b[i,3]/(tabla1a[i,2]*(tabla1a[i,2]-tabla1b[i,3])))
+  
+  lim.inf.star[i] <- log(tabla1b[i,5])+qnorm(0.025)*sqrt(Var.log.St[i])
+  lim.sup.star[i] <- log(tabla1b[i,5])+qnorm(0.975)*sqrt(Var.log.St[i])
+  
+  lim.inf[i] <- round(exp(lim.inf.star[i]),6)
+  lim.sup[i] <- round(exp(lim.sup.star[i]),6)
+  
+}
+
+
+tabla1c <- cbind(tabla1b,sqrt(Var.log.St),lim.inf.star,lim.sup.star,lim.inf,lim.sup)
+tabla1c[,5:10] <- round(tabla1c[,5:10],6)
+
+colnames(tabla1c) <- c("Tiempo","Sobrevivientes","Eventos","Censuras","St","error.est.log",
+                       "Li.star","Ls.star","Li","Ls")
+tabla1c
+```
+
+Ahora seguimos con las funciones predefinidas de R.  
+Las funciones del paquete surv permiten graficar las curvas de sobrevivencia, junto con sus respectivas bandas de confianza.
+```{r}
+library(survival)
+library(survminer)
+ggsurvplot(fit1, data=credindustria)
+```
+Interpretación.
+
+
+
+También se pueden hacer comparaciones entre grupos con las pruebas no paramétricas.
+
+Por ejemplo, se tiene si la empresa es del sector tecnológico o no.
+
+
+H0: S(t).tecnológico = S(t).no.tecnológico
+H1: S(t).tecnológico <> S(t).no.tecnológico
+
+
+```{r}
+fit2=survfit(so.1~tecnologico, data=credindustria)
+summary(fit2)
+```
+
+Y el gráfico
+
+```{r}
+ggsurvplot(fit2, data=credindustria, pval=TRUE)
+```
+
+El gráfico hace por default la prueba de log-rank si se le pide el pvalue.
+
+
+También se puede hacer la prueba log-rank con funciones de R con la función survdiff.
+
+```{r}
+survdiff(so.1~tecnologico, data=credindustria)
+```
+¿Qué es la prueba log-Rank?
+
+
+Si se quisiera la prueba de Wilcoxon u otras más, se le agrega el tipo de peso a ggsurvplot 
+
+```{r}
+ggsurvplot(fit2, data=credindustria, pval=TRUE,log.rank.weights="n")
+```
+
+También se hace sin gráfico con la fucnión comp
+
+```{r}
+#Esto lo tengo que hacer porque algunas versiones de R no permiten utilizar el paque de "survMisc" entonces este es un método que permine utilizarlo
+#install.packages("remotes")
+#remotes::install_github("dardisco/survMisc")
+library(splines)
+#install.packages("survMisc")
+library(survMisc)
+#library(survMisc)
+survMisc::comp(ten(fit2))$tests$lrTests
+(pvalue.wilcoxon <- 2*pnorm(3.1696))
+```
+El gráfico de las curvas de supervivencia es el que se presenta en forma más común en los análisis tanto científicos como en servicios de consultoría.
+
+De mi parte, yo prefiero analizar curvas de hazards.  
+
+```{r}
+#install.packages("SmoothHazard")
+#library(SmoothHazard)
+
+#install.packages("remotes")
+#remotes::install_github("cran/SmoothHazard")
+
+mod1 <- fitSmoothHazard(completo~ns(log(tiempo),df=4)
+                        +as.factor(tecnologico), 
+                        data=credindustria,
+                        time="tiempo")
+plot(mod1,
+     hazard.params=list(xvar="tiempo",
+                        by="tecnologico",
+                        #alpha=0.05,
+                        ylab="Curva de hazards",xlab="Tiempo"))
+```
+
+Según el gráfico, la tasa de logro del crédito es mayor entre las empresas tecnológicas que entre las no tecnológicas.  O sea, concluyen antes el procedimiento. 

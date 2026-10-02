@@ -1,0 +1,80 @@
+Estimación de la ecuación logística. 
+
+
+```{r}
+library(tidyverse)
+library(ggpubr)
+library(ggplot2)
+
+year <- 2002:2010
+N <- c(1995000,2000000,2010000,2060000,2125000,2175000,2205000,2218000,2225000)
+
+data <- data.frame(cbind(year,N))
+
+
+
+ggplot(data=data, aes(x=year, y=N)) +
+  geom_line()+
+  geom_point()+labs(title="Gr 1. Tamaño de Población",x="Año",y="Población")
+```
+Comente lo que observa en el gráfico:
+
+
+
+Creación del modelo logístico
+```{r}
+logistica.ejemplo <-
+  nls(N ~ NI+NF / (1 + exp((tI -year) / phi)),
+      data = data,
+      start = list(NI=1900000,NF = 2300000, tI = 2004, phi = 1),
+      algorithm="port")
+options(scipen=999)
+summary(logistica.ejemplo)
+```
+Explique detalladamente los resultados que dan la prueba.
+¿Creen que es igual a un modelo lineal?
+
+
+```{r}
+data2 <- data.frame(cbind(Year=c(year,year),
+                          Pop=c(N,predict(logistica.ejemplo))))
+
+data2 <- data2%>%mutate(grupos=c(rep("Observados",9),rep("Ajustados",9)))
+                    
+
+
+g1 <- ggplot(data=data2, aes(x=Year, y=Pop,group=grupos)) +
+  geom_line(aes(colour = grupos))+
+  geom_point()+labs(title="Gr 1. Tamaño de Población",x="Año",y="Población")+
+  ylim(1950000,2250000)+
+  theme(legend.position = "left")
+
+g1
+
+Predicciones <- data.frame(cbind(year=c(2011,2012,2013,2014,2015,2016),predichos=predict(logistica.ejemplo,newdata=data.frame(year=c(2011,2012,2013,2014,2015,2016)))))
+
+g2 <- ggplot(data=Predicciones, aes(x=year, y=predichos)) +
+  geom_line()+
+  geom_point()+labs(title="Gr 2. Proyección",x="Año",y="Población")+
+  ylim(1950000,2250000)  
+  
+
+g2
+
+
+ggarrange(g1,g2)
+ ```
+```
+
+
+```{r}
+pob_2000_muj = 1907565
+nac_muj = 394397
+def_muj = 78111
+pob_2011 = 2195649
+```
+
+
+Cálculo el SNM
+
+
