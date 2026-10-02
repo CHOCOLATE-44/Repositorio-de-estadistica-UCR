@@ -30,8 +30,9 @@ class PruebasEstadoIA(unittest.TestCase):
         config = cargar_config()
         modelo = config["validacion"]["gemini_modelo"]
         limite = config["ia"]["limites_diarios"][modelo]
-        e = estado_ia.combinar({}, {modelo: limite}, set(), datetime(2026, 10, 2, 15, tzinfo=timezone.utc))
-        texto = estado_ia.cuerpo(e, config)
+        t = datetime(2026, 10, 2, 15, tzinfo=timezone.utc)
+        e = estado_ia.combinar({}, {modelo: limite}, set(), t)
+        texto = estado_ia.cuerpo(e, config, t)
         self.assertIn(f"{limite} de {limite}", texto)
         self.assertIn("🟡", texto)
         self.assertIn("01:00", texto)  # hora de Costa Rica
