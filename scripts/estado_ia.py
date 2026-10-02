@@ -64,7 +64,19 @@ def combinar(estado: dict, consultas: dict[str, int], agotados: set[str], ahora:
     return estado
 
 
-def cuerpo(estado: dict, config: dict) -> str:
+def activo(config: dict, ahora: datetime | None = None) -> bool:
+    """El conteo se muestra desde un reinicio de la cuota, para que empiece en cero igual que Google."""
+    desde = config.get("ia", {}).get("mostrar_desde")
+    return not desde or (ahora or datetime.now(timezone.utc)) >= datetime.fromisoformat(desde)
+
+
+def cuerpo(estado: dict, config: dict, ahora: datetime | None = None) -> str:
+    if not activo(config, ahora):
+        inicio = datetime.fromisoformat(config["ia"]["mostrar_desde"]).astimezone(COSTA_RICA)
+        return (f"Este issue lo actualiza un robot: **no lo cierre ni lo edite**.\n\n"
+                f"El conteo de uso de la IA empieza el **{inicio.strftime('%d/%m a las %H:%M')}** (hora de Costa Rica), "
+                "cuando se reinicia la cuota de Google, para que empiece en cero.\n"
+                f"<!-- estado-ia {json.dumps(estado, ensure_ascii=False)} -->\n")
     limites = config.get("ia", {}).get("limites_diarios", {})
     reinicio = datetime.fromisoformat(estado["reinicio"]).astimezone(COSTA_RICA)
     filas = []
