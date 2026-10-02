@@ -38,8 +38,8 @@ docs/                       ← decisiones de diseño y guía del mantenedor
 ```
 
 ## Cursos incluidos
-Todos los cursos propios del plan 02 (XS), las matemáticas del plan (MA-0155, MA-1004, MA-1023)
-e Inglés para Estadística (LM-3039 a LM-3042). No se incluyen Precálculo, cursos de formación
+Todos los cursos propios del plan 02 (XS), las matemáticas del plan (MA-0001 Precálculo, MA-0155,
+MA-1004, MA-1023) e Inglés para Estadística (LM-3039 a LM-3042). No se incluyen cursos de formación
 general (humanidades, arte, deporte, repertorio, seminarios de realidad nacional) ni optativos.
 
 ## Cómo funciona por dentro
