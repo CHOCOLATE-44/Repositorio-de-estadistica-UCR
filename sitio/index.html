@@ -21,6 +21,16 @@
   </header>
 
   <main class="contenedor">
+    <aside id="estado-ia" class="estado-ia" hidden>
+      <div class="estado-cabeza">
+        <strong>🤖 Estado de la IA</strong>
+        <span id="estado-reinicio"></span>
+      </div>
+      <ul id="estado-usos"></ul>
+      <p class="nota">Cada apunte, voto y pregunta gasta una consulta del límite gratuito diario. Si queda poco y va a
+        subir muchos archivos, espere al reinicio. <a id="estado-enlace" target="_blank" rel="noopener">Ver detalle</a></p>
+    </aside>
+
     <section class="filtros" aria-label="Filtros">
       <label class="ancho">Buscar o preguntar
         <input type="search" id="f-texto" placeholder="Ej.: «el mejor apunte de regresión» o «DOE con más de 4 estrellas»">

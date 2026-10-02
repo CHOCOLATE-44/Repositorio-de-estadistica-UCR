@@ -1,0 +1,26 @@
+name: Estado de la IA
+
+# Vuelve a dibujar el issue «🤖 Estado de la IA»: así, al reiniciarse la cuota
+# (medianoche del Pacífico), el conteo vuelve a cero aunque nadie use la IA.
+# No consulta a Gemini, así que no gasta cuota.
+on:
+  schedule:
+    - cron: "5 * * * *"   # cada hora
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  estado:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/estado_ia.py

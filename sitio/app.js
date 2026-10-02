@@ -215,6 +215,42 @@
     });
   }
 
+  // Uso diario de Gemini: lo lleva el robot en el issue con etiqueta «estado-ia».
+  async function pintarEstadoIA() {
+    try {
+      const r = await fetch(`https://api.github.com/repos/${datos.repositorio}/issues?labels=estado-ia&state=open&per_page=1`);
+      const [issue] = await r.json();
+      const m = issue && /<!-- estado-ia (\{[\s\S]*?\}) -->/.exec(issue.body || "");
+      if (!m) return;
+      const estado = JSON.parse(m[1]);
+      const limites = datos.ia?.limites_diarios || {};
+      const reinicio = new Date(estado.reinicio);
+      const nuevoDia = Date.now() >= reinicio;  // ya se reinició y el robot aún no lo anotó
+      const ul = $("#estado-usos");
+      for (const [modelo, uso] of datos.ia?.usos || []) {
+        const n = nuevoDia ? 0 : estado.consultas[modelo] || 0;
+        const lim = limites[modelo];
+        const agotado = !nuevoDia && estado.agotados.includes(modelo);
+        const li = document.createElement("li");
+        const pct = lim ? Math.min(100, Math.round((100 * n) / lim)) : 0;
+        li.className = agotado || pct >= 100 ? "rojo" : pct >= 80 ? "amarillo" : "verde";
+        const t = document.createElement("span");
+        t.textContent = `${uso}: ${agotado ? "agotada" : lim ? `${n} de ${lim}` : `${n} hoy`}`;
+        const barra = document.createElement("span");
+        barra.className = "barra";
+        barra.append(Object.assign(document.createElement("span"), { style: `width:${agotado ? 100 : pct}%` }));
+        li.append(t, barra);
+        ul.append(li);
+      }
+      const horas = Math.max(0, (reinicio - Date.now()) / 36e5);
+      const hora = reinicio.toLocaleTimeString("es-CR", { hour: "numeric", minute: "2-digit" });
+      $("#estado-reinicio").textContent = nuevoDia ? "Recién reiniciada" :
+        `Se reinicia a las ${hora} (en ${horas >= 1 ? `${Math.floor(horas)} h` : `${Math.ceil(horas * 60)} min`})`;
+      $("#estado-enlace").href = issue.html_url;
+      $("#estado-ia").hidden = false;
+    } catch (e) { /* sin conexión a la API de GitHub: no se muestra */ }
+  }
+
   async function iniciar() {
     try {
       const r = await fetch("data/puntuaciones.json", { cache: "no-cache" });
@@ -239,6 +275,7 @@
     for (const el of Object.values(f)) el.addEventListener("input", pintar);
     pintar();
     pintarContribuyentes();
+    pintarEstadoIA();
   }
   iniciar();
 })();
