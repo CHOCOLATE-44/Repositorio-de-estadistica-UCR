@@ -1,0 +1,540 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: console
+---
+
+\section{MODELOS PARA CONTEOS}
+
+En este laboratorio se presenta un ejercicio llamado **Moscas** donde la variable respuesta es un conteo, por lo tanto, sirve para ilustrar el uso de modelos especiales para este tipo de respuestas. Aunque se trata de un diseño experimental con bloques, en un primer análisis se ignora la estructura de bloques con el fin de ilustrar qué se debe hacer cuando existe sobredispersión, para lo cual se hace uso de dos distribuciones: 1) una variante de la distribución Poisson que se va a llamar quasi-Poisson, y 2) la distribución binomial negativa.  Al incorporar los bloques la sobredispersión desaparece y se puede analizar usando la distribución Poisson que asume que la variancia condicional es igual a la media condicional.  
+
+Se utiliza la librería `AER` (Kleiber & Zeileis, 2008) para verificar el supuesto de equidispersión.  Para la estimación de los parámetros se usa la función `glm` cuando se trata de la distribución Poisson o quassi-Poisson, y la función `glm.nb` de la librería `MASS` (Venables & Ripley, 2002) para la binomial negativa.
+
+\subsection*{Moscas}
+
+En un experimento diseñado para ver el tipo de aditivo que se puede poner en una trampa para moscas, se probaron 4 tratamientos: miel, sirope, leche y vinagre.
+
+En diferentes lugares donde había una población importante de moscas se colocaron 4 trampas en cada lugar, una con cada aditivo y se contó el número de moscas atrapadas en cada trampa. 
+
+El experimento se repitió durante varios días. Se usaron dos lugares y se repitió durante 4 días, por lo que se tienen 32 observaciones de los conteos para las 4 trampas.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Ejercicios}
+
+1. Lea los datos del archivo `moscas.Rdata`. Se han creado dos variables por conveniencia para el factor del tipo de aditivo que se pone en las trampas, una es numérica llamada `trat` y la otra es factor llamada `trat1` que además tiene los nombres de cada nivel del factor (tratamientos). 
+
++ Haga el gráfico adecuado para comparar los conteos de moscas por tratamiento.  Observe el comportamiento de las medias y de las variancias y compárelas entre tratamientos.
+
+```{r}
+setwd("~/V ciclo statistics/Avanzados/modelos para conteos")
+
+
+load("moscas.Rdata")
+attach(base)
+library(ggplot2)
+qplot(trat1,conteo,geom="boxplot",ylab="conteo",xlab="tratamiento")
+```
+
+
+
+
+$$\log(\lambda_x) = \beta_0+\beta_1X$$
+donde:
+
++ $\lambda_x=E[X|Y]$
+
+
++ $E[Y|X] = Var[Y|X]$ y $Y|X\sim P(\lambda_x)$
+
+
+*En un modelo binomial tenemos esto*
+
+
+$$\frac{odds_{x+1}}{odds_x}=\frac{\frac{\pi_{x+1}}{1-\pi_{x+1}}}{\frac{\pi_{x}}{1-\pi_{x}}}=2$$
+
+
+*En un modelo Poisson*
+
+
+Al aumentar x en una unidad, la propensión es 2 veces mayor o la propensión de daño es el doble al aumentar la x una unidad.
+
+$$\frac{\lambda_{x+1}}{\lambda_x}=2$$
+
+
+
+*Al aumentar x en una unidad, el promedio es 2 veces mayor*.También puede ser *el promedio de x+1 es el doble de x* y por último, *cuando x aumenta uan unidad, el promedio se duplica*.
+
+En este tipo de modelo no tiene sentido probar el supuesto de homocedasticidad, debido a que la media es igual a la varianza. Debido a que este modelo se distribuye como una Poisson, no se necesita el supuesto de normalidad. El único supuesto a tomar en cuenta puede ser la multicolinealidad, pero este depende de la cantidad de factores.
+
+
+
++	Justifique por qué en este caso se trata de una distribución de Poisson. 
+
+**En este caso se cuenta el número de moscas en un momento y lugar específico bajo un cierto tratamiento. Este número teóricamente puede ir de cero a infinito, siendo en general los conteos obtenidos números no muy grandes, por lo que la distribución es genuinamente Poisson y no convendría aproximarla a la normal por el hecho de no tener conteos muy grandes.**
+
+2.	Utilice un primer modelo de Poisson para el conteo de moscas en función del tipo de aditivo. 
+
++ Escriba el modelo que se está proponiendo usando el modelo de suma nula, por lo que debe escribir la restricción del modelo. 
+
+**El modelo es:**
+
+$$\log(\lambda_j)=\beta_0+\tau_j$$
+
+
+**Se establece la restricción:**
+
+
+$$\tau_1+\tau_2+\tau_3+\tau_4 =0$$
+
++ Estime los coeficientes del modelo. Debe usar `family=poisson` en la función `glm`. Observe con `contrasts` cuál es el tratamiento que se está usando como referencia y compruébelo con la matriz de estructura.
+
+```{r}
+options(contrasts=c("contr.sum","contr.poly"))
+mod1=glm(conteo~trat1,family=poisson,data=base)
+```
+
+
+```{r}
+contrasts(trat1)
+```
+
+
+```{r}
+data.frame(model.matrix(mod1),trat1)[1:12,]
+```
+
+**Se puede observar que vinagre es lareferencia, 1:miel, 2:sirope, 3:leche.Es tose comprueba en la matriz de estrucura porque en todas las columnas se le asignó 1 a los datos que son de vinagre.**
+
++ Obtenga las estimaciones de los coeficientes.  
+
+```{r}
+d=mod1$coef
+d1=c(d,-sum(d[2:4]))
+round(d1,2)
+```
+
+
+3.	Calcule manualmente los valores ajustados para cada tratamiento. ¿Qué representan estos valores?
+
+$$\text{Si} \log(\lambda_j)=\beta_0+\tau_j\implies\lambda_j = e^{\beta_0+\tau_j}$$
+
+
+```{r}
+d2=d1[-1]
+lambda=exp(d[1]+d2)
+names(lambda)=levels(trat1)
+round(lambda,2)
+```
+
+**Estas cantidades representan el número promedio de mosquitos estimado que se pueden atrapar con cada trampa en orden:miel, sirope, leche y vinagre.**
+
+
+En este tipo de modelo tenemos un supuesto muy importante:
+
+$$\lambda_j=\sigma_j$$
+
+$$E[Y|j]= V[Y|j]$$
+
++ Calcule las medias de la respuesta en cada tratamiento. Compare estos resultados con los promedios estimados con el modelo.
+
+```{r}
+tapply(conteo,trat1,mean)
+```
+
+**Las medias estimadas por el modelo son idénticas a las medias observadas por tratamiento. Esto se debe a que se trata de un modelo saturado.**
+
++ Obtenga los valores ajustados con la función `predict` usando `type=”response”`.
+
+
+```{r}
+fit=predict(mod1,type="response")
+unique(predict(mod1,type="response"))
+tapply(fit,trat1,mean)
+```
+
+
+4.	Obtenga los residuales con la función `residuals` usando `type=”response”`.
+
+```{r}
+r=residuals(mod1,type="response") # El type response, es una predicción de la media del modelo
+```
+
+
++	Grafique los residuales al cuadrado contra los valores ajustados. Puede poner ambos en logaritmo para visualizar mejor. Agregue la función identidad para ver qué tanto se parecen las medias y las variancias estimadas.
+
+```{r}
+# El residual al cuadrado es una medida de variabilidad
+plot(log(r^2)~log(fit),pch=18,xlab=expression(log(hat(lambda))),
+ylab=expression(log(r^2)))
+abline(0,1)
+```
+
+HACER LOS TRES CASOS
+EQUIDISPERSIÓN
+SUBDISPIERSIÓN
+SOBREDISPERSIÓN
+
+
+**Se nota que hay sobredispersión porque los valores estimados de la variancia condicional tienden a ser mayores que los de la media condicional (los puntos tienden a estar más arriba de la linea identidad)**
+
+5. Obtenga los residuales de Pearson con la función `residuals` usando `type=”pearson”` y calcule el parámetro de dispersión.  ¿Qué se puede concluir acerca del supuesto de la distribución de Poisson?
+
+```{r}
+n = nrow(base)#número de observaciones
+p = length(mod1$coef)#Número de coef
+phi=sum(residuals(mod1,type="pearson")^2)/(n-p)
+round(phi,1)
+```
+
+
+**Se obtiene un parámetro de dispersión Φ = 6,1, el cual es mucho mayor que 1, por lo que se comprueba la sospecha de que existe sobredispersión, por lo tanto, no se cumple el supuesto que dice que la media condicional es igual que la variancia condicional.**
+
++	Ajuste de nuevo el modelo tomando en cuenta la sobredispersión. En la función `glm` debe incluir `family=quasipoisson(link=log)`. Observe las estimaciones de los coeficientes y sus errores estándar y compárelos con el del modelo anterior. ¿Qué relación hay entre los errores estándar anteriores y los actuales?
+
+
+```{r}
+mod2=glm(conteo~trat1,family=quasipoisson(link=log),base)#da lo mismo sin el (link=log)
+summary(mod2)
+```
+
+```{r}
+ee2=summary(mod2)$coef[,2]
+ee1=summary(mod1)$coef[,2]
+ee2/ee1
+```
+
+
+```{r}
+sqrt(phi)
+```
+
+
+**Se puede observar que los coeficientes son los mismos obtenidos anteriormente pero los errores estándar ahora son mayores. Estos son los correctos. El error estándar de cada coeficiente ahora es $\sqrt{\Phi}$ veces el que se había obtenido antes**
+
++	Obtenga el parámetro de dispersión en ambos modelos usando `summary(mod)$disp`. ¿Tienen sentido estos resultados?
+
+```{r}
+summary(mod1)$disp
+```
+
+
+```{r}
+summary(mod2)$disp
+```
+
+
+En el primer modelo es 1 porque se asume el modelo Poisson donde la media
+= variacia. Ese parámetro no se estima, se asume 1. En el segundo modelo se
+obtiene el valor estimado de $\Phi$
+
++ ¿Está usted de acuerdo con suponer que variancia es proporcional a la media?
+
+
+```{r}
+med=tapply(conteo,trat1,mean)
+v=tapply(conteo,trat1,var)
+round(v/med,2)
+```
+
+**En el caso de sirope la variancia es 10.2 veces la media, mientras que en el vinagre la variancia no llega a ser ni el doble de la media. Por lo tanto, no parece que las variancias sean proporcionales a las medias.**
+
+```{r}
+plot(med,v)
+abline(0,9)
+```
+
+
+
+6.	Pruebe que existe un efecto del aditivo sobre el número promedio de moscas. Recuerde que cuando hay sobredispersión y se utiliza la quasi-Poisson, debe usarse la prueba F.
+
+
+```{r}
+drop1(mod2,test="F")
+```
+
+
+```{r}
+diff = emmeans(mod2, pairwise~trat1, adjust = "bonferroni", type = "response")
+diff$contrasts
+```
+
+
+```{r}
+# 1. Extraer los grados de libertad residuales de tu modelo
+gl_residuales <- df.residual(mod2)
+
+# 2. Pasárselos a emmeans
+emmeans(mod2, pairwise ~ trat1, adjust = "bonferroni", df = mod2$df.residual)
+mod2
+```
+
+
+
+**Cuando hay sobredispersión se usa la prueba F. En este caso se obtine una
+probabilidad de error tipo I de 0.046< $\alpha$, por lo que se rechaza la hipótesis
+nula que dice que la media del número de mosquitos es igual para todos los
+tratamientos, lo cual se expresa simbólicamente como $H_0:\lambda_{miel} = \lambda_{sirope}= \lambda_{leche} = \lambda_{vinagre}$. Por lo tanto, se concluye que alguno de los tratamientos está produciendo
+una media diferente a los demás, es decir, hay un efecto del tratamiento.**
+
+7. Usando siempre el modelo de suma nula, escriba los contrastes que se deben usar  para definir comparaciones entre pares de promedios
+
+```{r}
+med
+```
+
+```{r}
+contrasts(trat1)
+```
+
+```{r}
+cmie =c(1,1,0,0)
+csir =c(1,0,1,0)
+clec =c(1,0,0,1)
+cvin =c(1,-1,-1,-1)
+c.ms =cmie-csir
+c.ml =cmie-clec
+c.mv =cmie-cvin
+c.sl =csir-clec
+c.sv =csir-cvin
+c.lv =clec-cvin
+contr =cbind(c.ms,c.ml,c.mv,c.sl,c.sv,c.lv)
+```
+
+
++ Usando el modelo del punto 6 que toma en cuenta la sobredispersión, haga los cálculos para obtener las estimaciones de estas comparaciones y explique su significado.
+
+```{r}
+b=mod2$coef
+L=exp(t(contr)%*%b)
+row.names(L)=c("miel-sirope","miel-leche","miel-vinagre",
+"sirope-leche","sirope-vinagre","leche-vinagre")
+round(L,2)
+```
+
+
+**Estas cantidades representan la razón entre cada par de medias, por ejemplo, la media de miel es 19% mayor que la media de sirope, la media de miel es 6.7 veces la media de vinagre, etc. Se nota que las que más se diferencian son miel y vinagre, así como sirope y vinagre.**
+
++ Haga las pruebas de hipótesis simultáneas para las razones entre todos los pares de tratamientos y determine para cuáles pares de tratamientos se puede concluir que tienen medias diferentes.
+
+
+**Debido a que se usa el modelo quasi-Poisson, se debe utilizar la distribución t en las pruebas. Esta probabilidad debe usar los grados de libertad residuales del modelo. El resultado de la probabilidad debe compararse contra** $\alpha/6$.
+
+```{r}
+cov=vcov(mod2)
+ee=sqrt(diag(t(contr)%*%cov%*%contr))
+eta=t(contr)%*%b
+qt=eta/ee
+p=pt(qt,28,lower.tail = F)
+row.names(p)=row.names(L)
+round(p,3)
+```
+
+**Todas las probabilidades son superiores a $\alpha/6 = 0,008$ por lo que no se puede decir en cual de las comparaciones hay diferencias.**
+
+8. Se sabe que los datos no cumplen el supuesto de una distribución Poisson, donde $E[Y|X]=V[Y|X]$. Se va a utilizar la distribución binomial negativa.  
+
+ + Escriba el modelo con el factor de diseño y sin usar bloque.
+ 
+ $$\log(\lambda_j) = \beta_0+\tau_j$$
+ 
+ 
+$$\sigma^2 = \lambda_j+\frac{\lambda_j^2}{\theta} =\lambda_j+\alpha \lambda^2$$
+
+ + Estime los parámetros del modelo con binomial negativa. Use la función `glm.nb` en la librería `MASS`.  
+
+
+```{r}
+library(MASS)
+mod3=glm.nb(conteo~trat1)
+```
+
+
+```{r}
+drop1(mod3, test = "LRT")
+```
+
+
+```{r}
+emmeans(mod3, pairwise~trat1, adjust = "bonferroni")
+```
+
+
++ Compare los coeficientes y errores estándar de este modelo con el modelo original (`mod1`). 
+
+```{r}
+round(cbind(summary(mod1)$coef[,1:2],summary(mod3)$coef[,1:2]),3)
+```
+
+**Los coeficientes estimados en ambos modelos son iguales pero los errores estándar son más grandes en el modelo con binomial negativa.**
+
+\newpage
+
+9. Haga la prueba formal cuya hipótesis nula es equidispersión ($V[Y|X]=E[Y|X]$). Para esto use la función `dispersiontest` en la librería `AER`.  Esta función requiere de un modelo Poisson ajustado con `glm` y una especificación de una hipótesis alternativa mediante el parámetro `trafo`, el cual corresponde a 1 para la quasi-Poisson y 2 para la binomial negativa.  Además se usa el parámetro `alternative="greater"` para indicar sobredispersión, sin embargo, no es necesario indicarlo pues este es el default. En el caso de subdispersión se usa `alternative="lower"`.
+
+```{r}
+#install.packages("AER")
+library(AER)
+```
+
+```{r}
+dispersiontest(mod1,trafo=1)
+```
+
+
+```{r}
+dispersiontest(mod1,trafo=2)
+```
+
+
+**En el caso de la quasi-Poisson, el parámetro $\alpha$ es lo que usualmente se conoce como $\Phi$, mientras que en el caso de la binomial negativa, $\alpha$  es el coeficiente del término cuadrático de la expresión para la variancia condicional. En ambos casos se rechaza la hipótesis nula $H_0:\alpha=0$ por lo que no se puede asumir que la media condicional sea igual a la variancia condicional. Cualquiera de las dos especificaciones alternativas funcionan mejor que la nula.**
+
+10.  Estime la variancia condicional en cada tratamiento con el modelo quasi-Poisson (`mod2`) y con binomial negativa (`mod3`). Compare los resultados de cada modelo con las variancias observadas y vea cuál las ajusta mejor.
+
+Para quasi-Poisson se tiene que $\sigma^2_j=\Phi\lambda_j$ y para binomial negativa $\sigma^2_j = \lambda_j+\alpha \lambda^2_j$.
+
+```{r}
+vobs=tapply(conteo,trat1,var)
+med=tapply(predict(mod2,type="response"),trat1,mean)
+unique(predict(mod2,type="response"))
+phi=summary(mod2)$disp
+vquasi=phi*med
+alpha=1/summary(mod3)$theta
+vnegbin=med+alpha*med^2
+round(cbind(vobs,vquasi,vnegbin),2)
+```
+
+
+** **
+
+
+11.	Hasta ahora se ha ignorado que el experimento se hizo siguiendo una estructura de bloques. Los análisis anteriores sirvieron para comprender el procedimiento, sin embargo, no es correcto hacer el análisis de esa forma. Ahora se hará el análisis correcto y se comparará con lo obtenido anteriormente. Agregue la unidad como un bloque en el modelo inicial (sin sobredispersión). Obtenga el parámetro de dispersión.  
+
+```{r}
+mod4=glm(conteo~trat1+as.factor(unid),family=poisson)
+sum(residuals(mod4,type="pearson")^2)/(32-11)
+```
+
+
+**En este caso el parámetro de dispersión es un poco menor a uno. Ahora el problema de sobredispersión desapareció pero podría estarse dando la situación opuesta: la variancia condicional menor que la media condicional (subdispersión). Para verificar si se está dando subdispersión es recomendable realizar la prueba de la hipótesis de equidispersión contra la alternativa de subdispersión.**
+
++ Haga la prueba de equidispersión contra la alternativa de subdispersión.
+
+```{r}
+dispersiontest(mod4,trafo=1,alternative = "less") #Este es el de subdispersión por el less
+```
+
+**Se rechaza la hipótesis de equidispersión y se concluye que la media es proporcional a la variancia con una constante de proporcionalidad menor a uno, es decir la variancia es menor que la media.**
+
+
++	Haga la prueba del efecto del aditivo usando un modelo quasi-Poison por lo que se debe usar la prueba F.
+
+
+```{r}
+mod5=glm(conteo~trat1+as.factor(unid),family=quasipoisson)
+drop1(mod5,test="F")
+```
+
+
+```{r}
+unid = factor(base$unid)
+modx = glmer(conteo~trat1+(1|unid),family=poisson, data = base)
+drop1(modx, test = "Chisq")
+```
+
+```{r}
+confint(modx)
+```
+
+
+
+```{r}
+
+```
+
+
+```{r}
+p = emmeans(mod5, pairwise~trat1, df = df.residual(mod5), adjust = "bonferroni")$contrast
+p = as.data.frame(p)
+round(p[,6]/12,5)
+```
+
+
+**Ahora el tratamiento resulta mucho más significativo con una probabilidad de error tipo I bajísima (<0.0001).**
+
++ Haga nuevamente las pruebas de hipótesis al comparar pares de razones de medias.
+
+**Sólo se toman las covariancias de la parte que interesa. En este caso se usa la distribución t con 21 grados de libertad en las pruebas ya que el modelo es quasi-Poisson.**
+
+
+```{r}
+b=mod5$coef[1:4]
+cov=vcov(mod5)[1:4,1:4]
+ee=sqrt(diag(t(contr)%*%cov%*%contr))
+eta=t(contr)%*%b
+qt=eta/ee
+p=pt(qt,21,lower.tail = F)
+row.names(p)=row.names(L)
+round(p,3)
+```
+
+
+```{r}
+p<0.05/6
+```
+
+
+**Ahora sí se ven diferencias entre la mayoría de tratamientos. De hecho el único par en el que no se detectan diferencias es entre miel y sirope.**
+
++ Encuentre el límite inferior para las diferencias en aquellos casos donde tiene sentido.
+
+**Se hacen 5 límites simultáneos y se realiza la corrección de Bonferroni.**
+
+```{r}
+t=qt(1-0.05/5,21)
+LIM=exp(eta[-1]-t*ee[-1])
+round(LIM,2)
+```
+
+**Los tratamientos en los que se ven las mayores diferencias son miel y vinagre (la media de miel es al menos 3.26 veces la de vinagre), así como sirope y vinagre (la media de sirope es al menos 2.7 veces la de vinagre).**
+
+
+12. Agregue el bloque al modelo con binomial negativa y estime nuevamente los parámetros.
+
+
+
+
++ Observe el parámetro de dispersión y concluya si se obtiene alguna diferencia entre usar la distribución binomial negativa y la Poisson.
+
+```{r}
+mod6=glm.nb(conteo~trat1+factor(unid))
+summary(mod6)$theta
+```
+
+**El parámetro de dispersión es 35839, el cual es suficientemente alto como para pensar que ** $\alpha_1/ \theta \to 0$. **Por lo tanto, la distribución binomial negativa tiende a la Poisson.**
+
++ Compare las matrices de covariancias entre los tres modelos (Poisson, quasi-Poisson y binomial negativa). Qué implicaciones tienen eses diferencias o similitudes?
+
+```{r}
+cov4=vcov(mod4)[1:4,1:4]
+cov5=vcov(mod5)[1:4,1:4]
+cov6=vcov(mod6)[1:4,1:4]
+cov4-cov5
+```
+
+
+```{r}
+cov4-cov6
+```
+
+**No hay diferencias entre las covariancias del modelo Poisson y binomial negativa, además las estimaciones de los coeficientes no cambian entre los 3 modelos. Entonces los intervalos de confianza de estos dos modelos serán prácticamente los mismos. En cambio, sí se producen cambios al usar el modelo quasi-Poisson, lo que hace los intervalos de confianza sean más finos.**
+
+
+**Conclusión: hasta este punto el análisis más adecuado de este caso es el que se realizó en el punto 11, ya que se incluyeron los bloques en el modelo, tal como fue diseñado el estudio. La inclusión de los bloques hace que el modelo Poisson produzca subdispersión. En este caso es necesario usar el ajuste quasi-Poisson. En este análisis se encontró que hay gran diferencia entre aplicar miel o sirope comparado con aplicar vinagre. Al usar miel o sirope se atrapa una cantidad de moscas mucho mayor en promedio que cuando se aplica vinagre. El uso de la distribución binomial negativa no cambia ningún resultado respecto a la Poisson. Hay que notar que los bloques son aleatorios y, por lo tanto, debería considerarse un modelo mixto generalizado. Esto se puede profundizar más adelante.**
+

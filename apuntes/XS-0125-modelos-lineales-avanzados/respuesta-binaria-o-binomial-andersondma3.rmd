@@ -1,0 +1,396 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: console
+--- 
+
+\section{MODELOS PARA RESPUESTA BINARIA O BINOMIAL}
+
+En este laboratorio se presentan un ejercicio con una variable respuesta que sigue una distribución binomial. La variable independiente del experimento se analiza con dos enfoque, primeramente se toma como factor y luego se analiza en su forma continua. Finalmente se incluye un segundo factor para estudiar las interacciones.
+
+\subsection*{Herbicidas}
+
+En un experimento se aplican 3 dosis de un herbicida (200, 400 y 800 g/l) alrededor de unas plantas y se tiene un grupo control al que no se le aplicó nada (dosis=0). Se cuantifica el daño en las plantas tomando 
+20 hojas de cada planta y se cuenta el número de hojas que presenta daños a causa del herbicida. Se quiere saber si hay un efecto de la dosis en el daño en las hojas.
+
+La dosis es una variable continua que se puede analizar como tal o se puede analizar en los 4 niveles dados (0, 200, 400 y 800 g/l). Si se analiza como un factor categórico, se pierde la información real de las dosis y no se pueden realizar interpolaciones.  Las conclusiones son válidas sólo para esos niveles estudiados, es decir, se considera como un modelo de efectos fijos.  Por otra parte, si la dosis se toma como una variable continua, hay que verificar que existe una relación lineal entre el log(odds) y la dosis  para que el modelo sea adecuado. En este caso sí se pueden hacer interpolaciones, además no tiene interés hacer comparaciones entre dosis específicas sino que interesa el impacto de un aumento en la dosis.
+
+También se tiene información del genotipo de las plantas y se cuenta con datos de plantas de dos genotipos. Inicialmente no se considera el genotipo en el análisis. Luego se incluye el genotipo para investigar si el efecto que tiene la dosis es similar en ambos genotipos (interacción entre dosis y genotipo). En el caso de que la interacción sea relevante se prefiere hacer las comparaciones entre las dosis pero dentro de cada genotipo.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Análisis con dosis factor}
+
+1. Cargue el archivo \texttt{herbicidas.csv}. Cada fila representa una planta. En la columna \textbf{mal} se registra el número de hojas que tienen daños en cada planta. Revise las variables.
+
+```{r}
+setwd("~/V ciclo statistics/Avanzados/Respuesta BInaria o Binomial")
+base=read.csv("herbicidas.csv",row.names=NULL,header=T,sep=";")
+str(base)
+base$genotipo=factor(base$genotipo)
+```
+
+	
++ En sentido estricto la dosis es una variable continua, sin embargo, puede tratarse como factor si el investigador solo está interesado en los niveles en que se ha realizado el experimento, mientras que si existe un interés en hacer interpolaciones, 	se debe tomar la variable en su forma original. Cree una variable llamada \textbf{dosix} que sea \textbf{factor} y mantenga la variable \textbf{dosis} original. En algunos análisis se usa como factor y en otros en su forma continua.
+
+
+```{r}
+base$dosix=factor(base$dosis)
+```
+
+	
+2. Haga un gráfico de la proporción de daño por planta contra las dosis (use \textbf{dosix}). Recuerde que en cada planta se tiene el mismo número de hojas (20), por lo que la proporción será simplemente el número de dañadas sobre 20.
+	
+```{r}
+prop=base$mal/20
+boxplot(prop~dosix,ylab="proporción de dano",xlab="dosis",data=base)
+```
+	
+	
++ ¿Cómo se comporta la proporción de daño para las diferentes dosis?
+
+**En el gráfico se observa que la proporción de daños tiende a ser mayor para las dosis 200, 400 y 800 con respecto al control, y entre ellas es un poco mayor para la dosis 800.**
+
+3. Utilice la dosis como factor en un modelo logístico con la función \texttt{glm}, incluyendo el parámetro \texttt{family=binomial}. Cuando los datos están agrupados hay que poner como respuesta el número de éxitos (daños) y el número de fracasos (no daños) unidos con la función \texttt{cbind}, de la siguiente forma: \verb|glm(cbind(y,n-y)~x,family=binomial)|, donde \textbf{y} es el número de éxitos por grupo y \textbf{n} es el número total de individuos en cada grupo. Si hubiera al menos una covariable a nivel de la hoja, los datos no podrían estar agrupados y cada línea representaría una hoja en lugar de un conjunto de hojas. En ese caso la respuesta sería totalmente binaria donde se indicaría si la hoja está dañada o no.  La forma de escribir el modelo sería:  \verb|glm(y~x,family=binomial)|. Estime los coeficientes del \textbf{modelo de tratamiento referencia}.
+
+```{r}
+options(contrasts=c("contr.treatment","contr.poly"))
+mod.trat=glm(cbind(mal,20-mal)~dosix,family=binomial(link = "logit"),data=base)
+mod.trat$coef
+```
+
+
+
+
++ Escriba la ecuación estimada del modelo logístico. 
+
+**La ecuación estimada usando como referencia la dosis 0 está dada por:**
+
+$$\log\left(\frac{p}{1-p}\right)=-2,43+2,15D_{200}+2,29D_{400}+3,05D_{800}$$
+
+
++ Estime los coeficientes del \textbf{modelo suma nula}.
+
+```{r}
+options(contrasts=c("contr.sum","contr.poly"))
+contrasts(base$dosix)
+```
+
+	
+```{r}
+mod.sum=glm(cbind(mal,20-mal)~dosix,family=binomial,data=base)
+```
+	
+	
++ Escriba la ecuación estimada del modelo logístico. Use la función \texttt{contrasts} para ver cuál de los niveles está usando como referencia.
+
+**Se observa que la referencia es la dosis 800, el 1 es la dosis 0, el 2 es la dosis 200 y el 3 es la dosis 400. Creamos el coeficiente de la dosis 800 a partir del complemento de la suma de los otros coeficientes.**
+
+```{r}
+(d=mod.sum$coef)
+```
+
+```{r}
+-sum(d[2:4])
+```
+
+**A continuación se escribe la ecuación estimada donde se incluyen las variables auxiliares según la restricción del modelo de suma nula. No se incluye el coeficiente de la dosis 800 pues está implícito en la restricción del modelo.**
+
+$$\log\left(\frac{p}{1-p}\right)=-0,56-1,87D_0+0,28D_{200}+0,429D_{400}$$
+
+
++ Estime la probabilidad de encontrar una hoja dañada para cada tratamiento usando el \textbf{modelo de tratamiento referencia}.  Hágalo manualmente y también hágalo con la función \texttt{predict}, usando \verb|type="response"|.
+
+**Se hace la trasformación para calcular las probabilidades:**
+
+```{r}
+dt=mod.trat$coef
+beta0=dt[1]
+taus=dt
+taus[1]=0
+p1=exp(beta0+taus)/(1+exp(beta0+taus))
+names(p1)=c("D0","D200","D400","D800")
+p1
+```
+
+**Directamente con la función de R se obtiene una estimación para cada planta, pero hay 13 plantas con el mismo tratamiento por lo que no es necesario tener tantas estimaciones, se puede saca un valor único por tratamiento.**
+
+```{r}
+probs=predict(mod.trat,type="response")
+p2=tapply(probs,base$dosix,mean)
+names(p2)=names(p1)
+p2
+```
+
+
++ ¿Cuál  el promesedio estimado de hojas dañadas por planta en cada tratamiento, si la planta tiene 1500 hojas? 
+
+```{r}
+1500*p1
+```
+
+
+ 4. Pruebe que existe un efecto de la dosis sobre la probabilidad de daño en las hojas. Para usar la prueba de la razón de verosimilitud (LRT), use la función \texttt{drop1} con el parámetro \verb|test="LRT"|.  Verifique que sin importar cuál modelo se use (suma nula o tratamiento referencia), se obtiene el mismo resultado en la prueba. 
+ 
+```{r}
+drop1(mod.sum,test="LRT")
+```
+ 
+ 
+```{r}
+drop1(mod.trat,test="LRT")
+```
+ 
+ 
+**Con la prueba de la Razón de Verosimilitud (LRT) se obtiene una deviancia para el modelo grande de 68.55, mientras que para el modelo en que se elimina dosis se obtiene 276.66. La diferencia entre ellas es 208.11, que proviene de una distribución chi-cuadrado con 3 grados de libertad, y tiene una probabilidad asociada de error tipo I diminuta (p<0.001). Por lo tanto, se rechaza la hipótesis de que ambos modelos explican lo mismo. Finalmente, se dice que sí existe un efecto de la dosis sobre la probabilidad de daño, es decir, no todas las dosis tienen las misma probabilidad de daño.** 
+
+
+
+5. Compare la propensión de daño entre cada par de tratamientos. Para esto use el OR para comparar dos tratamientos.  Utilice el \textbf{modelo de tratamiento referencia} y defina los contrastes adecuados. 
+
+
+Primero hay que hacer los contrastes. Si los coeficientes para las dosis se
+denominan con $\alpha_{200}$,  $\alpha_{400}$ y  $\alpha_{800}$, se sabe que $\alpha_0 = 0$. Por ejemplo para comparar
+la dosis 800 contra la dosis 400, se tiene que el OR respectivo es:
+
+$$OR = \exp(\alpha_{a800}-\alpha_{400})$$
+	
+**Por lo tanto, el vector de coeficientes del contraste asociado está dado por: c(0,0,-1,1). De esta forma se construyen los otros constrastes y se colocan en una matriz con los contrastes. Si cada contraste se denomina 𝜂, se tiene que** $OR = \exp(\eta)$
+	
+```{r}
+c1=c(0,0,-1,1)
+c2=c(0,-1,0,1)
+c3=c(0,0,0,1)
+c4=c(0,-1,1,0)
+c5=c(0,0,1,0)
+c6=c(0,1,0,0)
+h=cbind(c1,c2,c3,c4,c5,c6)
+eta=t(h)%*%dt
+or=exp(eta)
+rownames(or)=c("800-400","800-200","800-0","400-200","400-0","200-0")
+colnames(or)="OR"
+round(or,2)
+```
+	
+**Con la estimación puntual de los OR, se observa que son muy altos al comparar todas las dosis contra el control, pero entre las otras dosis (200, 400 y 800), las que más se diferencian son 800 vs 200 y luego 800 vs 400.**	
+	
+	
++ Haga las pruebas de hipótesis para verificar que cada par de tratamientos tienen probabilidades iguales. Use hipótesis alternativa de una cola.  Para esto nos basamos en los contrastes construidos y comprobamos que si las 
+probabilidades de dos tratamientos son iguales, es decir $\pi_i=\pi_j$, la razón de propensiones asociada debe ser igual a uno (OR=1). Todas las comparaciones son de la forma $OR=exp(\eta)$, y para que el OR sea igual a 1 basta que $\eta=0$. Entonces se pueden hacer las pruebas simultáneas de todos los contrastes usando la distribución normal con corrección de Bonferroni.
+
+```{r}
+ee=sqrt(diag(t(h)%*%vcov(mod.trat)%*%h))
+(q=eta/ee)
+```
+
+
+```{r}
+(pt=pnorm(q,lower.tail = F))
+pt < 0.05/12
+```
+
+	
++ Encuentre los intervalos de 95\% de confianza global para todas las comparaciones del punto anterior donde se encontraron diferencias. Puesto que se hacen varios intervalos de forma simultánea, se debe hacer el ajuste de Bonferroni para el valor del cuantil así: \texttt{qnorm(1-0.05/(2*k))}, donde \textbf{k} es el número de comparaciones.  Observe qué tan amplios son los intervalos para tener una idea de la precisión de la estimación, además compare esas amplitudes con los errores estándar de cada contraste.
+
+```{r}
+k=5
+qz=qnorm(1-0.05/(2*k))
+ic=cbind(exp(eta-qz*ee),exp(eta+qz*ee))[-4,] #Quitamos 4 porque no es significativa
+rownames(ic)=rownames(or)[-4] #Quitamos 4 porque no es significativa
+ic1=cbind(ic,ee[-4]) #Quitamos 4 porque no es significativa
+colnames(ic1)=c("L.Inf","L.Sup","ee")
+ic1
+```
+
+
+**Las comparaciones contra la dosis 0 son muy imprecisas, en cambio las comparaciones entre dosis 800 y las otras dos dosis son más precisas. Esto es una consecuencia de que estas dos últimas comparaciones tienen errores estándar más pequeños.**
+	
++ Encuentre límites inferiores de 95\% de confianza para las comparaciones. El cuantil debe ser calculado con \texttt{qnorm(1-0.05/k)}. Interprete los resultados.
+
+
+```{r}
+qz=qnorm(1-0.05/k)
+LIM=exp(eta-qz*ee)[-4]
+names(LIM)=rownames(or)[-4]
+LIM
+```
+
+
+**Con una confianza global de 95%, se puede decir que la propensión de daño para D800 es al menos 40% mayor que la de D400, 61% mayor que la de D200 y es 11.5 veces la de D0, que la propensión de daño de D400 es al menos 5.4 veces la de D0 y la propensión de daño de D200 es al menos 4.7 veces la de D0.**
+
+
+\subsubsection*{Análisis con dosis continua}
+
+6. Ahora se va a utilizar la dosis en su forma continua, es decir, se pueden hacer interpolaciones para diferentes dosis en el rango de estudio. Haga un gráfico donde se muestre el log(odds) contra la dosis (use la variable dosis original).  Calcule el log(odds) a partir de las proporciones observadas.  Use la función \texttt{scatterplot} de la librería \texttt{lattice}.
+
+```{r}
+library(car)
+logodds=log((prop)/(1-prop))
+scatterplot(logodds~log(base$dosis+0.1,2),xlab="dosis",ylab="log(odds)")
+```
+
+**En el gráfico se observa que para el intervalo que va de 0 a 200, hay un comportamiento diferente al resto del intervalo estudiado, lo cual hace pensar que la relación general entre el log(odds) y la dosis no es lineal. Si se observa solo la parte de la dosis que va de 200 en adelante, se aprecia un comportamiento más lineal. Entonces, el modelo que se ajusta con la variable dosis en forma continua no está siguiendo lo que se observa en este gráfico.**
+	
++ Escriba la ecuación estimada de la regresión logística tomando la dosis en su forma continua.
+
+```{r}
+mod2=glm(cbind(mal,20-mal)~log(dosis+1,2),family=binomial,data=base)
+(beta=mod2$coef)
+```
+
+	
+**La ecuación estimada usando dosis de forma continua es la siguiente:**
+
+$$\log\left(\frac{p}{1-p}\right)=-1.41+0,003D$$
+
+
+	
++ ¿Cuál es la probabilidad de daño para una dosis de 300 g/l?  Hágalo utilizando la ecuación anterior y también con la función \texttt{predict} indicando la dosis así \texttt{data.frame(dosis=300)}, y con la opción 
+\verb|type="response"|.
+
+```{r}
+xh=c(1,300)
+eta=t(xh)%*%beta
+prob300.a=exp(eta)/(1+exp(eta))
+prob300.b=predict(mod2,data.frame(dosis=300),type="response")
+c(prob300.a,prob300.b)
+```
+
+	
++ Haga un gráfico donde se muestren los porcentajes de hojas dañadas por planta contra la dosis (use la variable \textbf{dosis} original). Agregue la curva de las probabilidades estimadas según la ecuación anterior. Ponga los límites de dosis entre 0 y 2000 para apreciar la forma de la ecuación logística. Marque el punto correspondiente a la dosis 300 y su probabilidad de daño.
+
+```{r}
+curve(exp(beta[1]+beta[2]*x)/(1+exp(beta[1]+beta[2]*x)),0,2000,
+ylab="probabilidad",xlab="dosis",ylim=c(0,1))
+points(base$dosis,base$mal/20,pch=18,col=2)
+points(300,prob300.a,col=4,pch="+",cex=1.5)
+a=round(beta[1],2); b=format(round(beta[2],3),scientific=F)
+title(main=(bquote(log(pi/(1-pi))==.(a)+.(b)*D)))
+```
+
+
+7. Interprete el coeficiente de la dosis adecuadamente.  Use un aumento de la dosis que tenga importancia. 
+
+**Se puede tomar una aumento de 200g/l ya que se vio que en el experimento la diferencia más pequeña entre las dosis es de esa magnitud.**
+
+```{r}
+exp(200*beta[2])
+```
+
+**Al aumentar la dosis en 200g/l, la propensión de daño aumenta un 76%**
+	
++ Calcule e interprete un intervalo de 95\% de confianza para este aumento.
+
+**Primeramente se ve que con la función confint se obtiene el intervalo de 95% de confianza directamente para el $\beta_1$; sin embargo hay que transformar el intervalo según lo que se desea. En este caso es necesario multiplicar por 200 porque ese es el aumento de la dosis para el que se quiere la interpretación, y luego se debe hacer la transformación para que represente el OR.**
+
+
+```{r}
+confint(mod2)
+```
+
+	
+```{r}
+(ic=exp(200*confint(mod2)[2,]))
+```
+	
+	
+\subsubsection*{Inclusión de un segundo factor}
+
+8. Agregue en el modelo logístico el genotipo e incluya la interacción entre dosis y genotipo. Antes de correr el modelo cambie al modelo de tratamiento referencia y verifique el cambio con \texttt{contrasts(genotipo)}.
+
+```{r}
+options(contrasts=c("contr.treatment","contr.poly"))
+contrasts(base$genotipo)
+```
+
+	
+```{r}
+mod4=glm(cbind(mal,20-mal)~dosis*genotipo,family=binomial,data=base)
+```
+	
++ Investigue si debe considerarse la interacción entre dosis y genotipo. 
+
+```{r}
+drop1(mod4,test="LRT")
+```
+
+
+**Usando la prueba de la Razón de Verosimilitud (LRT) la probabilidad de error tipo I es 0.003. Se rechaza la hipótesis nula que dice que la interacción es cero (el efecto de la dosis es el mismo para ambos genotipos). Por lo tanto se concluye que sí hay interacción y por ende el efecto de la dosis es diferente para cada genotipo. Dada esta situación es más recomendable hacer las comparaciones entre dosis pero por cada genotipo.**
+	
++ Escriba la ecuación correspondiente a cada genotipo.
+
+**Se usa el modelo con interacción:**
+	
+```{r}
+(beta=mod4$coef)
+```
+	
+	
+**Se podría escribir una sola ecuación usando las variables auxiliares pero al final se tiene que separar esa ecuación, lo cual da como resultado una ecuación para cada genotipo**	
+**Ecuación general:**
+
+$$\log\left(\frac{p}{1-p}\right)=-1,4381+0,0021D+0,137G+0,0015D\times G$$
+
+**En la variable genotipo se tiene que para el genotipo R: G = 0, y para genotipo S: G = 1.**
+
+**Ecuación para R:**
+
+$$\log\left(\frac{p}{1-p}\right)=-1,4381+0,0021D$$
+	
+	
+**Ecuación para S:**
+
+$$\log\left(\frac{p}{1-p}\right)=-1,4381+0,0021D+0,0137+0,0015D = -1,4244+0,0036$$	
+	
+	
++ Calcule e interprete los OR adecuados.
+
+
+**Aquí hay que notar que la interpretación del OR se hace para cada genotipo.**
+
+**El OR de dosis para el genotipo R resulta:**
+
+```{r}
+(OR.R=exp(200*beta[2]))
+```
+
+**El OR de dosis para el genotipo S resulta:**
+
+```{r}
+(OR.S=exp(200*(beta[2]+beta[4])))
+```
+
+**Por lo tanto, se nota que el impacto de un aumento de 200g/l en la dosis es mayor para las plantas de genotipo S puesto que el OR es 2.05 (aumento por un factor 2.05 en la propensión de daño), mientras que para las plantas de genotipo R el OR es 1.53 (aumento de 53% en la propensión de daño).**	
+	
+	
++ Calcule los intervalos de 95\% de confianza global para estos aumentos en la propensión de daño para cada genotipo.
+
+**Se hacen dos contrastes según la forma en que se calculó cada OR:**
+
+```{r}
+c1=c(0,200,0,0)
+c2=c(0,200,0,200)
+h=cbind(c1,c2)
+eta=t(h)%*%beta
+ee=sqrt(diag(t(h)%*%vcov(mod4)%*%h))
+k=2
+qz=qnorm(1-0.05/(2*k))
+ic=cbind(exp(eta-qz*ee),exp(eta+qz*ee))
+rownames(ic)=c("R","S")
+colnames(ic)=c("L.Inf","L.Sup")
+ic
+```
+
+	
++ Interprete estos intervalos.
+	
+**Para el genotipo R, cuando se incrementa la dosis en 200g/l, la propensión aumenta entre un 32% y un 78%, mientras que para el genotipo S aumenta por un factor entre 1.75 y 2.4.**
+	
