@@ -1,0 +1,458 @@
+---
+title: "LAB_7"
+author: "Anderson Martinez"
+date: "2025-06-19"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+```{r}
+ setwd("~/III Ciclo UCR estadistica/Experimentos/Laboratorios/LAB_NO.7")
+```
+
+Cuando sucede error tipo I: Rechazamos pero no hay que rechazar
+Lo contrario a esto es no ver diferencias, cuando no hay diferencias, lo anterior no es potencia es confianza
+
+Cuando sucede error tipo II: No rechazamos pero hay que rechazar, es decir, no lograr ver diferencias cuando en realidad si las hay. Por ello lo contratrio a esto sería la potencia, que esta nos ayuda a ver diferencias cuando hay diferencias.
+
+Cuando no hay diferencias, no queremos ver diferencias
+
+
+*¿Que cosas afectan la potencia?*
++ El tamaño de muestra (r)
++ La varianza $\sigma^2(cmres)$
++ $\delta$: Es el indicador de que tanta diferencia quiero aceptar
+
+
+Potencia baja: Se refiere a la probabilidad de ver cuando las hay diferencias es baja 
+
+## Caso particular 
+
+No rechazamos la hipótess y la potencia es baja
+
+Es díficil llegar a conclusiones correctas, para solucionar esto hay tres opciones
++ Bloques
++ Otro factor 
++ Aumentar el tamaño 
+
+
+# Manzanas
+```{r}
+load("~/III Ciclo UCR estadística/Experimentos/Laboratorios/LAB_NO.7/manzanas.Rdata")
+```
+
+```{r}
+tapply(base$color, base$trat, mean)
+```
+```{r}
+v= mean(tapply(base$color,base$trat, var))
+```
+
+PARA LA SIMULIACIÓN NO USAR LAS MEDIAS DE LOS DATOS , SE USAN MEDIAS INVENTADAS
+
+```{r}
+
+r= 10 #Replicas 
+X = factor(rep(1:4, each = r)) #Factor de diseño
+muj = rep(3,3,2,4, each = r ) #Promedios, para ese vector solo nos importa la diferencias entre el valor menor y el valor mayor
+s = sqrt(v)
+n = 4*10
+Y = rnorm(n,muj,s)
+tapply(Y, X, mean)
+```
+## Función
+
+```{r}
+fun1 <- function(r,mu,v) {
+  k= length(mu)
+  n=r*k
+  X= factor(rep(1:k, each = r))
+  muj= rep(mu, each = r)
+  s = sqrt(v)
+  Y= rnorm(n,muj,s)
+  
+  mod = aov(Y~X)
+   p=anova(mod)[1,5]
+  return(p)
+  
+}
+```
+
+
+
+## Simulación
+
+```{r}
+M= 1000
+mu1= c(3,3,2,4)
+fun1(r=5,mu=mu1, v=1)
+prob=c()
+for (j in 1:M) {
+  prob[j] = fun1(r=5,mu=mu1, v=1)
+ mean(prob<0.05) #Nos da la proporción de veces que rechazé osea la potencia 
+}
+```
+
+## Potencia
+
+````{r}
+library(pwr)
+power.anova.test(n=5, groups = 4, between.var = var(mu1), within.var = 1)
+#between.var La varianza de la media teórica 
+#within.var: Cmres o varianza
+```
+La potencia es la probabilidad de ver diferencias cuando las hay, cuando las medias se separan dos unidades, observe que en este caso la misma nos da 0.64. Se puede llegar al resultado de la función de R cada vez que el número de iteraciones sea mayor 
+
+## Número de replicas
+
+### Tamaño por muestra por tratamiento 
+
+```{r}
+pot= power.anova.test(groups = 4, between.var = var(mu1),
+                      within.var = 1, power = 0.9)
+pot$n
+pot$power
+```
+Se necesitan al menos 9 replicas por tratamiento para tener una probabilidad de 0,90 de que se detectarán diferencias de dos unidades si esas diferencias existen.
+
+## Variando el vector de medidas verdaderas
+
+
+### Medias diferentes en el centro 
+
+Normalmente se escoge este para mayor seguridad. Otro aspecto también para protegerse podemos subir la varianza, lo que nos da como resultado un tamaño de muestra más grande 
+
+```{r}
+var(c(2,4,3,3))
+power.anova.test(groups = 4, between.var = var(c(2,4,3,3)),
+                 within.var = 1, power = 0.9)
+```
+### Medias diferentes en los extremos 
+
+```{r}
+var(c(2,4,2,2))
+power.anova.test(groups = 4, between.var = var(c(2,4,2,2)),
+                 within.var = 1, power = 0.9)
+```
+#### Otro caso
+
+```{r}
+var(c(2,2,4,4))
+power.anova.test(groups = 4, between.var = var(c(2,2,4,4)),
+                 within.var = 1, power = 0.9)$n
+```
+
+# Tortugas
+
+```{r, warning=F, message=F}
+library(readr)
+base = read_csv("tortugas1.csv")
+base$genero=as.factor(base$genero)
+levels(base$genero) =c("macho", "hembra")
+table(base$cond) #Se toman en cuenta los marginales para hacer la comparación 
+```
+
+```{r}
+mod1= lm(proteina~genero+cond, data = base)
+(cmres=anova(mod1)[3,3])
+```
+
+### Potencia 
+```{r}
+mu= c(30,32)
+power.anova.test(n=8, groups = 2, between.var = var(mu), within.var = cmres)
+```
+
+Hay una probabilidad de 0,29 de llegar a la conclusión de que hay diferencias cuando en realidad las medias difieren al menos 2 gr/dl.
+Es un experimento que dificilmente va a lograr dectectar que hay un efecto real de la condición de alimento aún cuando sí se esté dando ese efecto. Con esto podemos decir que es más diferente ver diferencias
+
+### Simulación de tamaños de muestra desiguales
+
+```{r}
+library(car)
+```
+
+
+```{r}
+fpot=function(r,v){
+  n = sum(r)
+  f1 = factor(c(rep(1, r[1]), rep(2, r[2]), rep(1, r[3]), rep(2, r[4])))
+  f2 = factor(c(rep(1, r[1] + r[2]), rep(2, r[3] + r[4])))
+  mu1 = c(0, 2, 2, 4)
+  medias = c(rep(mu1[1], r[1]), rep(mu1[2], r[2]), rep(mu1[3], r[3]), rep(mu1[4], r[4]))
+  y = round(rnorm(n, medias, sqrt(v)), 1)
+  mod = lm(y ~ f1 + f2)
+  p= anova(mod)[1,5]
+  return(p)}
+fpot(r=c(5,2,2,8), v=6.5)
+r= c(5,3,6,4)
+cbind(f1,f2,mu1)
+```
+
+```{r}
+p=c()
+k=1000
+for (i in 1:k) {
+  p[i]= fpot(r=c(5,2,2,8), v=6.5)
+  
+}
+mean(p<0.05) #Proporción de veces
+```
+```{r}
+fpot(r=c(4,4,4,4), v= cmres)
+```
+
+```{r}
+#Heterocedástica
+fpot2=function(r,v,mu){
+  n = sum(r)
+  f1 = factor(c(rep(1, r[1]), rep(2, r[2]), rep(1, r[3]), rep(2, r[4])))
+  f2 = factor(c(rep(1, r[1] + r[2]), rep(2, r[3] + r[4])))
+  mu1 = mu
+  medias = c(rep(mu1[1], r[1]), rep(mu1[2], r[2]), rep(mu1[3], r[3]), rep(mu1[4], r[4]))
+  varianzas = c(rep(v[1], r[1]), rep(v[2], r[2]), rep(v[3], r[3]), rep(v[4], r[4]))
+  y = round(rnorm(n, medias, sqrt(varianzas)), 1)
+  mod = lm(y ~ f1 + f2)
+  p= anova(mod)[1,5]
+  return(p)}
+```
+
+
+```{r}
+fpot2(r=c(4,4,4,4), v= c(6,7,8,9), mu= c(13,14,15,10) )
+```
+
+
+```{r}
+p=c()
+k=1000
+for (i in 1:k) {
+  p[i]= fpot2(r=c(5,2,2,8), v= c(6,7,8,9), mu= c(13,14,15,10))
+  
+}
+mean(p<0.05)
+
+```
+
+
+```{r}
+k=1000
+for (i in 1:k) {
+  p[i]= fpot(r=c(4,4,4,4), v= cmres)
+  
+}
+mean(p<0.05) 
+```
+
+
+
+
+### Número de réplicas recomendado:
+
+```{r}
+power.anova.test(groups = 2, between.var = var(mu),
+                 within.var = cmres, power = 0.9)
+```
+Se necesitan 38 tortugas para asegurar esa potencia, se distribuyen de manera marginal 
+
+
+### Límite inferior para la diferencia de medias
+```{r}
+med= tapply(base$proteina, base$cond, mean)
+med
+```
+```{r}
+d=med[1]-med[2]
+ee=sqrt(2*cmres/8)
+t=qt(0.95,13)
+LIM= d-t*ee
+LIM
+```
+
+
+Con un 95% de confianza se asegura que existe una diferencia mínima de 0.77
+
+### Conclusión
+
+Al aumentar el número de tortugas lo que se va a lograr es una mejor estimación de los promedios en ambos tratamientos y una reducción del error estándar; no obstante, esto no quiere decir que el límite inferiorpara la diferencia tenga que subir necesariamente.
+Si en realidad la diferencia entre los promedios es mayor a 2 gr/dl, posbilemnte el límite sí supere ese valor, pero si la diferencia no llega a 2 muy posiblemente el límite siga bajo.
+
+
+## Dos factores con interacción 
+
+### Número de replicas por condición de alimento
+
+```{r}
+base= read.csv("tortugas2.csv")
+base$cond=as.factor(base$cond)
+levels(base$cond)= c("estricta", "balanceada", "abundancia")
+table(base$cond, base$especie)
+```
+```{r}
+mod2=lm(proteina~cond*especie, data = base)
+(cmres=anova(mod2)[4,3])
+```
+
+### Potencia 
+
+```{r}
+mu= c(30,31,32) # 3 medias porque se comparan tres contra las otras tres dentreo de cada tratamiento
+power.anova.test(n=4,groups = 3,between.var = var(mu), within.var = cmres) #Tres grupos porque son tres niveles por factor
+```
+En un experimento con dos factores 5 niveles y dentro de cada tratamiento 3 replicas
+##### Con interacción 
+groups = 5, n=3
+
+##### Sin interacción 
+groups = 5, n = 6, ya que se realiza marginalmente 
+
+En un exprimento con tres factores, 3 niveles por cada factor, con 6 replicas por cada tratamiento 
+
+##### Con interacción 
+groups = 3, n= 6 
+
+##### Sin interacción 
+groups = 3, n= 6 (Este es la suma de cada fila)
+
+*La cantidad de grupos es igual*: Lo que varía es el n en el caso del modelo sin interacción se realiza de manera marginal, osea sumar todas las observaciones de una misma fila 
+
+
+### Justificación 
+
+Cuando las diferencias son mucho mayores que el nivel de resolución que se ha establecido, es muy fácil concluir que las medias tiene diferencias de una magnitud que está más allá de ese nivel de resolución, aún con pocos datos.
+
+### Nuevo tamaño de muestra 
+```{r}
+mu1= c(30,33.5,37)
+power.anova.test(groups = 3,between.var = var(mu1),
+                 within.var = cmres, power = 0.95)
+```
+Con 3 datos por tratamietno ya es muy factible que se detecten diferencias tan grandes (de al menos 7 gr/dl).
+
+# Burbujas 
+
+```{r}
+load("burbujas.Rdata")
+tapply(base1$tiempo,base1$glicerina, mean)
+```
+
+## CMRes
+
+```{r}
+base1$glicerina=factor(base1$glicerina)
+base1$persona=factor(base1$persona)
+mod3=lm(tiempo~glicerina+persona, data = base1)
+cmres= anova(mod3)[3,3]
+
+```
+
+## Variable X
+
+```{r}
+(X = factor(rep(1:2, each=6))) #Factor de 2 niveles con 6 bloques, este genera 6 valores de para cada nivel 
+```
+
+## Vector de promedios 
+
+```{r}
+(muj= rep(c(7,9), each= 6))
+```
+
+## Variable Y original 
+```{r}
+s = sqrt(cmres)
+n= 2*6 #k*b donde k es el númer0 de niveles y b el número de bloques 
+(Y1= rnorm(n,muj,s))
+```
+
+
+## Variable de Bloques 
+
+```{r}
+(B= factor(rep(1:6,2)))
+```
+
+## Vector de efectos de bloques 
+
+```{r}
+vb= 3 #Varianza de los bloques 
+sb= sqrt(vb)
+eb= rnorm(6,0,sb)
+(efb=rep(eb,2)) #Efecto del bloque
+```
+
+## Variable Y final 
+
+```{r}
+(Y= Y1+efb)
+```
+
+## Funcion
+
+Integramos todo lo anterior en la función
+
+```{r}
+fun2 = function(b,mu,v,vb){
+  k = length(mu) #Niveles
+  n= b*k #Numero total de datos
+  X= factor(rep(1:k, each= b))
+  muj= rep(mu, each= b)
+  s= sqrt(v)
+  Y1= rnorm(n,muj,s)
+  B=factor(rep(1:b,k))
+  sb=sqrt(vb)
+  eb=rnorm(b,0,sb)
+  efb= rep(eb,k)
+  Y= Y1+efb
+  
+  mod=aov(Y~X+B)
+  p=anova(mod)[1,5]
+  return(p)
+
+  }
+```
+
+
+## Potencia 
+
+
+```{r}
+mu = c(7,10)
+v=6.5
+vb=10
+b=3:20
+h= length(b)
+M=1000
+prob= matrix(nrow = 1000, ncol = h)
+
+for (j in 1:h) {
+  for(i in 1:M) prob[i,j]= fun2(b[j],mu,v,vb)
+}
+```
+
+```{r}
+(pot= apply(prob<0.05,2,mean))
+```
+## Gráfico 
+
+```{r}
+plot(b,pot, type ="l")
+abline(h=0.9,lty= 2) #altura de 0.9, osea que alcanze la probabilidad de 0.9
+abline(v=17,lty=2) #El 17 se coloca a ojo
+```
+```{r}
+power.anova.test(groups = 2, between.var= var(c(7,10)),within.var= 6.5,power= 0.9) #Forma automática de hacerlo
+```
+
+
+Como estamos en bloques se necesitan 17 personas para alcanzar una potencia de 0.90
+
+
+
+
+
+
+
+

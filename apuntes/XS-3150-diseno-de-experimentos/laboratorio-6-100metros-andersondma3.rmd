@@ -1,0 +1,296 @@
+---
+title: 'Laboratorio #7_100metros'
+output: html_document
+date: "2025-06-26"
+---
+
+# 1. Preparacion
+
+  a. Lectura 
+
+```{r}
+
+load("100metros.Rdata")
+
+```
+
+  b. Creacion de imc
+
+```{r}
+
+base$imc = base$peso/base$estatura^2
+
+```
+
+  d. Repeticiones
+
+```{r}
+
+table(base$calent, base$salida)
+
+```
+# 2. Linealidad
+
+  a. Correlacion entre respuesta y covariables
+
+```{r}
+
+cor(base$tiempo, base$imc)
+
+```
+  b. Correlacion dentro de cada tratamiento
+
+```{r}
+
+library(dplyr)
+
+summarise(group_by(base,calent,salida), cor(imc,tiempo))
+
+```
+
+  c. Relacion lineal
+  
+```{r}
+
+library(car)
+
+scatterplot(tiempo ~ imc, cex.lab = 1.5,
+            data = base[base$calent == "A" & base$salida == "-",])
+scatterplot(tiempo ~ imc, cex.lab = 1.5,
+            data = base[base$calent == "A" & base$salida == "+",])
+scatterplot(tiempo ~ imc, cex.lab = 1.5,
+            data = base[base$calent == "B" & base$salida == "-",])
+scatterplot(tiempo ~ imc, cex.lab = 1.5,
+            data = base[base$calent == "B" & base$salida == "+",])
+scatterplot(tiempo ~ imc, cex.lab = 1.5,
+            data = base[base$calent == "C" & base$salida == "-",])
+scatterplot(tiempo ~ imc, cex.lab = 1.5,
+            data = base[base$calent == "C" & base$salida == "+",])
+
+```
+
+# 3. Variabilidad de la respuesta
+  a. Variancia de la respuesta observada dentro de cada tratamiento
+
+```{r}
+
+(v = tapply(base$tiempo, list(base$calent, base$salida), var))
+
+```
+  b. Estimacion de la variancia unica dentor de los tratamiento
+
+```{r}
+mean(v) #Es la variación entre los puntos respecto a las medias sin interacción
+```
+  c. Visaulizacion de la variabilidad
+
+```{r}
+boxplot(tiempo ~ calent + salida, data = base)
+```
+Se asuame que entre la covarianza y el factor de diseño No hay interacción.
+
+  d. Lineas de regresion por tratamiento
+
+```{r}
+
+library(lattice)
+xyplot(tiempo ~ imc|calent+salida, type = c("r","p"), data = base)
+
+# "r" de regresión y "p" de puntos.
+
+```
+¿Como vemos si la covariable esta obteniendo alguna ganancia?
+
+Haciendo los dos gráficos 
+
+
+# 4. Inclusion de covariable
+
+  a. Residuales del modelo con interaccion
+
+```{r}
+
+mod1 = lm(tiempo ~ calent*salida+imc, data = base)
+r1 = mod1$res
+
+```
+
+  c. Cuadrado medio residual
+
+```{r}
+
+(CMRes = sum(r1^2)/ 59) #Gl = n-p donde p: Es el número de coeficientes del módelo
+
+```
+  d. Comparacion
+
+```{r}
+
+CMRes
+mean(v)
+
+
+
+```
+# 5. Prueba formal
+
+  a. Anova con dos factores
+
+```{r}
+
+mod2a = lm(tiempo ~ calent*salida, data = base)
+mod2b = lm(tiempo ~ salida*calent, data = base)
+
+```
+
+```{r}
+
+anova(mod2a)
+
+```
+
+```{r}
+
+anova(mod2b)
+
+```
+ *Cuando introducimos una covariable el orden del anova va alterar los resultados* 
+  
+  b. Prueba para el efecto del calentamiento
+
+```{r}
+
+mod3 = lm(tiempo ~ calent+salida, data = base)
+anova(mod3)
+
+```
+  c. Modelo con la covariable
+
+```{r}
+
+mod4a = lm(tiempo ~ calent+salida+imc, data = base)
+mod4b = lm(tiempo ~ imc+salida+calent, data = base)
+
+```
+
+```{r}
+
+anova(mod4a)
+
+```
+
+```{r}
+
+anova(mod4b)
+
+```
+
+  d. Modelo con la covariable y elimiando calentamiento
+  
+```{r}
+library(lattice)
+xyplot(tiempo~imc,groups = calent, type = c("r", "p"), data= base)
+```
+  
+  
+```{r}
+
+mod5 = lm(tiempo ~ calent+salida+imc, data = base)
+mod6 = lm(tiempo ~ salida+imc, data = base)
+
+```
+
+  e. Suma de cuadrados de regresion marginal
+
+```{r}
+
+SCRes1 = anova(mod5)[4,2]
+SCRes2 = anova(mod6)[3,2]
+(SCRegMar = SCRes2 - SCRes1)  
+
+```
+  f. Estadistico F
+
+```{r}
+
+CMRes = anova(mod5)[4,3]
+(f = (SCRegMar/2)/CMRes)
+# El 2 sale de la resta de los gl de el modelo grande menos los gl de modelo pequeño, que es la cantidad de coeficientes de la variable que se quita osea sus grados de libertad
+
+```
+  g. Prueba de la hipotesis
+
+```{r}
+
+pf(f,2,61,lower.tail = F)
+
+```
+  h. Prueba de forma automatica
+
+```{r}
+
+drop1(mod4a, test = "F")
+
+```
+
+```{r}
+
+drop1(mod4b, test = "F")
+
+```
+# 6. Prueba de interaccion
+
+  a. Verificacion formal
+
+```{r}
+
+drop1(mod1, test = "F")
+
+```
+# 7. Comparaciones finales
+
+  a. Modelo resultante
+
+$$\mu_{ij, X} = \beta_0 + \alpha_i + \beta_j + \gamma_X$$
+  b. Medias marginales por tipo de calentamiento
+
+```{r}
+
+(mm = tapply(base$tiempo, base$calent, mean))
+
+```
+```{r}
+
+dBA = mm[2] - mm[1]
+dCA = mm[3] - mm[1]
+dBC = mm[2] - mm[3]
+dif = c(dBA,dCA,dBC)
+names(dif) = c("BA","CA","BC")
+dif
+
+```
+  c. Diferencias de medias con vectores
+
+```{r}
+
+(b = mod4a$coef)
+
+```
+```{r}
+
+cBA = c(0, 1, 0, 0, 0)
+cCA = c(0, 0, 1, 0, 0)
+cBC = c(0, 1, -1, 0, 0)
+cont = cbind(cBA, cCA, cBC)
+(L = t(cont) %*% b)
+
+```
+  d. Comparacion por tipo de calentamiento
+
+```{r}
+
+ee = sqrt(diag(t(cont) %*% vcov(mod4a) %*% cont))
+qt = L/ee
+(p = pt(qt, 61, lower.tail = F))
+
+```
