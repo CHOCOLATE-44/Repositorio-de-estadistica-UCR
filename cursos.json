@@ -2,6 +2,42 @@
   "_comentario": "Fuente única de verdad de los cursos. Plan 02 del Bachillerato en Estadística (UCR).",
   "cursos": [
     {
+      "sigla": "MA-0001",
+      "nombre": "Precálculo",
+      "carpeta": "MA-0001-precalculo",
+      "ciclo": 1,
+      "siglas_equivalentes": [
+        "MA-0125"
+      ],
+      "alias": [
+        "precalculo",
+        "precalc",
+        "pre calculo",
+        "mate elemental",
+        "matematica elemental"
+      ],
+      "temas": [
+        "números reales",
+        "expresiones algebraicas",
+        "factorización",
+        "fracciones algebraicas",
+        "ecuaciones",
+        "inecuaciones",
+        "valor absoluto",
+        "funciones",
+        "dominio",
+        "gráfica de funciones",
+        "función lineal",
+        "función cuadrática",
+        "función inversa",
+        "función exponencial",
+        "logaritmo",
+        "trigonometría",
+        "identidades trigonométricas",
+        "ecuaciones trigonométricas"
+      ]
+    },
+    {
       "sigla": "XS-0124",
       "nombre": "Análisis exploratorio de datos",
       "carpeta": "XS-0124-analisis-exploratorio-de-datos",

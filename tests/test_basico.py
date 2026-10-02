@@ -30,7 +30,7 @@ class PruebasCatalogo(unittest.TestCase):
 
     def test_sin_cursos_excluidos(self):
         nombres = " ".join(normalizar_texto(c["nombre"]) for c in cargar_cursos())
-        for excluido in ("precalculo", "optativ", "humanidades", "repertorio", "actividad deportiva", "seminario de realidad"):
+        for excluido in ("optativ", "humanidades", "repertorio", "actividad deportiva", "seminario de realidad"):
             self.assertNotIn(excluido, nombres)
 
     def test_plantillas_sincronizadas(self):

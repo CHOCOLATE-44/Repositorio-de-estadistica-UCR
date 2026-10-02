@@ -17,6 +17,7 @@ body:
     attributes:
       label: Curso
       options:
+        - "MA-0001 — Precálculo"
         - "XS-0124 — Análisis exploratorio de datos"
         - "MA-0155 — Cálculo diferencial e integral I"
         - "MA-1004 — Álgebra lineal"
