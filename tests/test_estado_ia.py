@@ -30,12 +30,25 @@ class PruebasEstadoIA(unittest.TestCase):
         config = cargar_config()
         modelo = config["validacion"]["gemini_modelo"]
         limite = config["ia"]["limites_diarios"][modelo]
-        e = estado_ia.combinar({}, {modelo: limite}, set(), datetime(2026, 10, 2, 15, tzinfo=timezone.utc))
-        texto = estado_ia.cuerpo(e, config)
+        t = datetime(2026, 10, 2, 15, tzinfo=timezone.utc)
+        e = estado_ia.combinar({}, {modelo: limite}, set(), t)
+        texto = estado_ia.cuerpo(e, config, t)
         self.assertIn(f"{limite} de {limite}", texto)
         self.assertIn("🟡", texto)
         self.assertIn("01:00", texto)  # hora de Costa Rica
         self.assertEqual(json.loads(estado_ia.DATOS.search(texto).group(1)), e)
+
+    def test_se_oculta_hasta_la_fecha_de_inicio(self):
+        config = {**cargar_config(), "ia": {**cargar_config()["ia"], "mostrar_desde": "2026-10-02T07:00:00+00:00"}}
+        antes = datetime(2026, 10, 2, 6, 0, tzinfo=timezone.utc)
+        despues = datetime(2026, 10, 2, 7, 0, tzinfo=timezone.utc)
+        e = estado_ia.combinar({}, {"x": 5}, set(), antes)
+        texto = estado_ia.cuerpo(e, config, antes)
+        self.assertIn("02/10 a las 01:00", texto)
+        self.assertNotIn("| Uso |", texto)
+        self.assertIn("| Uso |", estado_ia.cuerpo(e, config, despues))
+        # al activarse ya cambió el día de la cuota: lo de antes no se cuenta
+        self.assertEqual(estado_ia.combinar(e, {}, set(), despues)["consultas"], {})
 
     def test_usos_agrupa_por_modelo(self):
         config = {"validacion": {"gemini_modelo": "a", "gemini_modelo_votos": "a", "gemini_modelo_preguntas": "b"}}
