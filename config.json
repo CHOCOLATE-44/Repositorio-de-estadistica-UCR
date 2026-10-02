@@ -9,7 +9,7 @@
   "validacion": {
     "gemini_modelo": "gemini-3.5-flash-lite",
     "gemini_modelo_votos": "gemini-3.1-flash-lite",
-    "gemini_modelo_preguntas": "gemini-3.8-flash",
+    "gemini_modelo_preguntas": "gemini-3.1-flash-lite",
     "usar_carta_estudiante": true,
     "exigir_carta": false,
     "min_temas_carta": 3,
@@ -29,8 +29,7 @@
     "_comentario": "Consultas gratis por día de cada modelo. Revíselas en https://aistudio.google.com/rate-limit",
     "limites_diarios": {
       "gemini-3.5-flash-lite": 500,
-      "gemini-3.1-flash-lite": 500,
-      "gemini-3.8-flash": 20
+      "gemini-3.1-flash-lite": 500
     }
   },
   "ranking": {
