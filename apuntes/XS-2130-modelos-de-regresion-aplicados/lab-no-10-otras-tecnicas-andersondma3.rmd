@@ -1,0 +1,495 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: console
+---
+
+\section{OTRAS TECNICAS}
+
+En este laboratorio se presentan 3 técnicas adicionales para tratar diferentes situaciones no estándar en los modelos de regresión. Primero se estudia la regresión LASSO para selección de variables en casos de multicolinealidad, luego se hace una introducción a la técnica de Bootstrap que permite evaluar la precisión de los estimadores con muestras pequeñas y, finalmente, se presenta la regresión LOESS para crear una curva suavizada en función de las variables predictoras sin seguir un modelo preestablecido.
+
+Se utiliza la librería `glmnet` (Friedman, Tibshirani & Hastie,2010) para la regresión LASSO.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Esperanza de vida}
+
+La descripción se encuentra en el Laboratorio No.6.
+
+\subsection*{Ejercicios}
+
+\subsubsection*{LASSO}
+
+1. Lea el archivo de datos con load("vida.Rdata") y conviertalo en un data.frame.
+
+```{r}
+setwd("~/UCR/IV Ciclo UCR estadistica/Regresion")
+load("vida.Rdata")
+base = as.data.frame(base)
+```
+
+
++ Defina un objeto "y" con la variable dependiente (esper) y un objeto "x" con todas las otras variables de la base como variables independientes. Asegúrese que "x" está definida como matriz.
+
+```{r}
+ x = as.matrix(base[,2:9])
+ y = base$esper
+```
+
+
++ Use la función `glmnet` de la librería `glmnet` para ajustar un modelo con regularización LASSO. Note que alpha=1 es la opción premedeterminada e indica que se está utilizando la penalización LASSO. Si se define alpha=0, se estaría aplicando la penalización Ridge.
+
+```{r}
+#install.packages("glmnet")
+library(glmnet)
+ mod1 = glmnet(x, y, alpha = 1)
+```
+
+
++ LASSO genera una serie de modelos.  Con la dimensión del modelo `dim(coef(modelo))` revise cuántos modelos distintos se generaron. Puede ver cada conjunto de coeficientes estimados mediante las columnas de `coef(modelo)`. Cuando aparece un punto, quiere decir que el coeficiente fue definido como 0. Vea los conjuntos de coeficientes para los primeros 3 modelos.
+
+
+```{r}
+ dim(coef(mod1))
+```
+
+```{r}
+coef(mod1)[,1:3]
+```
+
++ Observe los valores de $\lambda$ correspondientes a cada modelo con `modelo$lambda`. Recuerde que en LASSO penaliza la suma del valor absoluto de los coeficientes de regresión, siendo $\lambda$ el parámetro que controla la penalización aplicada a los coeficientes. Un valor mayor de $\lambda$ se traduce en una mayor penalización y esto hace que más coeficientes se vuelvan cero.
+
+```{r}
+head(round(mod1$lambda,2),10)
+```
+
+
+2. Observe cuántos coeficientes (y cuáles) se conservan a distintos valores de $log(\lambda)$. Haga un gráffico con `plot(modelo, "lambda", label=T)`. Este gráfico muestra la trayectoria que siguen los coeficientes conforme varía $log(\lambda)$. En la parte superior del gráfico se muestra el número de coeficientes a un valor específico de $\lambda$.  Observe que el coeficiente 1 (variable fecun) empieza tomando valores cercanos a -3, cuando $log(\lambda)$ es cercano a -4, estos valores van subiendo conforme $\lambda$ aumenta.
+
+```{r}
+ plot(mod1, "lambda", label=T)
+```
+
+
++ Elija uno de los posibles modelos generados mediante LASSO, extraiga el $\lambda$ correspondiente, obtenga su logaritmo y observe los coeficientes que conserva el modelo.  Puede elegir el modelo 30.  
+
+
+```{r}
+ mod1$lambda[30]
+```
+
+
+```{r}
+log(mod1$lambda)[30]
+```
+
+
+```{r}
+coef(mod1)[,30]
+```
+
+
++ Ubique estos valores en el gráfico anterior. Observe que para ese modelo, a la altura de $log(\lambda)$ correspondiente se marcan 4 coeficientes que corresponden a las variables 1, 2, 7 y 8 (fecun, dens, areasp y fecun.ado). En particular, la variable 1 (fecun) tiene un coeficiene igual a -2.52.
+
+```{r}
+plot(mod1, "lambda", label = T)
+ abline(v=log(mod1$lambda)[30])
+```
+
+
+\subsubsection*{Elección de $\lambda$ mediante validación cruzada}
+
+3. Para seleccionar uno de los modelos es común utilizar validación cruzada. Para LASSO (al igual que para Ridge), se puede utilizar la función `cv.glmnet(x,y)`. Para esto, es posible definir el numero de particiones (*folds*) en que se desea dividir el conjunto de datos. la función `cv.glmnet` tiene definido por defecto *nfolds=10*.  Haga la validación y guárdelo en un objeto llamado `cv_mod1`.
+
+```{r}
+ cv_mod1 = cv.glmnet(x, y)
+```
+
+
++  Haga un gráfico de los resultados mediante `plot(cv_mod1)`. Note que los puntos en rojo son los resultados obtenidos de la validación cruzada junto con su desviación estándar para cada valor de $\lambda$. Este gráfico también muestra (con las líneas punteadas verticales): el `lambda.min` (primera línea punteada) que indica el error cuadrático medio más pequeño obtenido con la validación cruzada y `lambda.1se` (segunda línea punteada) que es el valor máximo de $\lambda$, en el cual el error cuadrático medio de validación cruzada se encuentra a una desviación estándar del error cuadrático medio más pequeño.   Observe el número de variables que tiene el modelo con `lambda.1se` y el valor aproximado de $log(\lambda)$.
+
+```{r}
+ plot(cv_mod1)
+```
+
+
++ Extraiga los coeficientes obtenidos con los modelos para `lambda.min` y `lambda.1se`.  Para esto use `coef(cv_mod1, s="lambda.min")` o `coef(cv_mod1, s="lambda.1se")`.
+
+```{r}
+coefs_min = coef(cv_mod1, s = "lambda.min")
+coefs_1se = coef(cv_mod1, s = "lambda.1se")
+round(coefs_min,2)
+```
+
+```{r}
+round(coefs_1se,2)
+```
+
+```{r}
+set.seed(123)          # para que los cortes sean reproducibles
+n <- nrow(base)
+k <- 10
+
+indices <- sample(1:n)  # mezcla aleatoria de las filas
+fold_ids <- cut(seq_along(indices), breaks = k, labels = FALSE)
+
+cortes <- split(indices, fold_ids)
+
+```
+
+
+```{r}
+# vector para guardar los residuales externos
+residuales_externos <- rep(NA, n)
+
+for(i in 1:k){
+  test_idx  <- cortes[[i]]
+  train_idx <- setdiff(1:n, test_idx)
+  
+  train <- base[train_idx, ]
+  test  <- base[test_idx, ]
+
+  # ajustar el modelo con la base “train”
+  mod <- lm(esper ~ ., data = train)
+  
+  # valores ajustados para los datos de “test”
+  y_pred <- predict(mod, newdata = test)
+  
+  # residuales externos
+  residuales <- test$esper - y_pred
+  
+  residuales_externos[test_idx] <- residuales
+}
+
+#lo pruebo
+residuales_externos
+ECM <- mean(residuales_externos^2)
+ECM
+
+```
+
+
++ Compare el modelo obtenido mediante LASSO con `lambda.1se`, contra un modelo seleccionado usando el AIC.
+
+```{r}
+mod2 = step(lm(esper~., base))
+```
+
+
+```{r}
+summary(mod2)$coef
+```
+
+
+```{r}
+ modlasso = lm(esper~fecun+fecun.ado,base)
+ summary(modlasso)$coef
+```
+
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Presión sanguínea}
+
+Se toman 54 mujeres adultas entre 20 y 60 años y se les mide la presión sanguínea diastólica para ver su relación con la edad.
+  
+\subsection*{Ejercicios}
+
+\subsubsection*{Bootstrap}
+
+4. Lea el archivo de datos con `load("presang.Rdata")`. Haga una función que tome como inputs: Y y X, y que haga los siguientes pasos:
+
++ Estime un modelo `lm(Y~X)`.
++ Obtenga los valores absolutos de los residuales de ese modelo y los guarde en `r`.
++ Estime un modelo `lm(r~X)`.
++ Obtenga los valores estimados de este modelo y los guarde en `s`.
++ Construya el vector de pesos mediante:
+
+$$w_i=\frac{1}{\hat{s}_i^2}$$
+
++ Estime el modelo con los pesos mediante: `lm(Y~X,weigths=w)`.
++ Devuelva los coeficientes estimados y sus errores estándar.
+
+```{r}
+ load("presang.Rdata")
+ mcp=function(Y,X){
+ mod=lm(Y~X)
+ r=abs(mod$res)
+ modres=lm(r~X)
+ s=modres$fit
+ w=1/s^2
+ mod1=lm(Y~X,weights = w)
+ b=summary(mod1)$coef[,1:2]
+ return(b)
+ }
+```
+
+  
+5. Aplique la función a los datos de la base.
+
+```{r}
+ round(mcp(base$Presion,base$Edad),2)
+```
+
+
+6. Seleccione una muestra con reemplazo de n elementos de la base.
+
+```{r}
+ n=nrow(base)
+ muestra=sample(1:n,n,replace=T)
+ base1=base[muestra,] #Muestra tipo Boopstrap
+```
+
+
++ Cree una matriz vacia con 200 filas y 2 columnas. Llame a la matriz B. Aplique la función creada tomando `Y=Presion` y `X=Edad`.  Almacene los coeficientes en la primera fila de la matriz B.
+
+
+```{r}
+ K=200 # 200 muestra de Boopstrap
+ B = matrix(nrow=K,ncol=2) #El Numero de columnas es igual al número de coeficientes
+```
+
+
++ Repita el procedimiento 200 veces y cada vez almacene los coeficientes en una fila de B.
+
+```{r}
+ for(i in 1:K){
+ muestra=sample(1:n,n,replace=T)
+ base1=base[muestra,]
+ Y=base1$Presion
+ X=base1$Edad
+ B[i,] = mcp(Y,X)[,1]
+ }
+ round(apply(B,2,sd),3)
+```
+
+
+```{r}
+ b=apply(B,2,quantile,probs=c(0.025,0.975))
+ b
+```
+
+```{r}
+plot(density(B[,1]),xlab="",ylab="densidad",
+ main="Distribución de interceptos")
+ abline(v=b[,1],col=4,lty=2)
+```
+
+
+```{r}
+ plot(density(B[,2]),main="Distribución de pendientes",xlab="",ylab="densidad")
+ abline(v=b[,2],col=4,lty=2)
+```
+
+
++ Obtenga las desviaciones estándar de los coeficientes y compárelas con los errores estándar obtenidos con MCP.
+
+```{r}
+ sd.boot=round(apply(B,2,sd),3)
+ mod=lm(Presion~Edad,base)
+ r=abs(mod$res)
+ modres=lm(r~base$Edad)
+ s=modres$fit
+ w=1/s^2
+ mod1=lm(Presion~Edad,weights =w,base)
+ ee.mcp=round(summary(mod1)$coef[,2],3)
+ data.frame(sd.boot,ee.mcp)
+```
+
+```{r}
+ round(mcp(base$Presion,base$Edad)[,2],3) #Metodo de WLS este nunca cambia
+```
+
+
++ Construya intervalos de confianza para los coeficientes y compárelos con los que se obtienen mediante la estimación de MCP.
+
+```{r}
+bj=mod1$coef
+bj
+```
+
+```{r}
+ d1=bj-b[1,]
+ d2=b[2,]-bj
+ ic.boot=cbind(bj-d2,bj+d1) # 2*bj-b[2,], #2*bj-b[1,]
+ ic.mcp=confint(mod1)
+ ic=data.frame(ic.boot,ic.mcp)
+ names(ic)=c("LI.boot","LS.boot","LI.mcp","LS.mcp")
+ round(ic,3)
+```
+
+
+
+```{r}
+ nowls=function(Y,X){
+ mod=lm(Y~X)
+ # r=abs(mod$res)
+ # modres=lm(r~X)
+ # s=modres$fit
+ # w=1/s^2
+ # mod1=lm(Y~X,weights = w)
+ b=summary(mod)$coef[,1:2]
+ return(b)
+ }
+
+ K=200 # 200 muestra de Boopstrap
+ B = matrix(nrow=K,ncol=2) 
+
+ for(i in 1:K){
+ muestra=sample(1:n,n,replace=T)
+ base1=base[muestra,]
+ Y=base1$Presion
+ X=base1$Edad
+ B[i,] = nowls(Y,X)[,1]
+ }
+ round(apply(B,2,sd),3)
+```
+
+  
+```{r}
+ sd.boot=round(apply(B,2,sd),3)
+ # mod=lm(Presion~Edad,base)
+ # r=abs(mod$res)
+ # modres=lm(r~base$Edad)
+ s=modres$fit
+ w=1/s^2
+ mod1=lm(Presion~Edad,base)
+ eenowls=round(summary(mod1)$coef[,2],3)
+ data.frame(sd.boot,eenowls)
+```
+  
+
+```{r}
+ b=apply(B,2,quantile,probs=c(0.025,0.975))
+ b
+```
+
+
+```{r}
+ d1=bj-b[1,]
+ d2=b[2,]-bj
+ ic.boot=cbind(bj-d2,bj+d1) # 2*bj-b[2,], #2*bj-b[1,]
+ ic.mcp=confint(mod1)
+ ic=data.frame(ic.boot,ic.mcp)
+ names(ic)=c("LI.boot","LS.boot","LI.ols","LS.ols")
+ round(ic,3)
+```
+\newpage
+
+\subsection*{Leche}
+
+La descripción se encuentra en el Laboratorio No.7.
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Regresión local}
+
+7. Lea el archivo de datos con `load("leche.Rdata")`.  Analice visualmente la relación entre la variable **produccion** y **peso**. Para esto utilice la función `scatterplot` de la librería `car`.
+
+```{r}
+ load("leche.Rdata")
+ library(car)
+ scatterplot(base$peso, base$produccion,ylab="Producción (kg)",
+ xlab="Peso (kg)")
+```
+
+
++ El gráfico muestra a) la línea de regresión siguiendo un modelo paramétrico, y b) una línea suavizada de regresión no paramétrica. Dicha línea suavizada es el resultado de realizar un ajuste localmente, es decir, se consideran las observaciones cercanas (vecinos) a un punto determinado para realizar el ajuste en ese punto.  Para realizar este ajuste se definen "ventanas" para determinar cuántos vecinos se utilizarán. Esas ventanas pueden modificarse con `smooth = list(span= ))`. Pruebe con distintos valores de `span` (e.g., 0.3, 0.7, 0.8) y observe cómo cambian las líneas suavizadas y los intervalos alrededor de la linea suavizada. Note que con `span=0.7` se produce un gráfico igual al original. 
+
+```{r}
+scatterplot(base$peso, base$produccion,ylab="Producción (kg)",
+ xlab="Peso (kg)",smooth = list(span= 0.3))
+```
+
+```{r}
+ scatterplot(base$peso, base$produccion,ylab="Producción (kg)",
+ xlab="Peso (kg)",smooth = list(span= 0.7))
+```
+
+```{r}
+scatterplot(base$peso, base$produccion,ylab="Producción (kg)",
+ xlab="Peso (kg)",smooth = list(span= 0.8))
+```
+
+
+8. Utilice la función `loess` para ver los valores ajustados a partir de la regresión no paramétrica. Cambie la "ventana" de ajuste con el argumento `span`.
+
+```{r}
+ mod_loess1 = loess(produccion ~ peso, data=base)
+ fit01=head(mod_loess1$fitted)
+ mod_loess03 = loess(produccion ~ peso, data=base, span=0.3)
+ fit03=head(mod_loess03$fitted)
+ mod_loess07 = loess(produccion ~ peso, data=base, span=0.7)
+ fit07=head(mod_loess07$fitted)
+ mod_loess08 = loess(produccion ~ peso, data=base, span=0.8)
+ fit08=head(mod_loess08$fitted)
+```
+
+
+```{r}
+ round(data.frame(fit01,fit03,fit07,fit08),2)
+```
+
+
++ La función `loess` tiene la desventaja de que permite incluir máximo 4 predictores.Incluya en el modelo 4 predictores y compare los valores predichos con los de un modelo paramétrico.
+
+```{r}
+ mod_loess = loess(produccion ~ peso+edad+alimento+partos,
+ data=base, span=0.8)
+ fit=head(mod_loess$fitted)
+ mod_lm = lm(produccion ~ peso+edad+alimento+partos, data=base)
+ fit_lm=head(predict(mod_lm))
+ round(data.frame(fit,fit_lm),2)
+```
+
+
++ Obtenga la Suma de Cuadrados Residual de ambos modelos y compárelas. Trate de representar los residuales de ambos modelos en un solo gráfico para comprender por qué la SCRes da mayor en un caso que en el otro.
+
+```{r}
+ y_loess=mod_loess$fitted
+ y_lm=predict(mod_lm)
+ res_loess=base$produccion-y_loess
+ res_lm=base$produccion-y_lm
+ scres_loess=sum(res_loess^2)
+ scres_lm=sum(res_lm^2)
+ c(scres_loess,scres_lm)
+```
+
+```{r}
+matplot(cbind(abs(res_loess),-abs(res_lm)),type="h",lty=1,ylab="residual")
+ legend("topright",c("loess","paramétrico"),
+ col=1:2,lty=1,bty="n")
+```
+
+
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Recapitulación}
+
++ ¿Cuáles funciones utilizó en este laboratorio?
++ ¿Cómo se encuentra el $\lambda$ de un modelo con LASSO?
++ ¿Cómo se interpreta el gráfico que se obtiene automáticamente cuando se usa LASSO?
++ ¿Cómo se realiza la validación cruzada con LASSO?
++ ¿Cómo se selecciona un buen modelo con LASSO?
++ ¿Cómo se obtiene la distribución de los coeficientes con bootstrap?
++ ¿Cómo se obtienen los intervalos de confianza para los coeficientes con bootstrap?
++ ¿Cómo se modifican las ventanas para la regresión no paramétrica?
++ ¿Cómo se obtienen los valores ajustados con loess?
+
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+

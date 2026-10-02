@@ -1,0 +1,325 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: console
+---
+
+\section{PREDICTORES CATEGÓRICOS}
+
+En este laboratorio se empiezan a utilizar variables categóricas combinadas con variables numéricas dentro de las variables independientes.  Se presenta el caso en que la variable categórica tiene solo 2 categorías con el ejemplo que se ha venido trabajando en los laboratorios anteriores sobre **velocidad de nado**. Luego se incluye un nuevo ejemplo sobre **tráfico** en el que la variable categórica tiene 4 categorías.  Dentro del análisis se pueden comparar las pendientes de las diferentes categorías o se pueden fijar valores de la variable independiente continua para comparar las medias para las categorías de la variable categ    órica.
+
+Se utiliza la librería lattice (Sarkar, 2008) para visualización de interacciones.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Velocidad de nado - sexo con 2 categorías}
+
+La descripción se encuentra en el Laboratorio No.1.
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Lectura y definición de la variable categórica}
+
+1. Lea el archivo de datos con `load("velo.Rdata")`. 
+```{r}
+ setwd("C:/Users/ETLP/OneDrive/Documentos/UCR/IV Ciclo UCR estadistica/Regresion")
+load("velo.Rdata")
+```
+
+
++ Defina la variable **sexo** como factor. Puede hacer `base$sexo = factor(base$sexo)`.
+```{r}
+base$sexo = factor(base$sexo)
+```
+
+
++ Etiquete cada nivel sabiendo que los códigos de sexo corresponden a 0 para mujer y 1 para hombre. Use `levels(base$sexo)=c("mujer","hombre")` de tal forma que la primera etiqueta la asigna a los 0´s y la segunda a los 1´s. 
+
+```{r}
+levels(base$sexo)=c("mujer","hombre")
+```
+
+
++ Para asegurarse qué código se ha asignado a cada categoría de sexo use `contrasts(base$sexo)`.
+
+
+```{r}
+contrasts(base$sexo)
+```
+
+
+**Se observa que la categoría de referencia, es decir, codificada con 0 es mujer, mientras que hombre tiene un 1**
+
+\subsubsection*{Análisis gráfico con variable categórica y continua}
+
+2. Vamos a modelar la respuesta de la velocidad promedio en función de la edad pero vamos a incluir el sexo ya que se podría esperar resultados diferentes para hombres y para mujeres.  
+
++ Haga un gráfico donde se muestre la velocidad en función de la edad pero donde se reconozcan los hombres y las mujeres.  Use la función `xyplot` de la librería `lattice` y agregue el parámetro `groups=sexo`.  En este caso se agrega el parámetro `auto.key=T` para que queden etiquetados los puntos según su sexo. 
+
+```{r}
+library(lattice)
+ xyplot(veloc~edad,groups=sexo,type=c("p","r"),pch=18,
+ ylab="velocidad",auto.key=T,data=base)
+```
+
+
++ Observe si se puede esperar que el decrecimiento en la velocidad promedio sea más fuerte en un sexo que en el otro.  ¿Se puede esperar una interacción entre sexo y edad?
+
+**La pendiente para los hombres es levemente más pronunciada que para las mujeres por lo que se nota que al aumentar la edad, la velocidad promedio de los hombres decrece más rápido que las mujeres. Sin embargo, esta diferencia en las pendientes es pequeña, no es tan clara y debería verificarse. La interacción entre sexo y edad es esa diferencia en pendientes, entonces, si se comprueba que las dos pendientes son diferentes se podría decir que sí hay interacción.**
+ 
+\subsubsection*{Modelo con interacción entre variable categórica y continua}
+
+3. Escriba el modelo que incluye la interacción entre sexo y edad.
+
+$$\mu_{Y|Edad,Sexo}=\beta_0+\beta_1Edad+\beta_2Sexo+\beta_3Sexo\times Edad$$
+
++ Estime los parámetros del modelo y escriba las ecuaciones correspondientes a cada sexo. Para incluir la interacción puede agregar `edad*sexo` en cuyo caso ya quedarían incluidas **edad** y **sexo** individualmente. También se puede indicar la interaccón con `edad:sexo`.
+
+```{r}
+mod1=lm(veloc~edad+sexo+edad:sexo,data=base)
+round(mod1$coef,3)
+```
+
+**Mujer:**
+$$\hat{y}_{Edad,Mujer} = 1,707-0,017Edad$$
+**Hombre:**
+
+$$\hat{y}_{Edad,Hombre} = 1,707+0,0306+(-0,017-0,004) Edad = 2,013 -0,021Edad $$
+
++ Compare las pendientes de edad para hombres y mujeres. ¿Coincide esto con lo observado en el gráfico?
+
+**La pendiente de los hombres es-0.021 y la de las mujeres-0.017. Es levementemás pronunciada la de los hombres lo que coincide con el gráfico**
+ 
++ Usando el `summary` haga la prueba de la hipótesis de interacción nula entre sexo y edad.
+
+```{r}
+ summary(mod1)
+```
+
+**La probabilidad asociada a la hipótesis** $H_0 :\beta_3 = 0 $ **es 0.61. Al ser tan alta se decide no rechazar esa hipótesis manteniendo un nivel de significancia de 0.05.Entonces se asume que no hay interacción entre sexo y edad, es decir, aunque en las líneas muestrales queda una pequeña interacción se puede asumir que las líneas poblacionales son paralelas**
+
++ ¿Por qué esta prueba se puede hacer usando el `summary`?
+
+**La razón por la que esta prueba se logra hacer con los resultados que da el summary es porque la interacción sólo agrega un parámetro al modelo sin interacción, esto hace que la prueba t de este resultado sea equivalente a la prueba F cuando se comparan dos modelos.**
+
+\subsubsection*{Modelo sin interacción entre variable categórica y continua}
+
+4. Escriba el modelo sin interacción entre sexo y edad.
+
+$$\mu_{Y|Edad,Sexo}= \beta_0+\beta_1Edad+\beta_2Sexo$$
+
++ Estime los parámetros del modelo y escriba las ecuaciones correspondientes a cada sexo.
+
+```{r}
+mod2=lm(veloc~edad+sexo,data=base)
+ round(mod2$coef,3)
+```
+
+**Mujer:**
+$$\hat{y}_{Edad,Mujer} = 1,781-0,020Edad$$
+
+**Hombre:**
+$$\hat{y}_{Edad,Hombre} = 1,781+0,203+-0,020 Edad = 1,984 -0,020Edad $$
++ Compare las pendientes de edad para hombres y mujeres. ¿Coincide esto con lo observado en el gráfico?
+
+**La pendiente para los hombres es igual al de las mujeres (-0.020). Esta pendiente está en el centro de las que se ven en el gráfico pero no es ni una ni la otra**
+
++ Compare el modelo sin interacción contra el modelo con interacción mediante la prueba F.  Analice el aporte marginal que da la interacción.
+
+```{r}
+ anova(mod2,mod1)
+```
+
+**La Suma de Cuadrados de Regresión Marginal de la interacción después de que han entrado edad y sexo es tan solo 0.0075. Al obtener el valor se obtiene 0.267 el cual es extremadamente bajo y tiene una probabilidad asociada de 0.61. Esta probabilidad lleva a no rechazar la hipótesis nula ya que habría mucho riesgo de estar cometiendo un error si se rechazara la hipótesis de que ambos modelos explican lo mismo. Ya que no se puede decir que un modelo con interacción explique más que uno sin interacción se concluye que la interacción no está dando un aporte importante al modelo y se prefiere trabajar con un modelo más simple que no considere tal interacción**
+
+\subsubsection*{Comparación de promedios}
+
+5. Compare la velocidad promedio de hombres contra mujeres para un edad fija.
+
+**Ya que no hay interacción, el ** $\beta_2$ **da la diferencia entre el promedio de velocidad de los hombres respecto al de la mujeres. Entonces en promedio los hombres nadan 0.203m/s más rápido que las mujeres**
+
++ Construya un intervalo de confianza para esta diferencia.
+
+```{r}
+ round(confint(mod2)[3,],2)
+```
+
+**Con 95% de confianza se puede esperar que los hombres naden entre 0.06 y 0.34m/s más rápido que las mujeres**
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Tráfico - tipo de carretera con 4 categorías}
+
+Interesa analizar el tráfico para realizar el planeamiento de autopistas, diseño, control de tráfico, asignación de presupuesto, etc.
+Se quiere estudiar el efecto del tipo de carretera (4 categorías) en el promedio anual de tráfico diario como variable respuesta. Se usa como respuesta el logaritmo del tráfico diario.
+Se toman en cuenta otra variable que influye: población del condado por donde pasa la sección de carretera analizada como el mejor proxy de la densidad de población en el vecindario.
+El tipo de carretera tiene 4 categorías (tipo) codificadas como:
+
+  + Rural interestatal.
+  + Rural no-interestatal.
+  + Urbana interestatal.
+  + Urbana no-interestatal.
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Lectura y definición de la variable categórica}
+
+6. Lea el archivo de datos con `load("trafico.Rdata")`.  Cree la variable respuesta que será el logaritmo de trafico y llámela **logtraf**. Defina la variable **tipo** como factor y etiquete cada nivel. 
+
+```{r}
+load("trafico.Rdata")
+ base$logtraf=log(base$trafico)
+ base$tipo=factor(base$tipo)
+ levels(base$tipo)=c("RI","RNI","UI","UNI")
+```
+
+
+\subsubsection*{Análisis gráfico con variable categórica y continua}
+
+7. Haga un gráfico donde se muestre el logaritmo del tráfico diario  en función de la población pero donde se reconozcan los 4 tipos de carretera.
+
+```{r}
+ library(lattice)
+ xyplot(logtraf~pob,groups=tipo,type=c("p","r"),pch=18,auto.key = T,data=base)
+```
+
+
++ Obtenga el número de datos en cada tipo de carretera. Use `table(base$tipo)`.
+
+```{r}
+ table(base$tipo)
+```
+
+
++ Basado en estas cantidades, ¿qué tanto se puede confiar en la estimación de la pendiente para cada tipo de carretera? 
+
+**El tipo RI tiene muy pocos datos por lo que la estimación de su pendiente es menos confiable**
+
++ Con base en el gráfico, ¿se podría esperar interacción entre población y tipo de carretera? 
+
+
+**Las rectas de tipo RNI, UI y UNI son bastante paralelas. La que no es paralela es la de tipo RI pero la pendiente de este tipo tiene más variabilidad por lo que se podría pensar que no necesariamente vaya a haber interacción**
+
+\subsubsection*{Modelo con interacción entre variable categórica y continua}
+
+8. Para la inclusión de la variable categórica **tipo** se deben incluir 3 variables binarias. Primero verifique cuál es la categoría de referencia usando `contrasts(tipo)`.
+
+```{r}
+contrasts(base$tipo)
+```
+
+
++ Ya que la referencia es el tipo RI, se crea una variable binaria para cada uno de los otros tipo. El modelo con interacción  se escribe de la siguiente forma:
+
+$$\mu_{pob,tipo}=\beta_0+\beta_1 pob+\beta_2 RNI+\beta_3 UI+\beta_4 UNI+\beta_5 pob \times RNI+\beta_6 pob \times UI+\beta_7 pob \times UNI$$
+
++ Estime los parámetros de este modelo (use 6 decimales).
+
+```{r}
+ mod3 = lm(logtraf~pob*tipo,data=base)
+ round(mod3$coef,6)
+```
+
+
++ Escriba las ecuaciones para cada tipo de carretera.
+
+**RI:**
+
+$$\hat{y}_{pob,RI} = 9,326493 +0,000006$$
+**RNI:**
+
+$$\hat{y}_{pob,RNI} = 9,32 -1,85 + (0,000006- 0,000005) = 7,47 + 0,000001$$
+
+**UI:**
+
+$$\hat{y}_{pob,RNI} = 9,32+ 0.87 + (0,000006- 0,000005) = 10,19 + 0,000001$$
+
+**UNI**
+
+$$\hat{y}_{pob,RNI} = 9,32+ 0.87 + (0,000006- 0,000005) = 8,87 + 0,000001$$
+
+\subsubsection*{Modelo sin interacción entre variable categórica y continua}
+
+9. Escriba el modelo sin interacción y estime sus parámetros.
+
+$$\mu_{pob,tipo} =  \beta_0+ \beta_1pob +\beta_2RNI+\beta_3UI+\beta_4UNI$$
+```{r}
+ mod4 = lm(logtraf~pob+tipo,data=base)
+ round(mod4$coef,6)
+```
+
+
++  Compare los dos modelos y concluya si se puede asumir que no hay interacción entre población y tipo de carretera
+
+```{r}
+ anova(mod4,mod3)
+```
+
+**La Suma de Cuadrados de Regresión Marginal de la interacción dada la po blación y el tipo de carretera es 0.41, lo cual es muy bajo pues la F=0.16 y la probabilidad asociada es demasiado alta (p=0.92). Por lo tanto no se rechaza la hipótesis nula y se asume que no hay interacción**
+
++ ¿Tiene sentido este resultado con el gráfico inicial?
+
+**A pesar de que en el gráfico había una línea que no se veía tan paralela a las demás, esa era la línea que correspondía al tipo con menos datos por lo que no es tan confiable esa pendiente. No se obtiene un resultado como lo que se veía en el gráfico debido a esa debilidad en los datos.**
+
++ Observe los grados de libertad de la F y comente si esta prueba se podría obtener del `summary`.
+
+**La F tiene 3 y 113 grados de libertad. Puesto que los grados de libertad del numerador son diferentes de 1 no se puede usar la prueba t del summary**
+
+\subsubsection*{Comparación de promedios}
+
+10. Usando el modelo sin interacción, calcule la diferencia en el logaritmo del tráfico entre cada par de tipos de carretera. Para facilidad de interpretación ponga siempre de primero la categoría que tiene un coeficiente más alto en cada par de comparaciones.
+
+**Primero se deben obtener las expresiones para cada par de diferencias de medias:**
+
+$$\mu_{y|pob,RI}-\mu_{y|pob,RNI} = -\beta_2\\ \ \mu_{y|pob,UI}-\mu_{y|pob,RI} = \beta_3\\\mu_{y|pob,RI}-\mu_{y|pob,UNI} = -\beta_4\\ \mu_{y|pob,UI}-\mu_{y|pob,RNI} = \beta_3-\beta_2\\\mu_{y|pob,UNI}-\mu_{y|pob,RNI} = \beta_4 -\beta_2\\ \mu_{y|pob,UI}-\mu_{y|pob,UNI} = \beta_3-\beta_4$$
+
+**Los resultados son los siguientes:**
+
+```{r}
+b=mod4$coef
+ dif=matrix(c(-b[3],b[4],-b[5],b[4]-b[3],b[5]-b[3],b[4]-b[5]),ncol=1)
+ row.names(dif)=c("RI/RNI","UI/RI","RI/UNI","UI/RNI","UNI/RNI","UI/UNI")
+ round(dif,2)
+```
+
++ Transforme estos resultados a la variable original y dé una interpretación.
+```{r}
+ round(exp(dif),1)
+```
+
+## Código para ver que pasa si se quita la interacción
+
+```{r}
+drop1(mod3,test = "F")
+```
+
+
+**Estos valores representan el cociente entre dos medias de tráfico para un tamaño de población fijo. Por ejemplo, el 8.8 indica que la media de tráfico del tipo de carretera RI es 8.8 veces la media del tipo RNI, manteniendo la población constante. La mayor diferencia está entre tipo UI y RNI pues la primera tiene una media 17.3 veces la segunda**
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Recapitulación}
+
++ ¿Cuáles funciones utilizó en este laboratorio?
++ ¿Cómo se incluye la interacción en un modelo?
++ ¿Cómo se prueba la hipótesis relativa a la interacción?
++ ¿Cómo se obtienen las ecuaciones para cada categoría cuando hay interacción?
++ ¿Cómo se obtienen las ecuaciones para cada categoría cuando no hay interacción?
++ ¿Cómo se comparan las medias de las dos categorías cuando no hay interacción?
++ ¿Cómo se incluye la variable categórica en el modelo cuando hay más de dos categorías?
++ ¿Cómo se hacen las comparaciones de medias entre pares de categorías cuando hay más de dos categorías?
++ ¿Cómo se hace la interpretación final si la variable respuesta fue transformada a logaritmo?
+
+\begin{center}
+\noindent\hrule
+\end{center}

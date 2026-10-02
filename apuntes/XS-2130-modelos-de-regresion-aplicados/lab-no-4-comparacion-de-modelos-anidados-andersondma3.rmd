@@ -1,0 +1,336 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: inline
+---
+
+\section{COMPARACIÓN DE MODELOS ANIDADOS}
+
+En este laboratorio se introduce el coeficiente de determinación para medir el porcentaje de variabilidad que explica un modelo de regresión con respecto a la variabilidad total de la respuesta.  Se estudia el aporte marginal de las variables que entran al modelo después de otras variables y se hacen comparaciones de modelos anidados mediante el estadístico F.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Velocidad de nado}
+
+La descripción se encuentra en el Laboratorio No.1.
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Coeficiente de determinación}
+
+1. Lea el archivo de datos con `load("velo.Rdata")`. Vamos a utilizar tres modelos, 1) uno con los 4 predictores numéricos, 2) uno con solo 3 predictores (eliminaremos edad), 3) uno solo con la edad. Ajuste los tres modelos.
+```{r}
+setwd("D:/")
+load("velo.Rdata")
+mod1=lm(veloc~edad+imc+pierna+brazo,data=base)
+mod2=lm(veloc~imc+pierna+brazo,data=base)
+mod3=lm(veloc~edad,data=base)
+```
+
+
++ Obtenga la Suma de Cuadrados Total en cada modelo. Para esto vea en el **anova** la columna llamada **Sum Sq** y sume todos sus componentes.
+```{r}
+sct1=sum(anova(mod1)[,2])
+sct2=sum(anova(mod2)[,2])
+sct3=sum(anova(mod3)[,2])
+c(sct1,sct2,sct3)
+```
+
++ ¿Por qué el resultado es el mismo en los 3 modelos?
+**Respuesta profe: La razón deque laSCT sea lamisma en los 3 modelos es porque esta cantidad
+no dependedelmodelo,dependesólodelavariablerespuestayladistancia
+que haydecadavelocidadrespectoasumediasinimportarcuálesvariablesse
+incluyenenelmodelo.Dehecho,estacantidadsepuedecalcularantesdehacer
+cualquier modelo.**
+
+
++ Obtenga ese mismo resultado a partir de la variancia de la respuesta.
+```{r}
+n=nrow(base)
+(n-1)*var(base$veloc)
+```
+
+
+2. Obtenga la Suma de Cuadrados de Regresión en cada modelo. Recuerde que previamente necesita los valores ajustados de la media condicional y debe comparar estos valores con la media de la respuesta no condicional, es decir `mean(veloc)`. 
+
+```{r}
+m=mean(base$veloc)
+fit1=predict(mod1)
+fit2=predict(mod2)
+fit3=predict(mod3)
+screg1=sum((fit1-m)^2)
+screg2=sum((fit2-m)^2)
+screg3=sum((fit3-m)^2)
+round(c(screg1,screg2,screg3),2)
+```
+
+
++ ¿Qué representa cada uno de estos valores? ¿Al compararlos qué concluye?
+
+**Respuesta profe: Se tienequelaSCTotes1.73yestosmodeloslogranexplicarunaparte
+de estavariabilidad,elprimeroexplica1.08queeselquemásexplica,luego
+el terceroexplica0.74yelsegundoexplicamenosquetodosconsolo0.17.El
+primero explicamásporquetienemásvariables,elterceroaunquesólotieneuna
+variablealtratarsedeedadexplicamásqueelsegundoquetiene3variablespues
+la edadeslavariablemásimportanteenelcomportamientodelavelocidad.**
+
+3. Obtenga la estimación de la variancia condicional de la velocidad en cada caso. Usando el comando `anova(mod)` puede obtener información relevante. También obtenga la Suma de Cuadrados Residual de cada modelo. 
+
+```{r}
+cmr1=anova(mod1)[5,3]
+cmr2=anova(mod2)[4,3]
+cmr3=anova(mod3)[2,3]
+round(c(cmr1,cmr2,cmr3),2)
+```
+
+```{r}
+scres1=anova(mod1)[5,2]
+scres2=anova(mod2)[4,2]
+scres3=anova(mod3)[2,2]
+round(c(scres1,scres2,scres3),2)
+```
+
+
++ Sume la Suma de Cuadrados de Regresión más la Suma de Cuadrados Residual de cada modelo y compare estas sumas con la Suma de Cuadrados Total.
+
+```{r}
+screg1+scres1
+```
+
+```{r}
+screg2+scres2
+```
+
+```{r}
+screg3+scres3
+```
+
+4. Obtenga el coeficiente de determinación múltiple de cada modelo y explique por qué en unos casos es más alto que en otros.
+
+```{r}
+R1=1-scres1/sct1
+R2=1-scres2/sct2
+R3=1-scres3/sct3
+round(c(R1,R2,R3),2)
+```
+
+
++ Verifique que puede obtener el coeficiente de determinación de forma automática usando `summary(mod)$r.sq`.
+
+```{r}
+round(c(summary(mod1)$r.sq,summary(mod2)$r.sq,summary(mod3)$r.sq),2)
+```
+
+
+\subsubsection*{Aporte marginal}
+
+5. Obtenga el aporte de las variables **imc**, **pierna** y **brazo** después de haber entrado **edad**. Esto sería la Suma de Cuadrados de Regresión Marginal de **imc, pierna y brazo dado edad**.  Para esto compare el modelo que tiene todas las variables y el modelo que tiene solo edad.
+```{r}
+scres3-scres1
+```
+
+
++ Ahora obtenga el aporte contrario, es decir, lo que aporta **edad** después de haber entrado las otras 3 variables. En este caso debe comparar el modelo con todas las variables contra el modelo que tiene sólo las 3 variables.
+
+```{r}
+scres2-scres1
+```
+
+
++ Compare este último resultado con el aporte que tiene **edad** sola.
+```{r}
+screg3
+```
+
+6. Ahora haga tres nuevos modelos, el primero va a contener **brazo** y **pierna** pero en el orden es **brazo+pierna**.  Los otros dos modelos contienen solo una de las variables.
+
+```{r}
+mod4=lm(veloc~brazo+pierna,data=base)
+mod5=lm(veloc~brazo,data=base)
+mod6=lm(veloc~pierna,data=base)
+```
+
+
++ Obtenga el aporte de pierna cuando entra sola.
+
+```{r}
+anova(mod6)
+```
+
+
++ Obtenga el aporte de pierna después de brazo. Observe que este resultado se reporta en el `anova` del modelo donde pierna está de segundo (brazo+pierna).
+
+```{r}
+anova(mod5)[2,2]-anova(mod4)[3,2]
+```
+
+
+```{r}
+anova(mod4)
+```
+```{r}
+mod4.2 = lm(veloc~pierna+brazo, data = base)
+```
+
+
+\subsubsection*{Comparación de modelos}
+
+7. Compare el modelo que tiene todas las variables contra el modelo que tiene solo la edad.  Escriba la hipótesis nula al comparar estos dos modelos. Escriba la hipótesis alternativa.
+
+**La hipótesis nula es:**
+
+$$H_0: \beta_3 = \beta_4 = \beta_5 = 0 $$
+
+Esto nos quiere decir que las variables no explican nada después de la edad (o las variables del modelo pequeño)
+
+Lo contrario es: Al menos una de las variables explica después de la edad (o las variables del modelo pequeño)
+
++ Construya manualmente el estadístico F a partir de las Sumas de Cuadrados Residuales de esos dos modelos.
+
+```{r}
+num=(scres3-scres1)/3
+den=cmr1
+F=num/den
+round(F,2)
+```
+
++ Obtenga la probabilidad asociada al valor F obtenido anteriormente. Para esto use `1-pf(F,glnum,glden)`.
+
+```{r}
+1-pf(F,3,25)
+```
+
++ Obtenga automáticamente los resutados anteriores usando el comando `anova` anidando los dos modelos: `anova(modpequeño,modgrande)`.
+
+```{r}
+anova(mod3,mod1)
+```
+
+
++ Dé una conclusión.
+
+8. Ahora compare el modelo que tiene todas las variables contra el modelo que se le ha eliminado la variable **edad**.  Escriba la hipótesis nula al comparar estos dos modelos. Escriba la hipótesis alternativa.
+
++ Construya manualmente el estadístico F a partir de las Sumas de Cuadrados Residuales de esos dos modelos.
+```{r}
+num=(scres2-scres1)/1
+den=cmr1
+F=num/den
+round(F,2)
+```
+
++ Obtenga la probabilidad asociada al valor F obtenido anteriormente.
+
+```{r}
+1-pf(F,1,25)
+```
+
+
+
++ Obtenga automáticamente los resutados anteriores usando el comando `anova` anidando los dos modelos.
+
+```{r}
+anova(mod2,mod1)
+```
+
+
++ Obtenga esta probabilidad del `summary` del modelo grande.  ¿Por qué esta probabilidad que usa la **distribución t** coincide con la probabilidad que usa la **distribución F**?
+```{r}
+summary(mod1)
+```
+
+
++ Dé una conclusión.
+
++ Con el `summary` del modelo más grande se puede ver en cada línea la prueba de la hipótesis correspondiente a eliminar una variable a la vez, es decir $H_0: \beta_j=0$, sin necesidad de hacer el modelo que elimina esa variable. Esto resulta en un modo rápido de ver si alguna variable se puede eliminar del modelo grande.  Por ejemplo, verifique en el `summary`  la hipótesis que consiste en eliminar la variable **pierna**.
+
++ Viendo el `summary` se pueden llevar a cabo las pruebas separadas para cada coeficiente.  Establezca las hipótesis que se prueban en cada línea y concluya con respecto a la variable asociada.
+
+
++ Obtenga los intervalos de confianza de los coeficientes y observe que el rechazo o no de las hipótesis anteriores coincide con el hecho de que los intervalos tengan signos iguales o no.
+```{r}
+round(confint(mod1),4)
+```
+
+
+9. Finalmente se va a probar la hipótesis más extrema que establece que ninguna de las variables es útil en el modelo. Esto no tiene mucho sentido en este caso ya que se ha visto la gran importancia de la variable **edad**. Sin embargo, esta es una prueba fundamental que debe realizarse al inicio de cualquier análisis para ver que vale la pena seguir adelante en el afinamiento del modelo. Esta prueba usualmente se llama **omnibus**. De esta forma lo que se compara es el modelo completo contra el modelo más simple que contiene sólo un intercepto. En este caso la estimación del intercepto coincide con la media de la respuesta, y la Suma de Cuadrados Residual es la Suma de Cuadrados Total.
+
++ Haga un modelo sólo con el intercepto, para esto escriba `lm(veloc~1)`.  Obtenga la Suma de Cuadrados Residual de ese modelo y compárela con la Suma de Cuadrados Total. Además compare la estimación del intercepto con la media de la respuesta.
+
+
+```{r}
+mod7=lm(veloc~1,data=base)
+anova(mod7)
+```
+
+```{r}
+sct1
+```
+
+```{r}
+mod7$coef
+```
+
+```{r}
+mean(base$veloc)
+```
+
++ Construya manualmente el estadístico F a partir de las Sumas de Cuadrados Residuales de esos dos modelos.
+
+```{r}
+num=(sct1-scres1)/4
+den=cmr1
+F=num/den
+round(F,2)
+```
+
+
++ Obtenga la probabilidad asociada al valor F obtenido anteriormente.
+
+```{r}
+1-pf(F,4,25)
+```
+
+
++ Obtenga automáticamente los resutados anteriores usando el comando `anova` anidando los dos modelos.
+
+```{r}
+anova(mod7,mod1)
+```
+
+
++ Obtenga los resultados anteriores al observar la última línea del `summary` del modelo grande.
+
+```{r}
+summary(mod1)
+```
+
+
++ Dé una conclusión.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Recapitulación}
+
++ ¿Cuáles funciones utilizó en este laboratorio?
++ ¿Cómo se obtiene la Suma de Cuadrados Total?
++ ¿Cómo se obtiene la Suma de Cuadrados de Regresión de un modelo?
++ ¿Cómo se parte la Suma de Cuadrados Total?
++ ¿Cómo se obtiene el coeficiente de determinación de un modelo?
++ ¿Cómo se obtiene la Suma de Cuadrados de Regresión Marginal?
++ ¿Cómo se obtiene el coeficiente de determinación parcial?
++ ¿Cómo se comparan dos modelos mediante la distribución F?
++ ¿En qué casos la distribución F es equivalente a la distribución t?
+
+
+\begin{center}
+\noindent\hrule
+\end{center}

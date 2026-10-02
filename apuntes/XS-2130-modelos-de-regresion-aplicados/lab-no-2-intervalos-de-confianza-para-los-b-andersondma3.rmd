@@ -1,0 +1,168 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: inline
+---
+
+\section{INTERVALOS DE CONFIANZA PARA LOS BETAS}
+
+En este laboratorio se presenta el procedimiento para el cálculo de intervalos de confianza para los coeficientes del modelo de regresión.  Se obtienen previamente los valores ajustados y los residuales para construir el cuadrado medio residual.  También se obtiene la matriz de varianza-covarianza de los coeficientes.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Velocidad de nado}
+
+La descripción se encuentra en el Laboratorio No.1.
+
+\subsection*{Ejercicios}
+
+1. Lea el archivo de datos con `load("velo.Rdata")`. Vamos a utilizar tres modelos, 1) uno con los 4 predictores originales, 2) uno con solo 3 predictores (eliminaremos edad), 3) uno con los 4 predictores originales pero transformando el largo promedio de brazo de centímetros a milímetros. Ajuste los tres modelos y compare los coeficientes obtenidos.
+```{r}
+setwd("~/UCR/IV Ciclo UCR estadistica/Regresion")
+ load("velo.Rdata")
+ mod1=lm(veloc~edad+imc+pierna+brazo,data=base)
+ mod2=lm(veloc~imc+pierna+brazo,data=base)
+ brazomm=base$brazo*10
+ mod3=lm(veloc~edad+imc+pierna+brazomm,data=base)
+ beta1=mod1$coef
+ beta2=mod2$coef
+ beta3=mod3$coef
+```
+
+**Respuesta profe: Entre el modelo 1 y 3 no hay diferencias en los coeficientes excepto en brazo que fue la variable que se transformó. En este caso como el brazo se multiplicó por 10 el coeficiente se divide entre 10. Cuando se elimina edad sí cambian los coeficientes de imc y pierna.**
+
+
++ ¿Qué representa el coeficiente de imc en el modelo 1 y en el modelo 2?
+
+**Respuesta profe:En el modelo 1 representa elaumento en la velocidad promedio al aumentar el imc en una unidad manteniendo la edad, la pierna y el brazo constantes, mientras que en el modelo 2 representa lo mismo pero no se mantiene constante la edad sino que la variabilidad de la edad queda presente. En tal caso se compara un grupo de personas con un cierto imc, un largo de brazo y de pierna pero con muchas edades, contra otro similar con un imc más alto, el mismo largo de brazo y pierna del otro grupo y también edades diversas.**
+
+\subsubsection*{Valores ajustados}
+
+2. Obtenga los valores ajustados para el modelo 1 usando la notación matricial. Dé una interpretación para el primer valor ajustado.
+```{r}
+X=cbind(1,base$edad,base$imc,base$pierna,base$brazo)
+ est=X%*%beta1
+ round(est[1],2)
+```
+
+```{r}
+round(X[1,],2)
+```
+
+
++ Obtenga los valores ajustados relativos a cada individuo de la muestra para cada modelo y compare los resultados. Use la función `predict` simplemente indicando como argumento el modelo, por ejemplo `predict(mod)`. Justifique por qué en algunos modelos los resultados coinciden y en otros no.
+
+```{r}
+y1=predict(mod1)
+ y2=predict(mod2)
+ y3=predict(mod3)
+ round(head(cbind(y1,y2,y3)),2)
+```
+
+ *Respuesta profe: Los resultados del modelo 1 y coinciden porque se están usando las mismas variables, el cambio que se le hizo a brazo se compenza con el cambio en su coeficiente. En cambio el modelo 2 no tiene edad por lo que la media condicional de la velocidad no tiene por qué ser igual si se mantiene constante la edad que si se deja libre.**
+
+\subsubsection*{Cuadrado medio residual}
+
+3. Calcule los residuales en cada modelo. Puede hacerlo de dos formas: 1) conociendo la relación $r=y-\hat{y}$, o 2) directamente con `mod$res`. 
+
++ Calcule las sumas de cuadrados de los residuales (SCRes). Compare y justifique las diferencias. Concluya sobre si tiene o no importancia incluir la variable edad en términos de la precisión de las estimaciones.
+
+```{r}
+r1=mod1$res; scr1=t(r1)%*%r1
+ r2=mod2$res; scr2=t(r2)%*%r2
+ r3=mod3$res; scr3=t(r3)%*%r3
+ round(c(scr1,scr2,scr3),4)
+```
+
+**Respuesta profe: En los modelos 1 y 3 se obtiene la misma SCRes puesto que se obtuvieron las mismas estimaciones. En el modelo 2 se obtuvo una SCRes mayor puesto que la variable edad se dejó libre y la distribución condicional de la respuesta va a tener mayor variabilidad. Puesto que el Cuadrado Medio Residual (CMRes) es una estimación de la variancia condicional de la respuesta, es de esperarse que sea mayor cuando se deja alguna variable importante libre pues esto hace que se deje mayor variabilidad en la respuesta condicional. Al contrario cuando se incluye esa variable importante se logra reducir la variabilidad de la respuesta condicional. Entonces se concluye que el incluir o no la variable edad va a redundar en tener una mayor variabilidad condicional y por lo tanto, los estimadores tendrán mayor o menor precisión.**
+
++ Calcule el CMRes para el modelo 1.  Es bueno tener la costumbre de extraer los valor de **n** y **p**.  En general resulta adecuado hacer `n=nrow(base)` y `p=length(beta)`.  ¿Qué representa el valor obtenido?
+
+```{r}
+n=nrow(base); p=length(beta1)
+ cmr=scr1/(n-p)
+ round(cmr,3)
+```
+
+
+**Respuesta profe:  El valor 0.026 es la estimaciónde la variancia de la distribución la velocidad para cada edad, imc, brazo y pierna fijos. No importando cuanto sean estos valores siempre será esa misma variancia puesto que se ha asumido homocedasticidad.**
+
+\subsubsection*{Errores estándar}
+
+4. Obtenga la matriz de varianza-covarianza de los betas y explique el contenido de la diagonal de esa matriz. Hágalo de dos formas: 1) usando la relación $V(\hat{\beta})=V(Y|X)\times (X^TX)^{-1}$ o 2) con la función `vcov(mod)`.
+
+```{r}
+varb1=c(cmr)*solve(t(X)%*%X)
+ round(varb1,5)
+```
+
+```{r}
+varb2=vcov(mod1)
+ round(varb2,5)
+```
+
++ Obtenga los errores estándar de los coeficientes de regresión. Hay que recordar que el **error estándar** está definido como la **desviación estándar de la distribución de un estimador.**  Entonces basta tomar la diagonal de la matriz de varianza-covarianza y obtener su raíz cuadrada.   Otra forma de obtenerlos es del **summary**  del modelo con `summary(mod)$coef`.
+
+```{r}
+ee=sqrt(diag(varb1))
+round(ee,3)
+```
+
+```{r}
+summary(mod1)$coef #Forma automática
+```
+**Error estandándar: La desviación estándar de la dsitribución de un coeficiente estimado**
+
+```{r}
+round(summary(mod1)$coef[,2],3)
+```
+
+
+\subsubsection*{Intervalos de confianza}
+
+5. Finalmente obtenga los intervalos de confianza para los coeficientes. Use dos formas: 1) con el método clásico que proviene de la distribución asintótica de los coeficientes: $IC(\beta_j)=\hat{\beta_j}+t_{1-\alpha/2,n-p}\times ee_{\hat{\beta_j}}$, donde el valor de la distribución t se calcula con `qt(0.975,n-p)`, o 2) directamente con la función `confint(mod)`.
+
+```{r}
+t=qt(.975,n-p) #Grados de libertad de los residuales
+ ic=cbind(beta1-t*ee,beta1+t*ee)
+ round(ic,4)
+```
+
+```{r}
+round(confint(mod1),4)
+```
+
++ Dé una interpretación de aquellos intervalos que tengan algún sentido.
+
+**Respuesta profe: Se debe interpretar solamente el intervalo para el coeficiente de edad puesto que sus dos extremos tienen el mismo signo. Los otros intervalos sólo reflejan que en este modelo no se ha demostrado una relación importante entre las otras variables y la respuesta promedio. La edad se puede interpretar para un aumento de 5 años, por lo que es necesario multiplicar los extremos del coeficiente respectivo por 5**
+
+
+```{r}
+round(ic[2,]*5,2)
+```
+
+
+**Respuesta profe: Se concluye que al aumentar la edad en 5 años y manteniendo constantes el imc, el largo de brazo y piernas, la velocidadpromedio disminuye entre 0.06 y 0.13m/s**
+\newpage
+
+\subsection*{Recapitulación}
+
++ ¿Cuáles funciones utilizó en este laboratorio?
++ ¿Como se estima la variancia condicional de la respuesta?
++ ¿Cómo se mide la variabilidad de un coeficiente de regresión?
++ ¿Cuál es la distribución asintótica de un coeficiente de regresión?
++ ¿Por qué se usa la distribución t para construir un intervalo de confianza para un coeficiente?
++ ¿Cuántos grados de libertad se utilizan en la t del intervalo de confianza?
++ ¿Cómo se construye el intervalo de confianza para un coeficiente manualmente?
++ ¿Cómo se obtiene el mismo intervalo directamente?
++ ¿Cómo se interpreta el intervalo para un coeficiente? ¿Qué sucede cuando los límites de este intervalo no tienen el mismo signo?
+
+\begin{center}
+\noindent\hrule
+\end{center}
