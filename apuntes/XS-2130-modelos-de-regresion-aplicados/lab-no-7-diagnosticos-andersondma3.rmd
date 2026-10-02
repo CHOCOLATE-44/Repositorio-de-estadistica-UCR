@@ -1,0 +1,459 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: console
+---
+
+\section{DIAGNÓSTICOS}
+
+En este laboratorio se presenta una técnica para detectar valores extremos en la respuesta que toma en cuenta la estructura multivariada de las predictoras y que se basa en los residuales estudentizados externamente. Asímismo, se presentan formas de detectar si un punto está causando influencia en los resultados del ajuste del modelo.  Luego se evalúa el cumplimiento de supuestos que debe cumplir el modelo de regresión: normalidad, homocedasticidad, no multicolinealidad y relación lineal entre los predictores y la respuesta promedio.
+
+Se utiliza la librería  `car` (Fox & Weisberg, 2019) para obtener gráficos con curvas suavizadas, gráficos de cuantiles cuantiles para evaluar la normalidad, para calcular el factor de inflación de la varianza (VIF) y para obtener los gráficos de residuales parciales.  Además se usa la librería `lmtest` (Zeileis & Hothorn, 2002) para obtener la prueba de Breush-Pagan.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Leche}
+
+Se realizó un estudio para analizar la producción de leche de vaca en función de ciertas variables. Se cuenta con las siguientes mediciones:
+
+a.	**produccion**: la cantidad de leche producida por una vaca en un día (kilogramos).
+b.	**lactancia**: el número de días transcurridos desde el último parto de la vaca hasta la fecha de la medición.
+c.	**partos**: el número total de partos que ha tenido la vaca.
+d.	**peso**: el peso de la vaca (kilogramos).
+e.   **alimento**: cantidad específica de concentrado especializado para producción lechera llamado “Prod” (gramos).
+f.	**edad**: la edad de la vaca (años).
+
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Valores extremos en Y}
+
+1. Lea el archivo de datos con `load("leche.Rdata")`. Se propone un modelo con dos predictores: **alimento** y **parto**. Haga gráficos para ver la relación entre la respuesta promedio y los predictores. Observe si hay algún valor extremo.
+```{r}
+setwd("C:/Users/ETLP/OneDrive/Documentos/UCR/IV Ciclo UCR estadistica/Regresion")
+load("leche.Rdata")
+library(car)
+scatterplot(base$partos,base$produccion)
+```
+
+```{r}
+scatterplot(base$alimento,base$produccion) #Tiene un valor extremo
+```
+
+
+2. Ajuste el modelo propuesto, obtenga los residuales estudentizados externamente y haga un gráfico con estos valores. 
+
+```{r}
+mod1=lm(produccion~alimento+partos,data=base)
+t = rstudent(mod1) #Residuales externos (Siempre se usan estos) 
+#También puede ser abs(rstudent(mod1))
+summary(abs(t))
+```
++ Observe que una vaca con un residual mucho mayor que la mayoría de ellos. Para identificar si este valor indica algún tipo de valor extremo, calcule el valore crítico de Bonferroni con `qt(1-0.05/(2*n),n-p-1)`. Agregue una línea horizontal en el gráfico a la altura de este valor.  Use: `abline(h=tc)`.
+
+```{r}
+n=nrow(base)
+p=length(mod1$coef)
+tc=qt(1-0.05/(2*n),n-p-1)
+plot(t)
+abline(h=tc) #Si se quiere hacer una línea vertical se pone v en vez de h 
+#Para identificar la unidad que supera el tc se puede hacer which (t > tc)
+```
+
++ Identifique la vaca que tiene el residual tan alto.  Para esto pegue la columna de residuales en la base y haga una nueva base que cumpla la condición `t>tc`.
+
+```{r}
+base$t=t
+subset(base,t<tc)
+#base1 = base[base$t<tc,] Se puede así también
+```
+
++ Observe las características de esta vaca y trate de identificarla en los gráficos originales.
+
+\subsubsection*{Influencia}
+
+3. Calcule los `dffits` y observe qué tanta influencia tiene cada vaca sobre su propia estimación. Use `dffits(mod)` y grafíquelos. Puede usar como punto límite: 
+
+$$2 \sqrt{(\frac{p+1}{n-p-1})}$$
+```{r}
+dffits = dffits(mod1) #Permite conocer la influencia de la unidad, es recomendable poner el abs desde esta línea y no en el plot.
+plot(abs(dffits),ylab="DFFITS",main="DFFITS")
+lim=2*sqrt((p+1)/(n-p-1))
+abline(h=lim)
+```
+
+
+Ayuda a determinar la influencia sobre si misma.
+
+4. Calcule las distancias de Cook usando `cooks.distance(mod)`. Haga un grafico de estas distancias y coloque las líneas de probabilidad 0.1, 0.2 y 0.5 en la distribucion $F_{p,n-p}$ para decidir si hay puntos que estén causando alguna influencia general mediana o fuerte.
+
+$$F_{0.1,p,np}, F_{0.2,p,np}, F_{0.5,p,np}$$
+```{r}
+cook = cooks.distance(mod1)
+plot(cook,ylab="Distancia de Cook",main="Distancias de Cook")
+q=qf(c(0.1,0.2,0.5),p,n-p)
+abline(h=q,col=c(1,4,2))
+```
+
+
+Ayuda a determinar la influencia sobre los demás.
+
+5. Calcule los `dfbetas` para identificar en cuáles de los coeficientes hay mayor influencia por parte de la vaca que se ha identificado. Use `dfbetas(mod)`.  Haga gráficos de cada columna por separado. Ponga como límite para determinar si el punto está causando impacto en el coeficiente el valor: $2/\sqrt{n}$.
+
+```{r}
+dfbetas = dfbetas(mod1)
+head(dfbetas)
+```
+
+```{r}
+plot(abs(dfbetas[,2]),ylab="",main="Cambio en coeficiente de alimento",pch=18)
+lim=2/sqrt(n)
+abline(h=lim)
+```
+
+```{r}
+plot(abs(dfbetas[,3]),ylab="",main="Cambio en coeficiente de partos",pch=18)
+abline(h=lim)
+```
+
+
++ Verifique el impacto que tiene la presencia de la vaca en los coeficientes ajustando el mismo modelo pero eliminando la vaca 12. Observe los coeficientes obtenidos en el primer ajuste contra el obtenido en este nuevo ajuste. También observe cambios en los errores estándar.
+
+```{r}
+mod2=lm(produccion ~ alimento + partos, base[-12,])
+summary(mod1)$coef
+```
+```{r}
+summary(mod2)$coef
+```
+
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Velocidad de nado}
+
+La descripción se encuentra en el Laboratorio No.1.
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Normalidad}
+
+6. Lea el archivo de datos con `load("velo.Rdata")`. Defina la variable sexo como factor. Haga un modelo que use los 5 predictores (sin interacciones) y obtenga los residuales.
+```{r}
+load("velo.Rdata")
+base$sexo=factor(base$sexo)
+levels(base$sexo)=c("Mujer","Hombre")
+mod = lm(veloc ~ .,base)
+res = mod$res
+```
+
+
++ Asegúrese que comprende bien cómo se calculan los residuales en este caso que hay una variable categórica. Para esto haga el cálculo del residual para un hombre específico y también para una mujer, por ejemplo los individuos 1 (Mujer) y 6 (Hombre). Compare sus resultados con los obtenidos en el punto anterior.
+
+```{r}
+y1=base$veloc[1]
+yh1=predict(mod,data.frame(edad=22,sexo="Mujer",imc= 21.14769,pierna=100.5,
+brazo=72))
+y1-yh1
+```
+
+```{r}
+y6=base$veloc[6]
+yh6=predict(mod,data.frame(edad=21,sexo="Hombre",imc= 21.29529,pierna=103.5,
+brazo=74.75))
+y6-yh6
+```
+
+```{r}
+res[c(1,6)]
+```
+
++ Si la variable velocidad (respuesta) tiene una distribución normal condicional a las X, es decir, para cada combinación de los predictores debe haber una distribución normal. ¿Por qué basta revisar que los errores en conjunto tengan una distribución normal?
+
+**La razón es porque los errores tienen también una distribución normal puesto que provienen del valor de Y menos su media condicional, pero tienen media 0 y variancia constante para cada X. Entonces al tener todos la distribución exactamente igual, esto nos permite combinarlos y analizar la distribución de todos ellos en conjunto. El hecho de que se toma en cuenta la variancia constante, esta combinación de residuales sólo es válida cuando se cumpla la homocedasticidad, de otra forma se podría estar incurriendo en un error al tratar de analizar la normalidad cuando el problema de fondo podría ser la heterocedasticidad**
+
+
++ Haga el gráfico de cuantiles-cuantiles conocido como QQ-plot para ver analizar si los residuales de este modelo provienen de una distribución normal. La función `qqPlot` de la librería `car` permite obtener bandas de confianza.  Use `qqPlot(res)`.
+
+```{r}
+library(car)
+qqPlot(res,ylab="Residuales")
+```
+
+**Ya que al comparar los residuales con los cuantiles teóricos de una distribución normal, todos ellos se colocan muy cerca de una línea recta, esto indica que hay una proporcionalidad entre ellos, con lo cual se puede asumir que provengan de una distribución normal.**
+
++ Haga el gráfico estandarizando primero los residuales con `scale(res)`.
+
+```{r}
+qqPlot(scale(res),ylab="Residuales estandarizados")
+```
+
+**Al estandarizar los residuales se ve el mismo comportamiento. Lo único que cambió fue la escala en el eje Y.**
+
+
++ Haga el gráfico poniendo como argumento sólo el modelo, entonces la función calcula los residuales estudentizados y hace el gráfico.
+
+```{r}
+qqPlot(mod,ylab="Residuales estudentizados")
+```
+
+
+**Al estudentizar los residuales se ve un patrón lineal aunque al hacer esto cambia un poquito la relación ya que ahora se asegura que hay una variancia condicional constante en los residuales. Se debe recordar que la estudentización sólo es válida si hay homocedasticidad.**
+
+\subsubsection*{Homocedasticidad}
+
+7. Haga el gráfico de los valores ajustados contra los residuales y observe si se presentan patrones. 
+```{r}
+plot(mod$fit,mod$res,xlab="Valores ajustados",ylab="Residuales")
+```
+
+
+**Los residuales parecen seguir un comportamiento aleatorio sin presentar ningún patrón, por lo que se puede esperar que se cumpla el supueso de homocedasticidad.**
+
++ Haga un gráfico de los residuales contra cada variable para tratar de observar si hay algún patrón. En el caso de variables categóricas debe hacerse un boxplot y observar si la amplitud de todas las cajas difiere.
+
+
+```{r}
+par(mfrow=c(2,3))
+for(i in 2:6) plot(base[,i],mod$res,xlab=names(base)[i],ylab="Residuales")
+par(mfrow=c(1,1))
+```
+
+
+**En todos los gráficos con variables continuas se observa un comportamiento de los residuales bastante aleatorio, sin presencia de patrones. También en el boxplot contra sexo se ven cajas con amplitudes muy similares. Por lo tanto, se confirma lo que se vio en el gráfico general de que posiblemente se cumple el supuesto de homocedasticidad.**
+
+
++ Obtenga la prueba de Breush-Pagan usando la función `bptest` en la librería `lmtest`.  Elija que no se estudenticen los residuales quedando de la siguiente forma: `bptest(mod,studentize=F)`.  Dé una conclusión.
+
+```{r}
+library(lmtest)
+bptest(mod,studentize=F)
+```
+
+**Bajo la hipótesis nula de que la variancia condicional de la respuesta es la misma para cada valor de los predictores, se obtiene una probabilidad asociada de 0.36. Con esto se decide no rechazar la hipótesis nula y se asume que hay homocedasticidad.**
+
+\newpage
+
+\subsection*{Grasa}
+
+Se quiere estudiar la relación de grasa del cuerpo con algunos predictores entre 20 mujeres sanas de 25 a 34 años.  Se cuenta con medidas de tres partes del cuerpo como predictoes de grasa: grosor promedio de los triceps, circunferencia promedio de los muslos y circunferencia promedio de los brazos. Como variables predictoras se tienen las siguientes:
+ a. **triceps**
+ b. **muslo**
+ c. **antebrazo**
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Multicolinealidad}
+
+8. Lea el archivo de datos con `load("grasa.Rdata")`. Obtenga las correlaciones entre los predictores.
+```{r}
+load("grasa.Rdata")
+cor(base[,-4])
+```
+
++ Ajuste diferentes modelos para ver cómo cambian los coeficientes y sus errores estándar al tener una sola variable o varias variables en el modelo.
+```{r}
+mod1 = lm(grasa ~ triceps,data=base)
+mod2 = lm(grasa ~ muslo,data=base)
+mod3 = lm(grasa ~ antebrazo,data=base)
+mod12 = lm(grasa ~ triceps+muslo,data=base)
+mod13 = lm(grasa ~ triceps+antebrazo,data=base)
+mod23 = lm(grasa ~ muslo+antebrazo,data=base)
+mod123 = lm(grasa ~ triceps+muslo+antebrazo,data=base)
+summary(mod1)$coef
+```
+
+```{r}
+summary(mod2)$coef
+```
+
+```{r}
+summary(mod3)$coef
+```
+
+```{r}
+summary(mod12)$coef
+```
+
+```{r}
+summary(mod13)$coef
+```
+
+```{r}
+summary(mod23)$coef
+```
+
+```{r}
+summary(mod123)$coef
+```
+
+**Se ve un cambio enorme en el coeficiente de triceps cuando está solo (0.85) con respecto al modelo que tiene también las otras dos variables (4.3). También el error estándar aumenta muchísimo pues pasa de 0.13 a 3.0. También se nota que cuando triceps está sola su coeficiente es significativo, mientras que en el otro modelo pierde su significancia. De forma similar el coeficiente de muslo cambia cuando entra con las otras dos variables con respecto a cuando entra solo.**
+
+
++ Observe el aporte de **triceps** cuando entra solo y cuando entra después de las otras variables.
+```{r}
+anova(mod1)
+```
+
+```{r}
+anova(mod3,mod13)
+```
+
+```{r}
+anova(mod2,mod12)
+```
+
+```{r}
+anova(mod23,mod123)
+```
+
+**Se observa que cuado triceps está solo explica 352.27, cuando entra después de antebrazo explca 379.4, cuando entra después de muslo explica 3.47 y cuando entra después de ambas explica 12.7. Entonces parece que la cantidad que logra explicar se reduce enormemente cuando ha entrado previamente muslo.**
+
++ Calcule el Factor de Inflación de la Variancia (VIF) de **triceps** en presencia de las otras dos variables.  Para esto haga un modelo poniendo **triceps** como respuesta y las otras variables como predictores. Si denotamos con $R^2_j$ el coeficiente de determinación del modelo que toma la j-ésima variable como respuesta, el VIF se calcula de la siguiente forma:
+
+$$VIF=\frac{1}{1-R^2_j}$$
+```{r}
+modtriceps=lm(triceps~muslo+antebrazo,data=base)
+r2trip=summary(modtriceps)$r.sq
+viftrip=1/(1-r2trip)
+viftrip #Sacarla la raíz para sacar que tan grande es el error estándar el cual se infla raiz de viftrip veces
+```
+
++ Encuentre el VIF para todas las variables usando la función `VIF` en la librería `car`.  Simplemente escriba `VIF(mod)` donde el modelo debe contener todas la variables.
+```{r}
+library(car)
+vif(mod123)
+sqrt(vif(mod123))
+```
+
+Cuando las 3 variables entran juntas, el ee del coef de triceps se aumenta 27 veces, el de muslo aumenta 24 veces y el antebrazo 10 veces 
++ Dé una interpretación del valor del VIF para cada variable.
+
+**Se puede esperar que la variancia del coeficiente de triceps sea más de 709 veces cuando está con muslo y antebrazo con respecto a la variancia que tendría si esas variables no estuvieran correlacionadas con él. Similarmente la variancia del coeficiente de muslo es 564 veces la que tendría si no hubiera multicolinealidad y la de antebrazo es 105 veces. Se observa que el coeficiente que menos sufre es el de antebrazo, sin embargo sí aumenta mucho su variancia en presencia de esas otras variables.**
+
++ Observe qué pasa si sólo hay dos de las variables presentes a la vez.
+```{r}
+vif(mod12)
+```
+
+```{r}
+vif(mod13)
+```
+
+```{r}
+vif(mod23)
+```
+
+**Cuando hay sólo dos variables juntas a la vez parece que las variancias no se incrementan mucho a pesar de que se había visto que triceps y muslo tenían una correlación muy alta.**
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Prestigio}
+
+Se analiza el puntaje  sobre el prestigio percibido de una selección de ocupaciones en Canadá (método de Pineo-Porter).  Los puntajes fueron determinados en una encuesta social conducida a mediados de los 60´s. Se tienen datos de algunos predictores que fueron recolectados en el censo:
+
+  + **censo**: código de la ocupación en el censo canadiense (es un identificador, no es una variable)
+  + **presti**: puntaje de prestigio de la ocupación.
+  + **edu**: promedio de años de educación en 1971. 
+  + **ingre**: promedio de ingreso en 1971 ($).
+  + **mujer**: porcentaje de mujeres ocupadas.
+  + **tipo**: tipo de ocupación (3 categorías).
+  
+\subsection*{Ejercicios}
+
+\subsubsection*{Linealidad}
+
+9. Lea el archivo de datos con `load("prestigio.Rdata")`. Ajuste un modelo que contenga los cuatro predictores. Note que la variable tipo es categórica por lo que no tiene sentido que exista linealidad entre la respuesta promedio y este predictor.  Además hay 3 ocupaciones que tienen NA en el tipo de ocupación, esto hace que la regresión se base solamente en los casos que tienen información en todas las variables. Verifique los grados de libertad de los residuales (n-p) y corrobore que no se están usando todos los datos.
+
+
+```{r}
+load("prestigio.Rdata")
+mod=lm(presti~ingre + edu + mujer+tipo,base)
+anova(mod)
+```
+
+```{r}
+nrow(base)
+```
+
+```{r}
+summary(base$tipo)
+```
+
+**En la base hay 102 ocupaciones, sin embargo hay 92 (n-p) grados de libertad en los residuales, si p=6, entonces n=gl+p=92+6=98. Por lo tanto se están usando solamente 98 casos. Esto se comprueba en el summary de tipo donde se ve que hay 4 valores NA.**
+
+
++ Obtenga el `scatterplot` para ver la relación lineal pura entre **presti** e **ingre**.
+```{r}
+library(car)
+scatterplot(presti~ingre,data=base)
+```
+
+
++ Obtenga paso a paso el gráfico de residuales parciales para ingreso.  Para hacerlo obtenga los residuales del modelo y sume a estos residuales un término igual a la variable ingreso por su coeficiente, de la siguiente forma:
+$$r^{(P)}_j = r + \beta_j x_j$$
+
++ El gráfico se construye con un `scatterplot` de los residuales parciales contra la variable **ingre**.  Hay que tomar en cuenta que se omitieron 4 casos debido a los NA, por lo que lo mejor es obtener una nueva base omitiendo esos 4 casos. Para esto use `na.omit(base)` para construir esa nueva base y de ahí tome la nueva variable **ingre** a la que se le han eliminado los 4 casos.
+
+```{r}
+base2=na.omit(base)
+res=summary(mod)$res
+beta=mod$coef
+resing=res+base2$ingre*beta[2]
+scatterplot(base2$ingre,resing)
+```
+
+
++ Observe si el comportamiento de los residuales parciales es lineal con respecto al predictor y compare este gráfico con el scatterplot anterior.
+
+**En ambos gráficos se nota una curva que hace pensar que no hay una relación lineal entre la respuesta y el predictor ingre. Si bien este comportamiento se puede visualizar en ambos gráficos, éstos no son idénticos ya que el gráfico de los residuales parciales toma en cuenta las otras variables mientras que el primer gráfico ve la relación directa solamente de la respuesta promedio con el predictor. Por lo tanto, es mejor ver el de residuales parciales.**
+
+
++ Obtenga todos los gráficos de residuales parciales usando la función `crPlots` de la librería `car`.  Basta poner el nombre del modelo dentro de la función. Note que esta función da un boxplot para el caso de la variable categórica, sin embargo, no es útil para ver ninguna relación lineal por lo que se puede obviar.
+
+```{r}
+crPlots(mod,main="Residuales parciales",ylab="")
+```
+
+
++ Comente si hay una buena relación lineal de los residuales parciales con los otros predictores.
+
+**En el caso de edu la relación es muy lineal, sin embargo, en el caso de mujer     se nota una curva como en forma de parábola.**
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+
+\subsection*{Recapitulación}
+
++ ¿Cuáles funciones utilizó en este laboratorio?
++ ¿Cómo se determina si una observación se puede considerar como extrema para la respuesta cuando hay más de un predictor?
++ ¿Cómo se determina si una observación está ejerciendo influencia en la regresión?
++ ¿Cómo se determina cuáles coeficientes están sufriendo cambios a partir de la presencia de un valor de influencia?
++ ¿Cómo se evalúa gráficamente el supuesto de normalidad?
++ ¿Cómo se evalúa gráficamente el supuesto de homocedasticidad?
++ ¿Cómo se obtiene con una función de R la prueba adecuada para evaluar el supuesto de homocedasticidad? ¿Cómo se interpreta el resultado?
++ ¿Cómo se obtiene manualmente el VIF?  ¿Cómo se interpreta?
++ ¿Cómo se obtiene el VIF mediante una función de R?
++ ¿Cuál es la diferencia entre un "scatterplot" de los datos crudos y un gráfico de residuales parciales?
++ ¿Cómo se construye un gráfico de residuales parciales paso a paso? ¿Cómo se obtienen los gráficos mediante una función de R?
++ ¿Por qué no tiene sentido un gráfico de residuales parciales para un predictor categórico?
+
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+  
+

@@ -1,0 +1,440 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: console
+---
+
+\section{MÍNIMOS CUADRADOS PONDERADOS}
+
+En este laboratorio se usa el método de Mínimos Cuadrados Ponderados en dos contextos. Primero se usa cuando existe un problema de heterocedasticidad y hay una relación entre alguna variable predictora y la variabilidad, de esta forma se obtiene una función de varianza o desviación estándar. Luego se obtienen pesos que son inversos a esta función y se aplican a los datos.  La segunda aplicación se tiene cuando hay valores extremos y no se quieren eliminar, por lo que se dan pesos más bajos a estas observaciones para que no tengan tanta influencia en la estimación.
+
+Se utiliza la librería `MASS` (Venables & Ripley,2002) para realizar la regresión robusta con mínimos cuadrados reponderados.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Peso foliar de Monstera deliciosa}
+
+Se busca explicar el peso foliar específico de la planta Monstera deliciosa (conocida como la costilla de Adán por su forma)  a partir de su morfología foliar. Se observaron 50 plantas y se recolectó información de 8 variables da cada hoja:
+
+  + Ancho de la hoja (ancho).
+  + Longitud de la hoja (long.hoja).
+  + Grosor de la hoja (grosor). 
+  + Longitud del peciolo (long.peciolo).
+  + Perímetro de la hoja (perimetro).
+  + Área de fenestraciones (aberturas) (fenes).
+  + Área efectiva (efectiva).
+  + Proporción de lobulación (lobulacion).
+  
+Preliminarmente se hizo un análisis para reducir la multicolinealidad y se formó una nueva variable a partir de 6 de las variables (todas excepto grosor y proporción de lobulación) que están más correlacionadas.  Esta nueva variable se ha llamado "estructura".
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Obtención de ponderaciones}
+
+1. Lea el archivo de datos con `load("monstera.Rdata")`. Estime un modelo que tenga como respueta **pesofoliar** y como predictores **estructura**, **grosor** y **lobulacion**.  Haga gráficos de los residuales absolutos contra cada predictor.  
+
+
+```{r}
+load("monstera.Rdata")
+ mod=lm(pesofoliar~estructura+grosor+lobulacion,base)
+ res=abs(mod$res)
+ par(mfrow=c(1,3))
+ plot(base$estructura,res,xlab="Estructura",ylab="Residuales absolutos")
+ plot(base$grosor,res,xlab="Grosor de la hoja",ylab="Residuales absolutos")
+ plot(base$lobulacion,res,xlab="Porcentaje de lobulación",
+ ylab="Residuales absolutos")
+```
+
+**El gráfico de los residuales absolutos contra el grosor tiene forma de megáfono y contra lobulación tiene forma de megáfono invertido, mientras que contra estructura la forma es de una nube aleatoria. Se sugiere encontrar la función de desviación estándar al ajustar el modelo de residuales absolutos contra grosor y lobulacion.**
+
+
+2. Estime un modelo de desviación estándar poniendo como respuesta los **residuales absolutos** y como predictores **grosor** y **lobulacion**. Encuentre los valores estimados en este modelo y tómelos como desviaciones estándar en la construcción de los pesos. Construya el vector de pesos mediante:
+
+$$w_i=\frac{1}{\hat{s}_i^2}$$
+
+```{r}
+modres=lm(res~grosor+lobulacion,base)
+ s=predict(modres)
+ w=1/(s^2)
+```
+
+
+
++ Construya la matriz W para hacer el ajuste con mínimos cuadrados ponderados. Para esto ponga los pesos en una matriz diagonal, es decir, una matriz cuyos elementos fuera de la diagonal son ceros. Si w es el vector de pesos entonces `W=diag(w)` es la matriz diagonal.
+
+
+```{r}
+ W=diag(w)
+```
+
+
+\subsubsection*{Estimación por Mïnimos Cuadarado Ponderados}
+
+3. Haga la estimación de los coeficientes mediante:
+
+$$\hat{\beta}^{(w)}=(X^TWX)^{-1}(X^TWY)$$
+
+```{r}
+ y=base$pesofoliar
+ x=as.matrix(cbind(1,base[,c(10,5,9)]))
+ bw=solve(t(x) %*% W %*% x) %*% (t(x) %*% W %*% y)
+ round(bw,2)
+```
+
+
++ Compare los coeficientes obtenidos con el modelo sin pondear y al ponderar.
+
+
+```{r}
+coef= data.frame(mod$coef,bw)
+ names(coef)=c("Sin ponderar","Ponderado")
+ round(coef,2)
+```
+
+
+\subsubsection*{Cuadrado Medio Residual y $R^2$}
+
+4. Encuentre el Cuadrado Medio Residual del modelo original sin ponderar. Encuentre el Cuadrado Medio Residual ponderado mediante:
+
+$$CMRes^{(w)}=\frac{\sum w_i (y_i-\hat{y}_i)^2}{n-p}$$
+
+
+```{r}
+cmres=anova(mod)[4,3]
+ n=nrow(base)
+ p=4
+ fitw=x%*%bw
+ resw=y-fitw
+ scresw=sum(w*resw^2)
+ cmresw=scresw/(n-p)
+ round(c(cmres,cmresw),2)
+```
+
+
+
+
++ Encuentre la matriz de covariancias de los coeficientes mediante:
+
+$$\hat{V}(\hat{\beta}^{(w)})=CMRes^{(w)} (X^TWX)^{-1}$$
+
+```{r}
+vcovw=cmresw*solve(t(x) %*% W %*% x)
+ round(vcovw,2)
+```
+
+
+
+
++ Compare el error estándar del coeficiente de cada variable obtenidos sin ponderar y ponderado
+
+
+```{r}
+ee1=sqrt(diag(vcov((mod))))
+ ee2=sqrt(diag(vcovw))
+ ee=data.frame(ee1,ee2)
+ names(ee)=c("Sin ponderar","Ponderado")
+ round(ee,2)
+```
+
+
+
+
+5. Obtenga la media de la respuesta ponderada:
+
+$$\bar{y}^{(w)}=\frac{\sum w_i y_i}{\sum w_i}$$
+
+```{r}
+medw=sum(w*y)/sum(w)
+ round(medw,2)
+```
+
+
+
++ Obtenga la suma de cuadrados total ponderada:
+
+$$SCT^{(w)}=\sum w_i (y_i-\bar{y}^{(w)})^2$$
+
+```{r}
+ sctw=sum(w*(y-medw)^2)
+ round(sctw,2)
+```
+
+
+
+
++ Obtenga el $R^2$ ponderado:
+
+$$R^2_{(w)}=1-\frac{SCRes^{(w)}}{SCTot^{(w)}}$$
+
+```{r}
+r2w=1-scresw/sctw
+ round(r2w,2)
+```
+
+
+
+
+
++ Compare el $R^2$ obtenido sin ponderar y ponderado:
+
+
+```{r}
+r2=summary(mod)$r.sq
+ round(c(r2,r2w),2)
+```
+
+
+
+6. Obtenga los resultados de forma automática con la función `lm` indicando el vector de pesos en el argumento `weigths=w`.
+
+
+```{r}
+modw=lm(pesofoliar~estructura+grosor+lobulacion, weights = w, base)
+ summary(modw)
+```
+
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Leche}
+
+La descripción se encuentra en el Laboratorio No.7.
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Regresión robusta}
+
+7. Lea el archivo de datos con `load("leche.Rdata")`. Se puede identificar un valor extremo en esta base al estimar un modelo con **produccion** como respuesta y **alimento** y **partos** como predictores. Obtenga los residuales estudentizados externamente y haga un gráfico con estos valores para identificar el valor extremo.
+
+
+
+```{r}
+ load("leche.Rdata")
+ mod1=lm(produccion~alimento+partos,base)
+ t = rstudent(mod1)
+ n=nrow(base)
+ p=length(mod1$coef)
+ tc=qt(1-0.05/(2*n),n-p-1)
+ plot(t,pch=18,col=4*(t<tc)+2*(t>tc))
+ abline(h=tc)
+```
+
+
+
+8. Calcule el MAD dado por:
+
+$$MAD= med(|r_i-med(r)|)/0.6745$$
+
++ Compare el resultado del MAD con la desviación estándar.
+
+
+```{r}
+r=mod1$res
+ MAD=median(abs(r-median(r)))/0.6745 #El 0.6745 es fijo
+ MAD
+```
+
+```{r}
+sd(r)
+```
+
++ Calcule tanto el MAD como la desviación estándar de los residuales eliminando el doceavo.  Compare ambas medidas con las obtenidas anteriormente.
+
+
+```{r}
+ r1=r[-12]
+ MAD1=median(abs(r1-median(r1)))/0.6745
+ MAD1
+```
+
+```{r}
+sd(r1)
+```
+
+
+
++ Escale los residuales originales dividiéndolos por el MAD y haga un gráfico de los residuales escalados contra los originales. Trace la línea identidad para que vea en qué parte se diferencia más.
+
+
+```{r}
+ u=r/MAD
+ plot(r,u,xlab="residuales originales",ylab="residuales escalados",
+ pch=18,col=2)
+ abline(0,1)
+```
+
+
+**Ambos residuales son muy parecidos cerca del 0, pero cuando se hacen más lejanos a cero se diferencian más.**
+
+
+9. Calcule los pesos con la función de Huber que da:
+$w_i=\frac{1.345}{|u_i|}$ si $|u_i|>1.345$ y 1 en caso contrario.
+
+```{r}
+ w=(1.345/abs(u))*(abs(u)>1.345)+1*(abs(u)<=1.345)
+```
+
+```{r}
+w = ifelse(abs(u)>1.345,1.345/abs(u), 1)
+```
+
+
++ Haga un gráfico de los pesos contra los residuales escalados. Observe cuál vaca tiene el peso más bajo.
+
+```{r}
+summary(w)
+```
+
+```{r}
+plot(u,w,pch=18,ylim=c(0,1),col=4*(w==1)+2*(w<1))
+ abline(v=c(-1.345,1.345),lty=2)
+```
+
+
+```{r}
+plot(w,pch=18,col=2*(w<0.3)+4*(w>0.3))
+```
+
+**La mayoría de las vacas tienen un peso de 1 porque su residual escalado está entre-1.345 y 1.345. Algunas tienen pesos menores a 1 y la que tiene el peso menor (0.29) es la vaca que tiene el residual escalado más grande.**
+
+
+10. Estime los coeficientes del modelo usando mínimos cuadrados ponderados con los pesos de Huber.
+
+```{r}
+ mod2=lm(produccion~alimento+partos,weights = w,base)
+```
+
+
++ Compare los coeficientes obtenidos cuando se estimaron sin ponderar y cuando se estimaron usando los pesos de Huber.
+
+```{r}
+ coef=data.frame(mod1$coef,mod2$coef)
+ names(coef)=c("Sin ponderar","Ponderado")
+ round(coef,2)
+```
+
+
++ Compare los errores estándar.
+
+```{r}
+ ee=data.frame(summary(mod1)$coef[,2],summary(mod2)$coef[,2])
+ names(ee)=c("Sin ponderar","Ponderado")
+ round(ee,3)
+```
+
+**Los coeficientes cambian un poco y los errores estándar se reducen un poco.**
+
+
++ Obtenga el cambio porcentual 
+
+```{r}
+ round(abs((mod1$coef-mod2$coef)/mod1$coef),3)
+```
+
+**El intercepto esta aumentando más de 5 veces, el coeficiente de partos cambia un 13% y el de alimento apenas un 1%.**
+
++ Haga una función que calcule los pesos para cualquier modelo.
+
+
+```{r}
+peso=function(mod){
+ r=mod$res
+ MAD=median(abs(r-median(r)))/0.6745
+ u=r/MAD
+ w=(1.345/abs(u))*(abs(u)>1.345)+1*(abs(u)<=1.345)
+ return(w)
+ }
+```
+
+
++ Realice una nueva iteración y observe los cambios porcentuales. Concéntrese en el máximo cambio porcentual.
+
+```{r}
+ mod0=mod2
+ beta0=mod0$coef
+ w1=peso(mod0)
+ mod2=lm(produccion~alimento+partos,weights = w1,base)
+ beta2=mod2$coef
+ max(abs((beta2-beta0)/beta0))
+```
+
+**Ahora el máximo cambio es 15.6%.**
+
++ Haga varias iteraciones hasta que el cambio sea menor a 1%.
+
+
+```{r}
+ mod0=mod2
+ beta0=mod0$coef
+ w1=peso(mod0)
+ mod2=lm(produccion~alimento+partos,weights = w1,base)
+ beta2=mod2$coef
+ max(abs((beta2-beta0)/beta0))
+```
+
+
+```{r}
+ mod0=mod2
+ beta0=mod0$coef
+ w1=peso(mod0)
+ mod2=lm(produccion~alimento+partos,weights = w1,base)
+ beta2=mod2$coef
+ max(abs((beta2-beta0)/beta0))
+```
+
+
+
+**Hay que hacer 2 iteraciones más. En total se hizo el proceso por 4 iteraciones y el último cambio no supera el 0.5%.**
+
++ Obtenga los coeficientes y errores estándar. Compárelos con los del ajuste original.
+
+```{r}
+ round(cbind(summary(mod1)$coef[,1:2],summary(mod2)$coef[,1:2]),3)
+```
+
+
+**Los últimos coeficientes se han ajustado especialmente en el intercepto. Los errores estándar disminuyen con respecto al ajuste original pero son muy parecidos a los de la primera iteración con las ponderaciones.**
+
++ Haga el ajuste de forma automática usando la función `rlm` de la librería `MASS`. Compare los resultados obtenidos con las iteraciones y con las función automática.
+
+```{r}
+library(MASS)
+ mod3=rlm(produccion~alimento+partos,base)
+ round(cbind(summary(mod2)$coef[,1:2],summary(mod3)$coef[,1:2]),3)
+```
+
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Recapitulación}
+
++ ¿Cuáles funciones utilizó en este laboratorio?
++ ¿Cómo se analiza gráficamente si hay una relación entre un predictor y la desviación estándar residual?
++ ¿Cómo se obtienen los pesos basados en la función de desviación estándar?
++ ¿Cómo se estiman los coeficientes de un modelo usando los pesos de forma matricial?
++ ¿Cómo se obtiene el coeficiente de determinación de un modelo que ha sido estimado con Mínimos Cuadrados Ponderados?
++ ¿Cómo se estima un modelo de forma automática mediante MCP?
++ ¿Cómo se calcula e interpreta el MAD?
++ ¿Cómo se obtienen los residuales escalados?
++ ¿Cómo se obtienen los pesos usando la función de Huber?
++ ¿En qué consiste el procedimiento iterativo reponderado?
+
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+
+
+
+

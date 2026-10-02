@@ -1,0 +1,217 @@
+---
+title: "MODELOS DE REGRESIÓN APLICADOS"
+author: "Ricardo Alvarado B."
+subtitle: "Lab No.0 - DESCRIPTIVO"
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+---
+
+### Velocidad de nado
+
+Se realizó un estudio para analizar la velocidad de nado de las personas mayores de 18 años que son miembros regulares de un equipo de natación, y se tomaron en cuenta algunas variables que pueden estar relacionadas con esta velocidad. 
+Se hizo una prueba a los participantes y se tomó el tiempo que duraban en nadar 50m. Entonces como medida de la velocidad de nado se tiene el tiempo (en segundos) el cual se puede transformar a la velocidad dividiendo la distancia entre el tiempo. Esta variable se llama **veloc**. Como variables predictoras se tienen las siguientes:  
+
+a.	**edad**: la edad en años cumplidos.
+b.  **sexo**: el sexo codificado como 0 (mujeres) y 1 (hombres).
+c.	**imc**: el índice de masa corporal se calcula dividiendo el peso en kilogramos entre la altura al cuadrado (en metros), lo cual da una medida en kg/m^2^.
+d.	**pierna**: la longitud promedio de ambas piernas (en centímetros).
+e.	**brazo**: la longitud promedio de ambos brazos (en centímetros).
+
+### Ejercicios
+
+1. Lea el archivo de datos con **load("velo.Rdata")**.  Observe que adentro del archivo que ha leído se encuentra un objeto llamado **base**. 
+```{r}
+load("velo.Rdata")
+```
+
+
+2. Una forma elegante de observar lo que contiene un archivo de datos es mediante la función "str", en tal caso escriba **str(base)** y observe el tipo de datos que 
+contiene.   
+```{r}
+str(base)
+```
+
+
++ En particular vea que **sexo** es numérica y no se sabe a qué corresponde cada código.  Debido a su naturaleza de variable categórica debería de convertirse a factor y asignar nombres a los niveles para que éstos puedan ser claramente identificados.  Para convertir **sexo** en factor use **base\$sexo=factor(base\$sexo)**. Observe los niveles de sexo con **levels(base\$sexo)** y vea que está primero el **0** y luego el **1**, entonces para asignar los códigos debe hacerlo en ese orden, es decir, primero **"mujer"** que corresponde al **0** y luego **"hombre"** que corresponde al **1**.  En este caso escriba **levels(base\$sexo)=c("mujer","hombre")**. Observe ahora la variable **sexo**.
+```{r}
+base$sexo=factor(base$sexo)
+levels(base$sexo) = c("mujer", "hombre")
+```
+
+
+3.	Haga un gráfico donde se muestre la relación entre la edad y la velocidad. En este caso la velociad funciona como **variable respuesta** porlo que debe colocarse en el **eje Y**, mientras que la edad funciona como **variable explicativa** por lo que debe colocarse en el **eje X**. Para hacer este gráfico use la función **plot**. Recuerde que puede cambiar los símbolos de graficación con el parámetro **pch** y poner color con el parámetro **col**. Además de poner nombres adecuados en los ejes, como por ejemplo poner **velocidad** en el **eje Y** en lugar de **veloc**, para esto puede agregar dentro de la función lo siguiente: **ylab="velocidad"**.
+```{r}
+plot(veloc~edad,pch=18,col=4,ylab="velocidad",data=base)#plot(y~x)
+```
+
+Se puede observar que posee tiene una tendencia descreciente y esto implica que en promedio la velocidad baja conforme aumnenta la edad
+
++ ¿Se puede decir que al aumentar la edad disminuye la velocidad de nado?
+
+Hay una tendencia a que a mayor edad baje la velocidad de nado pero no se puede decir que siempre a una mayor edad corresponde una menor velocidad, a veces hay personas con edades más altas con
+ velocidades más altas que las anteriores
+ 
+No podemos decir que siempre pero si en promedio 
+
+4. Este gráfico se puede hacer de forma más elegante con la biblioteca **lattice**. Puede usar el comando **xyplot** y agregar una línea de tendencia con el parámetro **type=c("p","r")**, donde la **p** indica que ponga puntos y **r** indica que agregue una línea de regresión. Quedaría de la siguiente forma:  **xyplot(veloc~edad,type=c("p","r"))**.
+```{r}
+library(lattice)
+ xyplot(veloc~edad,type=c("p","r"),pch=18,ylab="velocidad",data=base)
+```
+**La velocidad promedio para las personas de 20 años se estima en ...**
+**SIEMPRE SE ESTIMA CASI NUNCA SE ASEGURA**
+
+Cada punto de la linea representa la estimación de  un promedio de velocidad para una cierta edad 
+
++ ¿Qué se puede decir al ver esta línea de tendencia?
+
+5. Interesa analizar la velocidad promedio de este grupo de personas.
+
++ Trate de imaginar intervalos cada vez más pequeños con muchos datos en cada intervalo. Para visualizar el promedio de velocidad en cada intervalo pequeño de edad se puede usar la función **scatterplot** que se encuentra en la librería **car**.  El resultado es un gráfico con una línea roja que da una idea del promedio de velocidad en intervalos muy pequeños que se llama **línea suavizada de regresión no paramétrica**. Además se muestra una línea verde que es la línea de un **modelo de regresión lineal**.  Ambas líneas representan lo mismo pero en una no hay que seguir un modelo, mientras que en la segunda se impone una forma matemática rígida.  Cuando la línea no paramétrica se acerca a la línea del modelo, se puede pensar que ese modelo podría dar una buena descripción del comportamiento que se espera en la población de donde fueron extraídos esos datos.
+```{r}
+library(car)
+ scatterplot(base$edad,base$veloc,ylab="Velocidad (m/s)",xlab="Edad (años)") 
+#otra opción de código
+#scatterplot(veloc~edad,data = base)
+```
+
++ La linea del centro se llama la linea suavizada (la punteada).
++ Esta nos sirve para verificar el supuesto de linealidad, mientras la linea sea más recta, este supuesto tiene más probabilidad de cumplirse.
++ Cuando hay pocos datos es menos seguro, ya que sucede lo siguiente:
+++ Difícil ver la no-linealidad
+++ Difícil ver no-normalidad
+++ Difícil ver heterocedasticidad
++ La sombra azul corresponde a los intervalos de confianza (en donde se localiza el promedio real)
++ En este caso se puede aceptar el supuesto de linealidad ya que la linea esta localizada dentro del intervalo de confianza.
+
+
++ Escriba con sus palabras qué representa cada punto de la línea de regresión paramétrica y no paramétrica.
+
+ Cada punto de cualquiera de estas líneas representa el promedio de velocidad de todos los individuos que tienen una determinada edad. A esto se le llama la media condicional de la velocidad dada la edad.En el caso de la línea paramétrica se está asumiendo que ese promedio va decreciendo de forma lineal,es decir, que al aumentar la edad en un año, siempre el promedio de velocidad va a disminuir la mismacantidad. En cambio, la línea no paramétrica no tiene este supuesto y permite que en algunas ocasiones el promedio baje de forma diferente que en otras ocasiones e incluso a veces suba, como sucede al inicio.
+
+
+6. Ahora interesa hacer un gráfico similar al anterior pero donde se reconozcan los hombres y las mujeres.  Se podrían hacer dos gráficos por separado, o uno solo con dos líneas.  Para hacer los gráficos por separado se agrega en la función **xyplot** una la indicación **|sexo** después de la variable que aparece en el **eje X**, es decir inmediatamente después de **edad**.  Para hacer un solo gráfico con dos líneas se agrega un nuevo parámetro **groups=sexo**.  En este caso se agrega el parámetro **auto.key=T** para que queden etiquetados los puntos según su sexo.
+
+```{r}
+ xyplot(veloc~edad|sexo,type=c("p","r"),pch=18,ylab="velocidad",data=base) #xyplot(veloc~edad|sexo) Hace un gráfico para el sexo 
+```
+Hay mucha concetración de mujeres entre los 20 y 30 años, sumado a esto hay menos cantidad de mujeres. Una solución ante esto es fijar un intervalo, pero estariamos limitando nuestro estudio y afecta el análisis.
+
+
+```{r}
+ xyplot(veloc~edad,groups=sexo,type=c("p","r"),pch=18,ylab="velocidad",
+ auto.key=list(columns=2),data=base) #autokey es para separar los sexos
+```
+
+
++ ¿Se observa alguna tendencia diferente en hombres y mujeres?  
+Se observa que la tendencia de los hombres decrece más rápido en comparación con la de las mujeres. Note que estamos comparando la tendencia no los promedios 
+
+
+Además se puede ver una posible interacción, sin embargo no lo podemos asegurar debido a la variabilidad y la cantidad de datos. Si los datos estuvieran más pegados a la linea de regresión, lo más probable es que se mantenga igual.
+
++ Si se toman sólo personas de una edad fija, por ejemplo, 20 años, ¿se esperaría una mayor velocidad en alguno de los sexos?  Piense a nivel de dos personas que se comparan, un hombre y una mujer ambos con 20 años.  Piense a nivel de los promeidos de todas los hombres de 20 años vs todas las mujeres de 20 años.
+
+Para dos personas con 20 años no necesariamente el hombre va a tener siempre una velociad mayor
+ que la mujer, pero es más probable. En cambio a nivel de promedio sí esperaría que los hombres de 20 años tengan una velocidad mayor en promedio que las mujeres de 20 años.
+
+7. SIMULACION: vamos a generar datos suponiendo que la velocidad promedio disminuye 0.02 m/s por cada año de edad tanto en hombres como en mujeres. Además se supone que la distribución condicional de la velociadad para cada edad tiene una desviación estándar de 0.3 m/s.  La siguiente función permite generar los datos que cumplen con estas características, donde r es el número de personas de cada grupo de edad. 
+
+PENDIENTE: -0.02 (Porque disminuye)
+Desviación estándar: 0.3
+
+```{r}
+simul=function(r){ # r: número de datos en cada x 
+  n=7*r # 7 valores (7 equis)
+  x=rep(seq(20,50,length=7),r)
+  mu=2-0.02*x #Es la tendendecia de la media condicional 
+  y=rnorm(n,mu,0.3)
+  bas=data.frame(x,y)
+  colnames(bas)=c("edad","veloc")
+  return(bas)
+}
+```
+
+```{r}
+#Gráfico de la simulación
+#xyplot(veloc~edad,type=c("p","r"),pch=18,ylab="velocidad",
+ #auto.key=list(columns=2),data=bas)
+```
+
++ Partiendo de que el promedio de velocidad real de las personas de 20 años es de 1.6 m/s, sabiendo que la velocidad promedio disminuye 0.02 m/s por cada año de edad, calcule la velocidad promedio real de las personas de las siguientes poblaciones: 25, 30, 35, 40, 45 y 50 años.
+```{r}
+ v20=1.6
+ v25=1.6-0.02*5
+ v30=1.6-0.02*10
+ v35=1.6-0.02*15
+ v40=1.6-0.02*20
+ v45=1.6-0.02*25
+ v50=1.6-0.02*30
+ mreal=c(v20,v25,v30,v35,v40,v45,v50)
+ mreal
+```
+
+
++ Use la función `simul` para generar datos con `r=2` personas en cada grupo de edad.  Guarde los resultados en un objeto llamado base2.  Obtenga la media de velocidad estimada en cada grupo de edad.    Use la función `tapply`  de la siguiente forma: `tapply(base2$veloc,base2$edad,mean)`.  Compare las medias obtenidas con las verdaderas restando las medias obtenidas menos las verdaderas para ver cuánto se alejan.
+
+```{r}
+ base2=simul(2)
+ m2=tapply(base2$veloc,base2$edad,mean)
+ round(cbind(m2-mreal),2)
+```
+
+
++ Aumente el tamaño de muestra paulatinamente (r=5, 10, 15, 50, 100) y repita la simulación y la estimación de las medias. En cada caso compare las medias con las verdaderas.
+
+```{r}
+base5=simul(5)
+ m5=tapply(base5$veloc,base5$edad,mean)
+ base10=simul(10)
+ m10=tapply(base10$veloc,base10$edad,mean)
+ base15=simul(15)
+ m15=tapply(base15$veloc,base15$edad,mean)
+ base50=simul(50)
+ m50=tapply(base50$veloc,base50$edad,mean)
+ base100=simul(100)
+ m100=tapply(base100$veloc,base100$edad,mean)
+ round(cbind(mreal,m2,m5,m10,m15,m50,m100),2)
+```
+
+```{r}
+ round(cbind(m2-mreal,m5-mreal,m10-mreal,m15-mreal,m50-mreal,m100-mreal),2)
+```
+
+
+
++ Con las mismas bases generadas anteriormente,  calcule la desviación estándar de la velocidad para cada edad y compárela con la desviación estándar verdadera de cada distribución, la cual se sabe que es 0.30 m/s para todas.
+```{r}
+ s5=tapply(base5$veloc,base5$edad,sd)
+ s10=tapply(base10$veloc,base10$edad,sd)
+ s15=tapply(base15$veloc,base15$edad,sd)
+ s50=tapply(base50$veloc,base50$edad,sd)
+ s100=tapply(base100$veloc,base100$edad,sd)
+ round(cbind(s5,s10,s15,s50,s100),2)
+```
+
+```{r}
+ round(cbind(s5,s10,s15,s50,s100)-0.3,2)
+```
+
+
+```{r}
+apply(abs(cbind(s5,s10,s15,s50,s100)-0.3),2,sum)
+```
+
+
+# Recapitulación
+
++ ¿Cuales librerías utilizó en este laboratorio?
++ ¿Cuáles funciones utilizó en este laboratorio?
++ ¿Cómo se convierte una variable numérica en factor? ¿Cómo se asignan los niveles a un factor?
++ ¿Cómo se representa la relación entre dos variables numéricas donde una de ellas actúa como respuesta y la otra como variable explicativa?
++ ¿Cómo se obtiene e interpreta una línea de tendencia según el modelo de regresión lineal?
++ ¿Cómo se obtiene e interpreta una línea suavizada de regresión no paramétrica?
++ ¿Cómo se representa la relación entre dos variables numéricas diferenciando esta relación según los niveles de otra variable categórica?

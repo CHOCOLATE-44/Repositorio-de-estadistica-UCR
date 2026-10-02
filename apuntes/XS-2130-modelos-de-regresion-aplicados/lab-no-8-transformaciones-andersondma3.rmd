@@ -1,0 +1,665 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: console
+---
+
+\section{TRANSFORMACIONES}
+
+En este laboratorio se estudian transformaciones en la respuesta que ayudan a corregir problemas con los supuestos de normalidad y/o homocedasticidad. Se introduce la familia de transformaciones de Box-Cox. También se analizan transformaciones de las variables predictoras que permiten mejorar la relación con la respuesta.
+
+Se utiliza la librería `MASS` (Venables & Ripley,2002) para graficar la curva de transformaciones de Box-Cox, así como la librería  `car` (Fox & Weisberg, 2019) para obtener gráficos de residuales parciales y para calcular el VIF.  Además se usa la librería `lmtest` (Zeileis & Hothorn, 2002) para obtener la prueba de Breush-Pagan.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Grasa corporal}
+
+En una investigación se tomaron datos de estudiantes de la Universidad de Costa Rica, en la Sede Rodrigo Facio, para analizar las variables que pueden estar relacionadas con el porcentaje de grasa corporal promedio de los estudiantes. Se tomaron en cuanta tanto factores fisiológicos que no pueden ser controlados como el sexo y la edad, como elementos directamente relacionados con sus hábitos como el ejercicio o la cantidad de agua que consumen. 
+
+La variable respuesta es el porcentaje de grasa corporal y existen diversos métodos que permiten calcular ese porcentaje, entre ellos el de la impedancia bioeléctrica que lo hace a partir de medidas corporales como el peso y la altura, por lo que no se utilizarán medidas de este tipo como variables predictoras ya que pueden tener una relación bastante directa en el cálculo. 
+
+Se cuenta con las siguientes variables:
+
+  + Edad: en años cumplidos.
+  + Sexo.
+  + Ejercicio: actividad física de cualquier tipo en horas por semana. 
+  + Consumo de agua: litros tomados por día.
+  + Horas de sueño: horas que una persona duerme en promedio por noche.
+  + Consumo de comida rápida: cantidad de veces por mes.
+  + Horas de uso de la computadora: horas promedio por día.
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Transformación de la respuesta}
+
+1. Lea el archivo de datos con `load("porcgrasa.Rdata")`.  Ajuste un modelo que tenga como predictores todas las variables de la base excepto **grasa** que se toma como respuesta.  Verifique que no se cumple el supuesto de **homocedasticidad**
+
+
+```{r}
+setwd("~/UCR/IV Ciclo UCR estadistica/Regresion")
+load("porcgrasa.Rdata")
+library(lmtest)
+mod1 = lm(grasa ~.,base)
+bptest(mod1,studentize=F) #El F es para no studentizar los residuales
+```
+
+**La probabilidad asociada a la prueba es muy baja por lo que se rechaza la hipótesis de homocedasticidad. Se concluye que no se cumple este supuesto**
+
+2. Para analizar el efecto que tiene transformar la respuesta al sumar una constante o multiplicar por una constante, haga dos modelos, en uno sume 1 a la respuseta y en otro multiplique la respuesta por 1.2.
+
++ Ponga los coeficientes de los tres modelos en una sola matriz con `cbind`.
+
+```{r}
+mod2 = lm(I(grasa+1) ~ . ,base) # La I es para modificar la respuesta
+#Se le suma un 1 para ver que pasa si le sumo una constante
+mod3 = lm(I(grasa*1.2) ~ . ,base)
+cbind(mod1$coef,mod2$coef,mod3$coef)
+
+#Cuando se suma una constante los coeficientes no cambian, por otro lado cuando se le multiplica algo aumenta
+```
+
+**El modelo en que se suma una constante tiene los mismos coeficientes para todas las variables pero cambia el intercepto. El modelo en que se multiplica por una constante cambian todos los coeficientes**
+
++ Obtenga el logaritmo de la verosimilitud de los tres modelos usando `logLik(mod)`.
+
+```{r}
+ logLik(mod1)
+```
+
+```{r}
+logLik(mod2)
+```
+
+```{r}
+logLik(mod3) #Ojo que este es el único que cambia
+```
+
+**El logaritmo de la verosimilitud cambia para el modelo en que se multiplicó por una constante.**
+
++ Haga la prueba de Breush-Pagan para cada modelo. ¿Qué se puede concluir al hacer transformaciones de este tipo?
+
+```{r}
+bptest(mod1,studentize=F)
+```
+
+
+```{r}
+bptest(mod2,studentize=F)
+```
+
+```{r}
+bptest(mod3,studentize=F)
+```
+
+**El resultado de la prueba no cambia para ningún modelo. Con esto se concluye que al sumar una constante o multiplicar por una constante la respuesta no cambia la relación de la respuesta con sus predictores.**
+
+*Transformación Simple*
+
+$$y^{\lambda} =
+\begin{cases}
+\ln(y) & \text{si } \lambda = 0, \\
+y^{\lambda} & \text{si } \lambda \neq 0
+\end{cases}$$
+ 
+*Transformación completa*
+
+$$y^{\lambda} =
+\begin{cases}
+\frac{\ln(y)}{\tau} & \text{si } \lambda = 0, \\
+\frac{y^{\lambda}-1}{\lambda\space\tau^{\lambda-1}} & \text{si } \lambda \neq 0
+\end{cases}$$
+ 
+donde $\tau$ es la media geométrica 
+ 
+\subsubsection*{Transformación de Box-Cox}
+
+3. Para decidir cuál transformación de la respuesta maximiza la verosimilitud, Box y Cox proponen una familia de transformaciones comparables. En la librería `MASS` hay una función llamada `boxcox` que devuelve un gráfico con el logaritmo de la verosimilitud al aplicar diferentes transformaciones. Se usa con `boxcox(mod1)`. 
+
++ Haga el gráfico de transformaciones de Box-Cox y observe cuál valor de $\lambda$ produce la mayor verosimilitud.
+
+
+```{r}
+library(MASS)
+boxcox(mod1)
+```
+
+**El máximo se observa donde está la línea punteada, parece estar cerca de 0 pero en el gráfico no se puede decir exactamente cuál es el valor de** $\lambda$ **que produce el máximo.**
+
++ Para ubicar el máximo corra las siguientes líneas:
+
+```{r}
+ bc=boxcox(mod1)
+```
+
+  
+```{r}
+names(bc)
+```
+
+
+```{r}
+bc$x[bc$y==max(bc$y)]
+```
+
+
+**El valor que produce el máximo está cerca de 0.10.**
+
+
++ Trace una línea vertical en el valor $\lambda=0$ y observe que queda dentro del intervalo que se aproxima al máximo.
+
+```{r}
+boxcox(mod1)
+abline(v=0,col=2)
+```
+
+**La transformación con** $\lambda = 0$ **produce un valor de la verosimilitud que está dentro del intervalo que se considera que produce valores de verosimilitud muy cercanos al máximo.**
+
+4. Ahora se trabajará con la transformación para $\lambda=0$ de dos formas:
+
+a. La trasformación completa de Box-Cox:
+
+$$y^{(1)}=\frac{ln(y)}{\tau}$$
+
+donde $\tau$ es la media geométrica de $y$.
+
+b. La transformación simple que elimina la parte del $\tau$:
+
+  
+   $$y^{(2)}=ln(y)$$
+
++ Cree dos nuevas variables con estas transformaciones.  
+
++ Divida la pantalla en 3 partes mediante `par(mfrow=c(1,3))`. Haga 3 gráficos donde ponga en el eje X siempre la variable **edad** y en cada uno de los gráficos va cambiando el eje Y para observar la variable original y cada una de las 2 transformaciones. 
+
+
+```{r}
+n = nrow(base)
+ tau = prod(base$grasa)^(1/n)
+ y1 = log(base$grasa)/tau
+ y2 = log(base$grasa)
+ par(mfrow=c(1,3))
+ plot(base$edad,base$grasa,ylab="Original")
+ plot(base$edad,y1,ylab="Transformación completa")
+ plot(base$edad,y2,ylab="Transformación simple")
+```
+
+```{r}
+par(mfrow=c(1,1))
+```
+
+
+**Se observa que los gráficos de las 2 transformaciones tiene el mismo comportamiento pero cambia la escala del eje Y.Estos gráficos son diferentes al de la variable original.**
+
+
+
++ Ajuste el modelo usando las transformaciones y obtenga el logaritmo de la verosimilitud en cada caso.
+
+
+```{r}
+mod4 =lm(y1 ~ .-grasa,base)
+mod5 =lm(y2 ~ .-grasa,base)
+logLik(mod4)
+```
+
+
+```{r}
+ logLik(mod5)
+```
+
+
++ Haga la prueba de Breush-Pagan en los modelos con las transformaciones.
+
+
+```{r}
+ bptest(mod4,studentize= F)
+```
+
+
+```{r}
+bptest(mod5,studentize = F)
+```
+
+**En ambos los casos da el mismo resultado y ha desparecido la heterocedasticidad.**
+
+
+\subsubsection*{Interpretación}
+
+5. Utilice como respuesta la transformación logarítmica simple y reduzca el modelo usando la prueba F.  Use la función `drop1` repetidas veces hasta que obtenga un modelo que ya no se puede reducir más con $\alpha=0.15$.
+
+```{r}
+drop1(mod5,test="F")
+```
+
+```{r}
+mod6=update(mod5,.~.-agua)
+ drop1(mod6,test="F")
+```
+
+```{r}
+ mod7=update(mod6,.~.-ejercicio)
+ drop1(mod7,test="F")
+```
+
+```{r}
+mod8=update(mod7,.~.-computadora)
+ drop1(mod8,test="F")
+```
+
+
++ Obtenga las estimaciones de los coeficientes del modelo final y escriba la ecuación estimada.
+
+```{r}
+ round(mod8$coef,2)
+```
+
+$$log(\hat{\mu_{Y|E,SE,SU,C}}) = 2,77+0,04E-0,57M-0,03SU-0,01C$$
+
++ Dé interpretaciones para los coeficientes.
+
+```{r}
+ round(apply(base[,c(2,6,7)],2,sd),2)
+```
+
+```{r}
+b=mod8$coef
+ #Edad por aumento de 3.5 años
+ round(exp(b[2]*3.5),2)
+```
+
+
+```{r}
+#Hombres vs mujeres
+ round(1-exp(b[3]),2)
+```
+
+
+```{r}
+#Mujeres vs hombres
+ round(exp(-b[3]),2)
+```
+
+
+```{r}
+ #Sueño por aumento de una hora de sueño
+ round(1-exp(b[4]),2)
+```
+
+
+```{r}
+ #Sueño por disminución de una hora de sueño
+ round(exp(-b[4]),2)
+```
+
+
+```{r}
+ #Comida por aumento de 4 veces al mes
+ round(1-exp(4*b[5]),2)
+```
+
+
+```{r}
+ #Comida por disminución de 4 veces al mes
+ round(exp(-4*b[5]),2)
+```
+
+**El porcentaje de grasa aumenta 1.14 veces al aumentar la edad en 3.5 años (manteniendo las demás variables constante). El porcentaje de grasa de las mujeres es 1.77 veces el de los hombres (el de los hombres es 43% menor que el de las mujeres). Cuando disminuye las horas de sueño en una hora el porcentaje de grasa disminuye 1.03 veces y cuando el número de veces que come comida rápida disminuye en 4 veces, el porcentaje de grasa disminuye 1.04 veces, lo cual no tiene mucho sentido. Estas últimas dos variables no tienen una relación muy fuerte con el porcentaje de grasa corporal**
+
+\newpage
+
+\subsection*{Esperanza de vida} 
+
+Se cuenta con información para 150 países de los 5 continentes y se busca establecer las relaciones que existen entre ciertas variables del país y la esperanza de vida al nacer (**esper**). Se cuenta con las siguientes variables como predictoras:
+  
+  + **cont**  -	Continente.
+  + **pob**   - 	Densidad de población por km$^2$.
+  + **pib**   -	Producto Interno Bruto per capita (cientos de dólares). 
+  + **analf** - 	Tasa de analfabetismo (%).
+  + **desem** - 	Tasa de desempleo (%).  
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Transformación de Box-Cox fuera de los límites}
+
+6. Lea el archivo de datos con `load("esperanza.Rdata")`. Estime el modelo con **esper** como respuesta y 4 predictores: **pob**, **pib**, **analf** y **desem**.
+
+```{r}
+load("esperanza.Rdata")
+mod7= lm(esper~pob+pib+analf+desem,data=base)
+```
+
+
++ Haga el gráfico de los residuales contra los valores ajustados para observar algún patrón de heterocedasticidad y haga la prueba de Breusch-Pagan.
+
+```{r}
+plot(mod7$fit,mod7$res,xlab="ajustados",ylab="residuales")
+```
+
+
+```{r}
+ bptest(mod7,studentize=F)
+```
+
+
++ Haga el gráfico de cuantiles-cuantiles para ver patrones de no-normalidad.
+
+```{r}
+qqPlot(mod7$res,ylab="residuales")
+```
+
+
+**En el primer gráfico se nota un patrón de heterocedasticidad ya que la variabilidad a la derecha es menor que en el centro. La prueba de Breush-Pagan se rechaza con una probabilidad asociada muy baja (p<0.001). También se ve un patrón de no normalidad ya que en la cola izquierda hay una tendencia de puntos a estar debajo de la línea recta; sin embargo, cualquier conclusión respecto a la normalidad no es válida dado que no hay homocesticidad y las pruebas de normalidad están asumiendo que se cumple la homocedasticidad.**
+
+7. Busque una transformación de Box-Cox.  Vea que no se aprecia el máximo por lo que debe modificar el eje X poniendo `lambda=seq(1,10,0.5)` para que extienda el rango de 1 a 10.
+
+```{r}
+ par(mfrow=c(1,2))
+ boxcox(mod7)
+ boxcox(mod7,lambda=seq(1,10,.5))
+```
+
+
++ Haga la transformación con $\lambda=4$, verifique nuevamente si se cumplen los supuestos de homocedasticidad y normalidad. 
+
+```{r}
+ z4=base$esper^4
+ mod8 = lm(z4~pob+pib+analf+desem,data=base)
+ bptest(mod8,studentize=F)
+```
+
+```{r}
+par(mfrow=c(1,2))
+ plot(mod8$fit,mod8$res,xlab="ajustados",ylab="residuales")
+ qqPlot(mod8$res,ylab="residuales")
+```
+
+**El problema de normalidad parece corregirse a pesar de que sigue siendo in válido observar este gráfico dado que persiste la heterocedasticiad. Sin embargo,aunque se mantiene este problema, la probabilidad asociada ahora es mayor.**
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+
+\subsection*{Prestigio}
+
+La descripción se encuentra en el Laboratorio No.7.
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Transformaciones de los predictores}
+
+8. Lea el archivo de datos con `load("presigio.Rdata")`. Ajuste un modelo que contenga los predictores **mujer** y **edu**. Obtenga los gráficos de residuales parciales. 
+
+```{r}
+load("prestigio.Rdata")
+ mod1=lm(presti~mujer+edu,base)
+ library(car)
+ crPlots(mod1,main="Residuales parciales",ylab="")
+```
+
+**Se observa una curvatura entre el predictor mujer y la respuesta promedio, pero hay una buena relación lineal con el predictor edu.**
+
+
++ Ante el problema de no linealidad entre el predictor **mujer** y la respuesta promedio, se podría intentar hacer una trasformación de la respuesta, lo cual no es recomendable pues, aunque una variable tiene una mala relación lineal, la otra sí tiene una buena relación. Entonces, transformar la respuesta podría arreglar algo y desarreglar lo otro.  Haga el análisis para verificar que no se recomienda ninguna transformación de Box-Cox.
+
+```{r}
+ library(MASS)
+ boxcox(mod1)
+```
+
+**El 1 está en el intervalo de la mejor transformación, lo cual es equivalente a no hacer ninguna transformación.**
+
+\subsubsection*{Transformación cuadrática}
+
+9. Debido a la curvatura observada con **mujer**, se puede intentar hacer una transformación cuadrática de esta variable.  Escriba el modelo matemático en el que se considere la variable **mujer** (coeficiente lineal $\beta_1$), y **mujer** al cuadrado (coeficiente cuadrático $\beta_2$), así como **edu**.
+
+$$\mu_{Y|M,E} = \beta_0+\beta_1M+\beta_2M^2+\beta_3E$$
+
++ Haga la estimación del modelo. Para introducir la variable al cuadrado puede usar la I que permite hacer la operación en la misma línea que se escribe el modelo con lm, para esto agregue `I(mujer^2)`.  Obtenga el VIF y observe que hay un problema de multicolinealidad entre el coeficiente lineal y el cuadrático.
+
+```{r}
+mod2=lm(presti~mujer+I(mujer^2)+edu,base)
+```
+
+
+```{r}
+vif(mod2)
+```
+
+
++ Para reducir la multicolinealidad se puede centrar la variable **mujer**, es decir restando la media a la variable. Cree una variable llamada \verb|muj=base$mujer-mean(base$mujer)|. También puede usar la función `scale` de esta forma: \verb|muj=scale(base$mujer,scale=F)|.
+Corra nuevamente el modelo con la variable centrada.  Verifique que el VIF baja.
+
+```{r}
+ muj=scale(base$mujer,scale=F)
+ mod3=lm(presti~muj+I(muj**2)+edu,base)
+ vif(mod3)
+```
+
+
++ Escriba la ecuación estimada con la variable centrada y con la variable original.
+
+```{r}
+ round(mod3$coef,3)
+```
+
+$$\hat{y} = -13,977-0,152M_C+0,002M^2_C+5,473E\\
+M_C = M-28,979\\
+M_C^2 = (M-28,979)^2 = M^2-57,958M +839,78
+\hat{y} = -12,97 -0,268M+0,002M^2+5,483E$$
+
++ Fije la variable **mujer** en la media en la ecuación con la variable original. Haga un gráfico de la respuesta promedio en el rango observado de la variable **educacion**.  Dé una interpretación del coeficiente de esta variable.
+
+
+```{r}
+m1=mean(base$mujer)
+ round(m1,3)
+```
+
+$$\hat{y} = -12,997-0,268*28,979+0,002*(28,979)^2+5,473E\\
+\hat{y}= -18,384+5,473E$$
+
+
+```{r}
+range(base$edu)
+```
+
+
+```{r}
+curve(-18.384+5.473*x,6,16,xlab="educación promedio (años)",
+ ylab="prestigio promedio")
+```
+
+
+```{r}
+ sd(base$edu)
+```
+
+
+```{r}
+2.728*5
+```
+
+
+
+**Al aumentar el promedio de años de la ocupación en 5 años, el puntaje de prestigio promedio aumenta 13.64 puntos, manteniendo constante el porcentaje de mujeres ocupadas.**
+
+
+
++ Ahora fije la variable **educacion** en la media y haga el gráfico de la respuesta promedio en el rango observado de la variable **mujer**. Observe que la interpretación de los coeficientes de mujer se pierde, solo se puede dar una descripción basada en el gráfico.
+
+```{r}
+m2=mean(base$edu)
+round(m2,3)
+```
+
+$$\hat{y}= -12,297-0,268M+0,002M^2+5,473*10,738\\
+\hat{y}= 46,472-0,268M+0,002M^2$$
+
+
+```{r}
+range(base$mujer)
+```
+
+```{r}
+curve(46.472-0.268*x+0.002*x^2,0,100,xlab="mujeres ocupadas (%)",
+ ylab="prestigio promedio")
+```
+
+
+**Como la variable mujer tiene un término cuadrático, aunque se fije la variable edu, siempre se va a observar un comportamiento parabólico en la media de la respuesta, por lo que un aumento en el porcentaje de mujeres ocupadas no siempre representa el mismo aumento en la respuesta promedio. Al principio, en el rango de 0 a 60%, el presitigo promedio va disminuyendo conforme aumenta el porcentaje de mujeres. En cambio, a partir de 65% empieza a aumentar, pero ese aumento no es constante.**
+
++ Ponga a prueba la hipótesis sobre el coeficiente del término cuadrático de la variable **mujer**.
+
+```{r}
+ drop1(mod3,test="F")
+```
+
+
++ Aunque el coeficiente del término cuadrático no es significativo, observe que el modelo que incluye este término tiene un $R^2$ ajustado más alto que el modelo original.
+
+```{r}
+round(summary(mod1)$adj,3)
+```
+
+
+```{r}
+round(summary(mod3)$adj,3)
+```
+
+
+\subsubsection*{Transformación logarítmica}
+
+10. La curvatura del predictor **mujer** también se podría tratar de arreglar con un logaritmo; sin embargo, debido a los ceros que hay en esta variable el logaritmo se indefine para estas observaciones con cero.  Determine cuántas observaciones tiene cero.
+
+```{r}
+which(base$mujer==0)
+```
+
+
++ Se puede sumar una pequeña cantidad a la variable **mujer** antes de sacar el logaritmo.  Realice la trasformación de **mujer** con **log2(mujer+0.001)** y agregue la variable **edu** en el modelo. Obtenga los gráficos de residuales parciales.
+
+```{r}
+ mod4=lm(presti~log2(mujer+0.01)+edu,base)
+ crPlots(mod4,main="Residuales parciales",ylab="")
+```
+
+
++ No mejora mucho, pero se podrían eliminar esos 5 puntos y probar el logaritmo.  Corra el modelo con la base eliminando los 5 valores con cero en la variable **mujer**, obtenga los gráficos de residuales parciales y el $R^2$ ajustado.
+
+```{r}
+mod5=lm(presti~log2(mujer)+edu,base[base$mujer>0,])
+ crPlots(mod5,main="Residuales parciales",ylab="")
+```
+
+
+```{r}
+round(summary(mod5)$adj,3)
+```
+
+
+11. Vamos a ajustar un modelo con los 4 variables predictoras: **mujer**, **edu**, **ingre** y **tipo** que es categórica. Ajuste el modelo y obtenga los gráficos de residuales parciales.
+
+```{r}
+mod6=lm(presti~mujer+edu+ingre+tipo,base)
+crPlots(mod6,main="Residuales parciales",ylab="")
+```
+
++ Para corregir la curvatura de **mujer** introduzca un término cuadrático con la variable centrada y para corregir la curvatura de **ingre** transforme esta variable con logaritmo en base 2 (`log2`).  Ajuste el modelo y obtenga los gráficos de residuales parciales.  Obtenga el $R^2$ ajustado y  el VIF.
+
+
+```{r}
+mod7=lm(presti~muj+I(muj^2)+edu+log2(ingre)+tipo,base)
+crPlots(mod7,main="Residuales parciales",ylab="")
+```
+
+
+```{r}
+round(summary(mod7)$adj,3)
+```
+
+
+```{r}
+vif(mod7)
+```
+
+
++ Verifique las hipótesis sobre los coeficientes del modelo. Observe que el coeficiente del término lineal no es significativo; sin embargo, no se elimina del modelo debido al principio de jerarquía ya que un término cuadrático solo puede estar en un modelo si también está el término lineal.
+
+```{r}
+drop1(mod7,test="F")
+```
+
+
++ Ahora vamos a incluir interacción entre la variable categórica **tipo** y las dos variables que aparecen sin transformación cuadrática, es decir, **edu** y **log2(ingre)**.  Ajuste el modelo y observe la columna  `GVIF^(1/(2*Df))`. Observe que hay un problema de multicolinealidad debido a las interacciones con **tipo**.
+
+```{r}
+mod8=lm(presti~muj+I(muj^2)+(edu+log2(ingre))*tipo,base)
+vif(mod8)
+```
+
+
++ Centre **edu** y **log2(ingre)** y ajuste nuevamente el modelo usando estas dos variables centradas.  Obtenga el VIF.  Observe que el problema de multicolinealidad desapareció.
+
+
+```{r}
+ling=scale(log2(base$ingre),scale=F)
+ed=scale(base$edu,scale=F)
+mod9=lm(presti~muj+I(muj^2)+(ed+ling)*tipo,base)
+vif(mod9)
+```
+
+
++ Verifique que puede eliminar las interacciones una a una.
+
+```{r}
+drop1(mod9,test="F")
+```
+
+```{r}
+mod10=lm(presti~muj+I(muj^2)+ed+ling*tipo,base)
+drop1(mod10,test="F")
+```
+
+
++ Escriba la ecuación estimada del modelo final.
+
+```{r}
+round(mod10$coef,3)
+```
+
+$$\hat{y} = 44,252+0.04M_C+0,002M^2_C+2,9659E+12,139log_2(I)_C+\\7,610PROF-3,067WC-5,336log_2(I)_C\cdot PROF-0,323log_2(I)_C\cdot WC$$
++ Interprete el coeficiente de **log2(ingre)**.
+
+**Cuando el ingreso se duplica (debido a que la base del logaritmo aplicado es 2) el puntaje de prestigio promedio aumenta 9.775 puntos. Para ver esto se escribe una ecuación con un valor de ingreso x, y otra con el doble, es decir 2x y se restan.**
+
+$$\hat{y}_2 = -110,488+0,026M_C+0,002M^2_C+2,966E+9,775log_2(I)_C+6,031PROF-2,839WC\\
+\hat{y}_1 = -110,488+0,026M_C+0,002M^2_C+2,966E+9,775log_2(I)_C+6,031PROF-2,839WC\\
+\hat{y}_2-\hat{y}_1 = 9,775log_2(2x)-9,775(x) = 9,775log_2(2)+9,775log_2(x)-9,775log_2(x)\\
+\hat{y}_2-\hat{y}_1 = 9,775$$
+
+\newpage
+
+\subsection*{Recapitulación}
+
++ ¿Cuáles funciones utilizó en este laboratorio?
++ ¿Cómo se obtiene la curva para determinar una transformación de Box-Cox?
++ ¿Cómo se hace la transformación cuando $\lambda=0$?
++ ¿Cómo se determina si se debe transformar una variable predictora?
++ ¿En qué casos se debe centrar la variable predictora?
++ ¿En qué casos se requiere usar un término cuadrático?
++ ¿En qué casos se requiere aplicar un logaritmo a la variable predictora?
++ ¿En qué casos se requiere sumar una pequeña cantidad antes de aplicar un logaritmo?
++ ¿Cómo se interpretan lo coeficientes cuando la respuesta se transforma con un logaritmo?
++ ¿Cómo se interpretan lo coeficientes cuando se incluye un término cuadrático en un predictor?
++ ¿Cómo se interpretan lo coeficientes cuando un predictor se transforma con un logaritmo?
+
+\begin{center}
+\noindent\hrule
+\end{center}
+

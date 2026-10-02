@@ -1,0 +1,356 @@
+---
+output:
+  pdf_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: console
+---
+
+\section{ESTIMACIÓN DE COEFICIENTES DEL MODELO}
+
+En este laboratorio se presenta el procedimiento de estimación de los coeficientes de un modelo de regresión, así como los coeficientes estandarizados y su interpretación.  Se utiliza un ejemplo de un estudio sobre la velocidad de nado que se describe en la siguiente sección, el cual se usará en los siguientes laboratorios para ir viendo los diferentes elementos de un modelo de regresión.
+
+Se utiliza la librería `lattice` (Sarkar, 2008) para graficar la línea de regresión y los puntos observados, así como la librería  `car` (Fox & Weisberg, 2019) para obtener gráficos con curvas suavizadas.  También se usa la librería `corrgram` (Wright, 2021) para construir un gráfico con las correlaciones entre pares de variables numéricas.
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Velocidad de nado}
+
+Se realizó un estudio para analizar la velocidad de nado de las personas mayores de 18 años que son miembros regulares de un equipo de natación, y se tomaron en cuenta algunas variables que pueden estar relacionadas con esta velocidad. 
+Se hizo una prueba a los participantes y se tomó el tiempo que duraban en nadar 50m. Entonces como medida de la velocidad de nado se tiene el tiempo (en segundos) el cual se puede transformar a la velocidad dividiendo la distancia entre el tiempo. Esta variable se llama **veloc**. Como variables predictoras se tienen las siguientes:  
+
+a.	**edad**: la edad en años cumplidos.
+b.  **sexo**: el sexo codificado como 0 (mujeres) y 1 (hombres).
+c.	**imc**: el índice de masa corporal se calcula dividiendo el peso en kilogramos entre la altura al cuadrado (en metros), lo cual da una medida en kg/m^2^.
+d.	**pierna**: la longitud promedio de ambas piernas (en centímetros).
+e.	**brazo**: la longitud promedio de ambos brazos (en centímetros).
+
+\subsection*{Ejercicios}
+
+\subsubsection*{Visualización}
+
+1. Lea el archivo de datos con `load("velo.Rdata")`. Analice gráficamente la relación entre la respuesta promedio y cada uno de los predictores numéricos.
+
++ Use la función `xyplot` de la librería `lattice`. Coloque primero la variable respuesta y conéctela con la variable independiente mediante `~`. Además, indique en `type` que agregue puntos con `"p"` y también la línea de regresión con \verb|"r"|, colocados en un solo vector \verb|type=c("p","r")|.  Puede cambiar el tipo de puntos con `pch`, por ejemplo `pch=18` le da puntos rellenos.  Finalmente, indique la base de datos con `data`. La instrucción debe quedar de esta forma: \verb|xyplot(Y~X,type=c("p","r"),pch=18,data=base)|.
+
+```{r}
+load("velo.Rdata")
+library(lattice)
+xyplot(veloc~edad,type=c("p","r"),pch=18,ylab="velocidad",data=base)
+```
+
+```{r}
+xyplot(veloc~imc,type=c("p","r"),pch=18,ylab="velocidad",data=base)
+```
+
+```{r}
+xyplot(veloc~pierna,type=c("p","r"),pch=18,ylab="velocidad",data=base)
+```
+
+```{r}
+xyplot(veloc~brazo,type=c("p","r"),pch=18,ylab="velocidad",data=base)
+```
+
+
++ Use la función `scatterplot` de la librería `car`. Escriba primero la variable independiente y luego la respuesta separadas por una coma.
+```{r}
+library(car)
+with(base,scatterplot(edad,veloc,pch=18,ylab="velocidad"))
+```
+
+```{r}
+with(base,scatterplot(imc,veloc,pch=18,ylab="velocidad"))
+```
+
+```{r}
+with(base,scatterplot(pierna,veloc,pch=18,ylab="velocidad"))
+```
+
+```{r}
+with(base,scatterplot(brazo,veloc,pch=18,ylab="velocidad"))
+```
+
++ Use la función `scatterplotMatrix` de la librería `car`.  Ponga todas las variables continuas de la base dentro de la función.
+```{r}
+scatterplotMatrix(base[,-3],pch=18)
+```
+
+*Respusta del profe:*
++ La variable que sigue una mejor relación lineal con la respuesta promedio es
+edad. La otras variables tienen comportamientos extraños, sin embargo no se
+puede apreciar ninguna tendencia clara que no sea lineal. En el caso de imc la
+tendencia es muy horizontal, es decir no hay ni aumento ni disminución de la
+velocidad promedio al aumentar el imc. En el caso de brazo habría que tener
+más datos en el rango de 75 a 80 para que la tendencia se dibujara de forma más
+clara.
+
+
+
+\subsubsection*{Coeficientes de correlación}
+
+2.	Obtenga los **coeficentes de correlación lineal (Pearson)** entre pares de variables:
+
++ Primero obtenga este coeficiente entre la respuesta y cada una de las variables predictores. Para esto coloque en un objeto llamado **X** sólo los predictores y haga `cor(X,Y)`.
+```{r}
+X=base[,c(2,4:6)]
+Y=base$veloc
+R=cor(X,Y)
+round(R,2)
+```
+
+*Respuesta del profe:*
+La única variable que muestra una asociación importante con la respuesta es
+la edad
+
++ Se puede hacer un gráfico  que contenga todas las **correlaciones** entre variables numéricas. Use la función `corrgram` de la librería `corrgram`. Simplemente escriba dentro de la función el objeto que contiene las variables a analizar: `corrgram(base[,-3])`. Los colores más intensos representan asociaciones más fuertes donde rojo es negativo y azul es positivo. Esta función permite combinaciones de gráficos, por ejemplo, se podría presentar en la diagonal una densidad univariada mediante el parámetro `diag.panel=panel.density` y en la parte superior los valores de las correlaciones con sus intervalos de confianza usando `upper.panel=panel.conf`.
+
+```{r}
+library(corrgram)
+corrgram(base[,-3], upper.panel=panel.conf,diag.panel=panel.density) #El -3 es para quitar el sexo, #upper.panel=panel.conf significa arriba los intervalos de confianza y diag.panel=panel.density colocar la densidad en la diagnonal
+```
+
+Si los intervalos de confianza contiene el cero la correlación puede ser cero, es importante tenerlo en cuneta más no es crucial
+
+```{r}
+corrgram(base[,-3]) # Tonos rojos negativo, tonos azules positivos depende de su saturación que tan fuerte es 
+
+```
+
++ Observe los resultados entre la respuesta y las predictoras así entre los pares de predictoras.  Relacione este último análisis con el supuesto de **no-multicolinealidad**:
+
+
+*Respuesta del profe*
+
+Se confirma que la variable que tiene una asociación lineal más fuerte con la
+velocidad es la edad, siendo esta asociación inversa. Por otro lado, se ve que el
+imc tiene una asociación prácticamente nula con la velocidad. Se nota que brazo
+y pierna están altamente correlacionadas (0.87) y siendo dos predictores se estaría
+incumpliendo de no-multicolinealidad
+
+\subsubsection*{Modelo de regresión}
+
+3. Use un modelo de regresión que tenga como predictores solamente la **edad** y el **largo promedio del brazo**. Dejamos por fuera el imc por su bajísima correlación con la respuesta, así como el largo promedio de las piernas ya que está muy correlacionada con el largo promedio del brazo.
+
++ Escriba el modelo de regresión teórico que se va a ajustar.
+
+$$\mu_{Y|X}=\beta_0+\beta_1X_1+\beta_2X_2$$
+En este caso se escogió brazo porque tiene una mejor correlación
+$X_1:$ Corresponde a la edad de la persona 
+$X_2:$ Corresponde al largo promedio de brazo de la persona
+
++ Qué forma tiene el conjunto formado por todas las medias condicionales obtenidas a partir de todas las posibles combinaciones de los predictores?
+
+Tienen la forma de un plano
+
+\subsubsection*{Estimación de los coeficientes del modelo}
+
+4. Forme la **matriz de estructura** para hacer la estimación de los coeficientes del modelo. Llame a esta matriz **X**. Recuerde que esta matriz debe empezar por una columna con unos.  Ponga la respuesta en un objeto llamado **Y**.
+```{r}
+X = cbind(1,base$edad,base$brazo) #Las dos del modelo, recuerde que cbind crea una matriz
+Y = base$veloc
+```
+
+
++ Justifique por qué la matriz de estructura lleva una columna con unos.
+El uno en cada fila se utliza para estimar el intercepto
+
++ Obtenga las estimaciones para los coeficientes del modelo que minimizan la suma de cuadrados de los residuales (Suma de Cuadrados Residual), es decir use la expresión derivada por el método de mínimos cuadrados:  $\hat{\beta}=(X^TX)^{-1}(X^TY)$. Recuerde que la multiplicación de matrices en R se realiza con el operador `%*%`, la transpuesta de una matriz con la función `t`  y la inversión de matrices con la función `solve`.
+```{r}
+beta= solve(t(X)%*%X)%*%t(X)%*%Y
+round(beta,2)
+```
+
+
++ Escriba la ecuación del modelo estimado usando los coeficientes obtenidos anteriormente.
+$$\hat{y}= 0.29-0.02X_1+0.02X_2$$
+
+5. Obtenga la desviación estándar para la edad y para la variable brazo.
+```{r}
+sd(base$edad)
+```
+
+```{r}
+sd(base$brazo)
+```
+
+
++ Haga la interpretación de los coeficientes considerando que cada variable predictora aumente alrededor de una desviación estándar.
+
+**Se toma para la edad un aumento de 10 años y para el largo promedio del brazo un aumento de 5cm**
+$$\text{Si }X_1= 10$$
+```{r}
+round(beta[2]*10,2) 
+```
+
+$$\text{Si }X_2 = 5$$
+```{r}
+round(beta[3]*5,2)
+```
+
+```{r}
+round(beta[3]*4,2)
+```
+
+
+*Respuesta del profe*
+Al comparar dos grupos de personas cuyas edades difieren en 10 años y manteniendo fijo el largo promedio de los brazos, la velocidad promedio disminuye
+0.18m/s en el grupo de mayor edad con respecto al grupo de menor edad.
+
+Al comparar dos grupos de personas cuyo largo promedio de los brazos difiere
+en 5cm y manteniendo fija la edad, la velocidad promedio aumenta 0.11m/s en
+el grupo de mayor largo de brazos con respecto al grupo con menor largo de
+brazos.
+
+
+
+6. Utilizando el modelo estimado, calcule el valor asociado a una edad de 24 años y un largo de brazos promedio de 71cm.
+```{r}
+t(beta)%*%c(1,24,71)
+```
+
+**Otra forma de hacerlo**
+
+```{r}
+beta[1]+beta[2]*24+beta[3]*71 #Forma manual
+```
+
+
++ Dé una interpretación para el valor obtenido anteriormente.
+
+*Respuesta del profe:*
+La velocidad promedio de todas las personas de 24 años que tengan un largo de brazos promedio de 71cm, se estima en 1.38m/s
+
++ ¿Cuánto cambiaría este valor si se consideran ahora personas de 34 años y con el mismo largo promedio de brazos?
+*Respuesta del profe:*
+La velocidad promedio disminuiria 0.18m/s, es decir, la velocidad promedio
+sería 1.20m/s para todas las personas de 34 años con un largo de brazos promedio
+de 71cm
+
+7. Use la función `lm` para estimar los coeficientes del modelo. Ponga el resultado en un objeto llamado **mod**: `mod=lm(veloc~edad+brazo)`.
+```{r}
+mod=lm(veloc~edad+brazo,data=base)
+round(mod$coef,2)
+```
+**Observe que se obtienen los mismos coeficientes**
+
++ Obtenga los coeficientes usando `mod$coef` y compárelos con los obtenidos anteriormente.
+```{r}
+mod$coef
+```
+
+
+8. Obtenga la estimación de la media condicional de la velocidad para personas con edad de 24 y un largo de brazos promedio de 71cm. Para esto use la función `predict` indicando en un `data.frame` los valores de los predictores.  Se hace de la siguiente forma: `predict(mod,data.frame(edad=24,brazo=71))`.
+```{r}
+predict(mod,data.frame(edad=24,brazo=71)) #Observe que se obtiene el mismo resultado que anteriormente
+
+```
+
+
+\subsubsection*{Coeficientes estandarizados}
+
+9. Plantee un modelo lineal sólo con los predictores numéricos. Obtenga las estimaciones de los coeficientes y escriba a ecuación estimada del modelo.
+
+```{r}
+mod=lm(veloc~edad+imc+pierna+brazo,data=base)
+round(mod$coef,3)
+```
+**La ecuación estimada**
+$$\hat{y} = -0.135 - 0.019X_1 + 0.016X_2 - 0.003X_3 + 0.026X_4 \\
+\text{donde } X_1: \text{ edad, } \; 
+X_2: \text{ imc, } \; 
+X_3: \text{ pierna, } \; 
+X_4: \text{ brazo.}
+ $$
+
+10. Obtenga ahora los coeficientes estandarizados siguiendo los siguientes pasos:
+  
++ Primero obtenga las correlaciones entre la respuesta y cada una de las variables predictores. Para esto coloque en un objeto llamado **X** sólo los predictores y haga `rxy=cor(X,Y)`. Luego obtenga la matrix de correlaciones entre los predictores haciendo `rxx=cor(X)`.  Los coeficientes estandarizados se pueden encontrar usando la expresión derivada por el método de mínimos cuadrados:  $\hat{\beta}^S=(r_{XX})^{-1}(r_{XY})$, donde $r_{XX}$ es la matriz anterior con las correlaciones entre los predictores y $r_{XY}$ es el vector de correlaciones entre los predictores y la respuesta.
+
+```{r}
+X= base[,c(2,4:6)] #Se brinca la columna sexo
+Y=base$veloc
+rxy=cor(X,Y)
+rxx=cor(X)
+beta.s=solve(rxx) %*% rxy
+round(beta.s,2)
+```
+
+**La ecuación estimada con los coeficientes estandarizados**
++ ¿Cuáles variables tienen un mayor impacto en la respuesta?
+$$\hat{y}^{S}= -0.76X_1^S+0.20X_2^S-0.07X_3^S+0.50X_4^S$$
+
+**Respuesta del profe**
+La variable que tiene mayor impacto es la edad pues disminuye la respuesta
+promedio en 0.76 deviaciones estándar por cada aumento de una desviación es tándar de la edad, luego el largo promedio de los brazos que aumenta la respuesta
+promedio en 0.5 desviaciones estándar por cada aumento de una desviación estándar de la variable brazo. Hay que notar que el imc no tiene un coeficiente
+tan despreciable como lo podía uno esperar al inicio, mientras que el largo de
+las piernas sí parece tener un impacto muy leve, lo cual es extraño puesto que
+brazo y piernas están muy correlacionados. Debe observarse también que en el
+modelo sin estandarizar la variable que tenía el coeficiente más alto era brazo
+mientras que al estandarizar se obtiene un mayor coeficiente para edad
+
+**Interpretación**
+
+$$\hat{\beta_1^s}=- 0.76$$
+Al aumentar la edad (9.7 años) la velocidad promedio disminuye 0.18 m/s
+
+```{r}
+stand = c(-0.76,0.20,-0.07,0.50)
+stand*0.24
+
+```
+
++ Obtenga los coeficientes estandarizados pero usando directamente las variables estandarizadas en la función `lm`. Hay que recordar que el modelo se debe especificar sin intercepto, lo cual se logra poniendo un -1. Para estandarizar todas las variables se puede recurrir a la función `scale` de la siguiente forma `scale(base[,-3])`.
+```{r}
+base2=data.frame(scale(base[,-3])) #scale es para estandarizar el modelo, menos la variable sexo
+mod2=lm(veloc~-1+edad+imc+pierna+brazo,data=base2) #Se le quita el intercepto con el -1
+round(mod2$coef,2)
+```
+
+Observe que se obtienen los mismos coeficientes
+
++ Obtenga las desviaciones estándar de cada variable (respuesta y predictores).  Para esto use la función `apply`. En este caso se colocan las variables en un objeto, luego se indica la dirección: 1 fila, 2 columna, y luego la función a realizar.  Ya que se quieren resultados por colmuna se pone un 2 de la siguiente forma: `apply(base[,-3],2,sd)`.
+
+```{r}
+sd = apply(base[,-3],2,sd)
+```
+
+
++ A partir de los coeficientes sin estandarizar obtenga los coeficientes estandarizados usando las desviaciones estándar anteriores. Use la relación:
+
+$$\hat{\beta}^S_j=\hat{\beta}_j\times\frac{s_{X_j}}{s_Y}$$
+```{r}
+round(mod$coef[-1]*sd[-1]/sd[1],2)
+```
+
+Observe que se obtienen los mismos coeficientes
+
+\begin{center}
+\noindent\hrule
+\end{center}
+
+\subsection*{Recapitulación}
+
++ ¿Cuáles funciones utilizó en este laboratorio?
++ ¿Cómo se representa la relación entre la respuesta promedio y una variable explicativa?
++ ¿Cómo se obtiene una matriz de gráficos de relaciones entre un conjunto de variables numéricas?
++ ¿Cómo se obtienen los coeficientes de correlación entre un conjunto de predictores y una respuesta?
++ ¿Cómo se representan gráficamente las correlaciones entre un conjunto de variables numéricas?
++ ¿Cómo se escribe el modelo de regresión con dos variables predictoras?
++ ¿Cómo se estiman los coeficientes el modelo de regresión usando las operaciones de matrices?
++ ¿Cómo se escribe la ecuación del modelo estimado?
++ ¿Cómo se interpretan los coeficientes del modelo para diferentes incrementos en los predictores?
++ ¿Cómo se utiliza la ecuación de regresión estimada para calcular estimaciones de los promedios condicionales para valores espcíficos de los predictores?
++ ¿Cómo utilizar la función de R para estimar los coeficientes del modelo?
++ ¿Cómo utilizar la función de R para estimar una media condicional?
++ ¿Cómo se estandariza una sola variable?
++ ¿Cómo se estandarizan varias variables simultáneamente?
++ ¿Para qué se utilizan los coeficientes estandarizados?
+
+\begin{center}
+\noindent\hrule
+\end{center}
