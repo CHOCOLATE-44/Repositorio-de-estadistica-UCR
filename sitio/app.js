@@ -163,8 +163,11 @@
     }
   }
 
-  // Ranking de quienes suben apuntes: más apuntes, luego más votos recibidos, luego mejor promedio.
+  // Ranking de quienes suben apuntes: primero el promedio de estrellas de sus apuntes, luego cuántos
+  // apuntes ha subido. Quien aún no tiene votos cuenta como la media previa (3.5★): queda por encima
+  // de los mal puntuados y por debajo de los bien puntuados.
   function contribuyentes() {
+    const neutral = datos.config?.media_previa ?? 3.5;
     const porAutor = new Map();
     for (const a of datos.apuntes) {
       if (!a.autor || a.autor === "desconocido") continue;
@@ -175,7 +178,8 @@
       porAutor.set(a.autor, c);
     }
     const lista = [...porAutor.values()].map((c) => ({ ...c, promedio: c.votos ? c.suma / c.votos : null }));
-    lista.sort((x, y) => y.apuntes - x.apuntes || y.votos - x.votos || (y.promedio ?? 0) - (x.promedio ?? 0)
+    const redondeado = (c) => Math.round((c.promedio ?? neutral) * 10) / 10;  // como se muestra
+    lista.sort((x, y) => redondeado(y) - redondeado(x) || y.apuntes - x.apuntes || y.votos - x.votos
       || x.autor.localeCompare(y.autor));
     return lista;
   }
@@ -205,8 +209,8 @@
       nombre.textContent = `@${c.autor}`;
       const cifras = document.createElement("span");
       cifras.className = "cifras";
-      cifras.textContent = `${c.apuntes} apunte${c.apuntes === 1 ? "" : "s"} · ${c.votos} voto${c.votos === 1 ? "" : "s"}`
-        + (c.promedio != null ? ` · ${c.promedio.toFixed(1)} ★` : "");
+      cifras.textContent = (c.votos ? `${c.promedio.toFixed(1)} ★ (${c.votos} voto${c.votos === 1 ? "" : "s"})` : "Sin votos aún")
+        + ` · ${c.apuntes} apunte${c.apuntes === 1 ? "" : "s"}`;
       const datosC = document.createElement("div");
       datosC.className = "datos";
       datosC.append(nombre, cifras);
