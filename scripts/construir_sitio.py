@@ -73,7 +73,8 @@ def calcular_datos() -> dict:
         "rama": os.environ.get("RAMA_PRINCIPAL", "main"),
         "config": {"min_caracteres_justificacion": config["votos"]["min_caracteres_justificacion"],
                    "votos_previos": config["ranking"]["votos_previos"], "media_previa": config["ranking"]["media_previa"]},
-        "ia": {"limites_diarios": config.get("ia", {}).get("limites_diarios", {}), "usos": estado_ia.usos(config)},
+        "ia": {"limites_diarios": config.get("ia", {}).get("limites_diarios", {}), "usos": estado_ia.usos(config),
+               "mostrar_desde": config.get("ia", {}).get("mostrar_desde")},
         "cursos": [{k: c.get(k) for k in ("sigla", "nombre", "carpeta", "ciclo", "siglas_equivalentes", "alias")} for c in cursos],
         "apuntes": sorted(apuntes, key=lambda a: (-a["puntaje_ranking"], a["titulo"])),
     }

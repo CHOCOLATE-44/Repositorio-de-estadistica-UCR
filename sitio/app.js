@@ -226,6 +226,7 @@
       const [issue] = await r.json();
       const m = issue && /<!-- estado-ia (\{[\s\S]*?\}) -->/.exec(issue.body || "");
       if (!m) return;
+      if (datos.ia?.mostrar_desde && Date.now() < new Date(datos.ia.mostrar_desde)) return;  // aún no empieza
       const estado = JSON.parse(m[1]);
       const limites = datos.ia?.limites_diarios || {};
       const reinicio = new Date(estado.reinicio);
