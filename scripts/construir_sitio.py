@@ -18,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from comun import RAIZ, GitHub, cargar_config, cargar_cursos  # noqa: E402
+import estado_ia  # noqa: E402
 from indice import listar_apuntes  # noqa: E402
 from votos import (ETIQUETA_ANULADO, ETIQUETA_RECHAZADO, ETIQUETA_VOTO,  # noqa: E402
                    extraer_voto, problemas_basicos)
@@ -71,6 +72,7 @@ def calcular_datos() -> dict:
         "repositorio": repo,
         "rama": os.environ.get("RAMA_PRINCIPAL", "main"),
         "config": {"min_caracteres_justificacion": config["votos"]["min_caracteres_justificacion"]},
+        "ia": {"limites_diarios": config.get("ia", {}).get("limites_diarios", {}), "usos": estado_ia.usos(config)},
         "cursos": [{k: c.get(k) for k in ("sigla", "nombre", "carpeta", "ciclo", "siglas_equivalentes", "alias")} for c in cursos],
         "apuntes": sorted(apuntes, key=lambda a: (-a["puntaje_ranking"], a["titulo"])),
     }

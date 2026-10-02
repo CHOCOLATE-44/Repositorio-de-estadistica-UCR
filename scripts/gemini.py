@@ -7,6 +7,7 @@ de Google, sin tarjeta de crédito. Se guarda como secreto del repositorio
 
 from __future__ import annotations
 
+import atexit
 import base64
 import json
 import os
@@ -21,6 +22,22 @@ URL = BASE + "/models/{modelo}:generateContent"
 _alternativos: dict[str, str] = {}  # modelo pedido → modelo que lo reemplaza en esta ejecución
 _sin_cuota: set[str] = set()          # modelos con la cuota diaria agotada (cada modelo tiene la suya)
 _saturado = False  # si Google no respondió o no hay cuota en ningún modelo, no insistimos en esta ejecución
+_consultas: dict[str, int] = {}       # consultas que Google contó en esta ejecución, por modelo
+
+
+def _publicar_uso():
+    """Al terminar, suma las consultas de esta ejecución al issue «Estado de la IA» (solo en Actions)."""
+    if not (_consultas or _sin_cuota) or os.environ.get("GITHUB_ACTIONS") != "true":
+        return
+    try:
+        import estado_ia
+        from comun import GitHub
+        estado_ia.registrar(GitHub(), _consultas, _sin_cuota)
+    except Exception as e:
+        print(f"Aviso: no se pudo actualizar el estado de la IA: {e}")
+
+
+atexit.register(_publicar_uso)
 
 
 def disponible() -> bool:
@@ -105,11 +122,14 @@ def preguntar_json(prompt: str, modelo: str, imagenes: list[Path] = (), intentos
         req.add_header("x-goog-api-key", clave)
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
+                _consultas[modelo] = _consultas.get(modelo, 0) + 1
                 datos = json.loads(r.read())
             texto = datos["candidates"][0]["content"]["parts"][0]["text"]
             return json.loads(texto)
         except urllib.error.HTTPError as e:
             detalle = e.read()[:3000].decode("utf-8", "replace")
+            if e.code != 429:  # Google cuenta los pedidos que procesa, aunque fallen
+                _consultas[modelo] = _consultas.get(modelo, 0) + 1
             ultimo_error = f"{modelo} → HTTP {e.code}: {detalle[:300]}"
             if es_cuota_agotada(e.code, detalle) and es_limite_por_minuto(detalle):
                 # Límite por minuto: basta con esperar un poco (cuenta como un intento).
