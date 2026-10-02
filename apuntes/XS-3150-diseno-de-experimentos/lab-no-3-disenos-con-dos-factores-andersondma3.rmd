@@ -1,0 +1,745 @@
+---
+title: "DISEÑO DE EXPERIMENTOS"
+subtitle: DISEÑOS CON DOS FACTORES
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    highlight: tango
+    theme: cerulean
+editor_options:
+  chunk_output_type: console
+---
+
+# Tortugas 1
+
+Se desea determinar si la falta de alimento afecta el nivel de proteínas en sangre en tortugas de la especie Chelonia midas (de agua salada) y si afecta de forma diferente a los machos que a las hembras. Se escogen 8 machos y 8 hembras. A cada uno se le asigna aleatoriamente una de las siguientes condiciones: 1) dieta regulada y 2) alimento en abundancia. Se registra el nivel de proteína en gramos por decilitro.
+
+## Ejercicios
+
+1. Preparación:
+	
++ Cargue el archivo tortugas1.csv. Verifique que las variables género y 
+condición sean factores con los niveles adecuados. Los códigos para género corresponden a macho (1) y a hembra (2).
+```{r}
+setwd("C:/Users/ETLP/OneDrive/Documentos/III Ciclo UCR estadística/Experimentos/Laboratorios/LAB.NO.3")
+base <- read.csv("tortugas1.csv")
+str(base)
+base$genero=as.factor(base$genero)
+levels(base$genero) <- c("macho", "hembra")
+base$cond <- as.factor(base$cond)
+```
+
+
++ ¿Cuáles son los factores que se incluyen en el experimento? 
+El género de la tortuga (macho, hembra) y la condición (dieta regulada, alimento en abundancia)
++ Comente sobre las características de los factores y sobre el alcance del experimento.
+Con respecto al genero no podemos asiganrlo aleatoriamente, mientras que la condición si por lo tanto este es nuestro factor de diseño.
+
+
++ ¿En qué aspectos se debe concentrar el análisis?
+Nos debemos centrar en:
+En observar si la falta de alimento afecta la producción de proteinas 
+Notar la iteracción entre en el genero y la condición ya que puede afectar de forma distinta
+
+
++ ¿Cuántos tratamientos tiene este experimento?
+Hay en total 4 tratamientos
+
+
+
++ Verifique el número de repeticiones por tratamiento.
+```{r}
+table(base$cond,base$genero)
+```
+
+
+
+2. Efectos:
+
++ Obtenga la media general de la respuesta.
+LA MEDIA ESTIMADA ES IGUAL A LA MEDIA OBSERVADA
+```{r}
+medgen <- mean(base$proteina)
+```
+$$\bar{y} = 39.64$$
+
+
++ Obtenga los efectos simples de cada condición, en otros términos, las diferencias entre cada media de condición y la media general. Esto es similar a los $\tau$ cuando hay un solo factor, pero se van a llamar $\alpha_1$ y $\alpha_2$.
+
+Condición 1: Alimento 
+$$ \hat{\alpha_1} =\bar{y}_.1-\bar{y}$$
+
+Condición 2: Dieta 
+$$ \hat{\alpha_2} =\bar{y}_.2-\bar{y}$$
+
+
+
+```{r}
+medias <- tapply(base$proteina, base$cond, mean)
+alpha<- medgen-medias
+#El efecto de aplicar alimento es que sube la media 1.56 por arriba 
+#El efecto de aplicar la dieta es que baja la media 1.56 por debajo
+```
+Note que por la restricción de suma nula se puede obtener $\alpha_2$, a partir de $\alpha_1$, de modo que:
+$$\sum{}\alpha_i= 0$$
+$$ \alpha_2 = -\alpha_1$$
+
++ Obtenga los efectos simples de cada género ($\beta_1$ y $\beta_2$).
+```{r}
+beta <- (tapply(base$proteina, base$genero,mean)-medgen)
+```
+
+
++ Obtenga los promedios observados de los 4 tratamientos. Use tapply, pero haga una lista con los factores para que los cruce y obtenga la media para cada combinación o tratamiento: tapply(Y,list(X1,X2),mean).
+```{r}
+med <- tapply(base$proteina,list(base$cond,base$genero),mean)
+````````
+
+
+Los promedios observados coinciden con los promedios del modeo con interacción
+
++ Obtenga los promedios estimados bajo el modelo sin interacción. Realice los cálculos correspondientes manualmente. 
+```{r}
+m11 <- medgen+alpha[1]+beta[1]
+m21 <- medgen+alpha[2]+beta[1]
+m22 <- medgen+alpha[2]+beta[2]
+m12 <- medgen+alpha[1]+beta[2]
+mest <- c(m11,m21,m12,m22) #Medias estimadas en una sola 
+round(mest,2)
+```
+
+
+
+
+
++ Compare los promedios estimados bajo el modelo sin interacción con los promedios observados.
+```{r}
+M <- cbind(as.vector(med), mest)
+colnames(M) <- c("Observados", "Estimados")
+round(M,2)
+```
+
+
+
+
++ Obtenga un gráfico de los valores de proteína separados por género para interpretar gráficamente si existe interacción entre condición y género. Recuerde el objetivo del estudio y vea qué es más conveniente que aparezca en el eje X.  Use el comando ggplot de la librería ggplot2.  En este caso, se coloca género en el eje X, proteína en el eje Y, y la condición es el factor que se declara en el argumento group. La instrucción se escribe en dos partes que se unen por un símbolo +. La primera de ellas contiene la definición de las variables dentro del argumento aes, de esta forma: 
+
+
+	
+ggplot(base, aes(x=genero, y=proteina, group = cond)). 
+	
+	
+	
+```{r}
+library(ggplot2)
+ggplot(base, aes(x=genero, y=proteina, group = cond))+stat_summary(fun.y="mean",geom="line",aes(linetype=cond))
+#En este gráfico se puede ver que ese espera que no hay una interacción entre ambos factores ua que en mabas diferencias visualmente se ven similares 
+```
+	
+Se usa este modelo sin interacción para poder hacerlo más sencillo, en comparación en un caso con interacción, depende del caso debe tener sentido forzar la no interacción. Se aplica la parsimonia 
+
+
+
+	
+	
+La segunda parte indica que debe unir los promedios de cada condición usando el argumento stat_summary y  usar un tipo de línea para cada	condición, de esta forma: 
+		
+stat_summary(fun.y="mean",geom="line",aes(linetype=cond)). 
+	
++ Observe la distancia que hay entre cada par de medias para cada género.  
+
++ Obtenga los efectos simples usando la función model.tables. Escriba primero el modelo con condición y género con la función aov. 
+
+
+Los efectos son los siguientes 
+
+```{r}
+mod1 <- aov(proteina~cond+genero, data = base)
+model.tables(mod1)
+`````````
+
+
+3. Efectos de interacción en el modelo:
+
++ Escriba el modelo con interacción utilizando lm (llámelo mod2). Cambie al modelo de suma nula.  Escriba el modelo con interacción entre condición y género. La 	interacción se agrega en un modelo de cualquiera de las siguientes formas: Y~X1+X2+X1:X2 o Y~X1*X2.
+
+
+Cambiamos a suma nula 
+
+```{r}
+options(contrasts = c("contr.sum", "contr.poly"))
+mod2 <- lm(proteina~cond*genero, data = base)#Revisar forma larga en la foto ya que es más explicita 
+```
+
+
+
+
+	
++ Observe la matriz de estructura con model.matrix(mod2).  Vea a qué corresponde cada columna. Ponga atención a los códigos y relaciónelos con los niveles de cada factor.
+
+```{r}
+contrasts(base$cond)
+contrasts(base$genero)
+model.matrix(mod2)
+```
+
+
++ Extraiga los coeficientes. Observe el efecto de la interacción.  ¿Qué representa esta cantidad?
+
+```{r}
+#alpha1 es el efecto simple de la condición
+#beta1 Es el efecto simple de la interación
+#cond1: genero1 El efecto de interacción lo que nos hace falta en la media para llegar a un modelo sin interación
+round(mod2$coefficients,2)
+```
+
+
+
+
+4. Varianza del error:
+
++ Visualice los 4 tratamientos con un gráfico de cajas donde se incluyan los
+dos factores separados por un +. Use este gráfico para ver si se puede
+esperar que los datos de los 4 tratamientos provengan de distribuciones
+con la misma varianza. Además, confirme si se puede esperar interacción
+entre condición y especie.
+```{r}
+boxplot(proteina~cond+genero, ylab= "proteina", xlab= "condición:genero", data = base)
+```
+
+
+
++ Obtenga las varianzas de los 4 tratamientos.
+```{r}
+v <- tapply(base$proteina, list(base$cond, base$genero), var)
+v
+```
+
++ Verifique si se cumple el supuesto de homocedasticidad. Use la prueba de Bartlett con la función bartlett.test e indique Y~interaction(X1,X2).
+
+ HACEMOS UNA PRUEBA PARA ELLO #Homomcedaticidad varianzas iguales
+```{r}
+bartlett.test(base$proteina~interaction(base$cond, base$genero))
+#Observe que la probabilidad de error es muy alta 
+```
+ 
+
++ Obtenga una medida de la variabilidad del error al asumir homocedasticidad.
+
+
+```{r}
+#como todos los tratamientos tienen el mismo numero de observaciones entonces solo se le aplica un promedio 
+v1 <- mean(v) #Esta es una mejor estimación del error 
+```
+
+
+5. Prueba de hipótesis para la interacción:
+
+H0: No hay interacción entre interación son iguales 
+Esto implica que la diferencia entre el promedio de alimento vs dieta, es la misma para ambos géneros 
+
+$$\gamma_{ij}\forall_{ij}$$ 
+
+
+
+
+
++ Obtenga la tabla de análisis de varianza para probar la hipótesis de no interacción entre condición y género.  
+```{r}
+anova(mod2)
+```
+
+
++ Escriba la hipótesis nula que interesa probar con símbolos y con palabras.
+$$H0:(\alpha\beta)_{ij} = 0$$
+El efecto de la condición de alimento sobre la proteína promedio en sangre es independiente del género (o que la  interacción es cero), es decir es la misma situación para ambos generos 
+
+
++ Observe el cuadrado medio residual y compárelo con la estimación de la varianza del error obtenida más arriba. Interprete de esta forma qué significa el cuadrado medio residual.
+
+```{r}
+anova(mod2)[4,3] 
+v1
+```
+Note que coinciden los dos resultados, estas son una medida de variabilidad de la respuesta dentro de cada tratamiento 
+
++ Interprete qué se está midiendo con el cuadrado medio de interacción.
+Mide la magnitud general de los efectos de interacción. Si esta magitud general tiende a ser pequeña se tiene un caso con poca interacción, lo que sería una evidencia débil de interacción entre condición y género
+
+$$CMCOND=\frac{\sum r_{i.} \alpha_i^2}{a-1}\\
+CMGEN = \frac{\sum r_{.j} \beta_j^2}{b-1}\\
+CMINT= \frac{\sum r_{ij} \gamma_{ij}^2}{(b-1)(a-1)}$$
+
+
+
+
++ Observe en la columna de F el valor asociado a la hipótesis y explique de dónde sale.
+```{r}
+anova(mod2)[3,4]
+```
+Este valor se obtiene al dividir el cuadrado medio de interacción entre el cuadrado medio residual, o sea, 0.18 entre 7.54 #Ver ANOVA	
+El cuadrado medio de interacción mide que tan grandes son los efectos de interacción, ya que los efectos de interacción es que tanto me tengo que mover para que las medias quedén iguales o simetricas 
+	
+	
++ Observe la probabilidad asociada y explique cómo se obtiene.  Concluya.
+$$F= \frac{CMINT}{CMRES}$$
+
+```{r}
+anova(mod2)[3,5]
+pf(0.02,1,12,lower.tail =F) 
+```
+Observe que la variabilidad de los efectos de interacción es sumaente baja con respecto a la variabilidad residual y la probabilidad asociada es altísima (p = 0.88), con lo cual no se rechaza la hipótesis de independencia. Se asume que el efecto de la condición de alimento es igual para machos y hembras
+
+
+
+6. Estimaciones bajo el modelo sin interacción:
+
++ Puesto que se decidió asumir que no hay interacción entre condición y género, ahora se procede a usar el modelo sin interacción. Escriba el modelo sin interacción con lm y llámelo mod3.
+```{r}
+mod3 <- lm(proteina~cond+genero, data = base)
+`````````
+Como es un modelo sin interacción solo obtenemos 3 coeficientes 
+
++ ¿Cuánto es el efecto simple de cada condición y cada género? ¿Cómo se interpretan?
+```{r}
+mod3$coef
+```
+El efecto de la condición 1 (alimento en abundancia) es 1,56, lo que indica que con alimento el nivel de proteína en sangre sube 1,56 gr/ml con respecto al promedio general. De la misma forma, el efecto de la condición 2 (dieta regulada) es que baja el nivel promedio de proteína 1,56 gr/ml.
+
+
+Los machos (género 1) presentan un nivel de proteína que está 1,92 gr/ml sobre la media general, mientras que las hembras tienen una media de proteína de 1,92 por debajo de la media general
+
++ Escriba la hipótesis que interesa probar con símbolos y con palabras.
+```{r}
+anova(mod3)
+```
+
+$$H0: \mu_{1.} = \mu_{2.}\iff \alpha_i = 0$$
+
++  Interprete qué se está midiendo con el cuadrado medio de condición y cuadrado medio de género.
+```{r}
+anova(mod3)[1,3] #Cuadrado medio de condición
+anova(mod3)[2,3] #Cuadrado medio de género
+```
+El cuadrado medio de condición mide la distancia entre las medias de las dos condiciones y de igual manera el cuadrado medio de género mide la distancia enter las medias de los dos géneros
+
+La suma de cuadrados quedó partido de la siguiente manera
+$$SCTot= SCCon + SGent+ SCint+ SCRes$$
+Recuerde que estamos en un modelo sin interacción por lo tanto no afecta
+$$SCTot= SCCon + SGent+ SCRes \\ (\text{la interacción se junta con los residuales, debido a que la interacción es un número muy pequeño})$$
++ Asegúrese que puede obtener estas cantidades a partir de los efectos simples.
+```{r}
+table(base$cond)
+table(base$genero)
+c(sum(8*alpha^2)/1, sum(8*beta^2)/1)
+```
+
+
++  Observe el cuadrado medio residual y compárelo con la estimación de la varianza obtenida a partir de la media de las varianzas de los 4 tratamientos. ¿Por qué no son iguales?
+```{r}
+v2=anova(mod3)[3,3]
+c(v1,v2)
+```
+La varianza que se obtiene a partir de la media de las varianzas se asume un modelo con interacción donde los residuales se calculan con respecto a la media observada. En cambio el CMRes es con el error $\bar{y}-\bar{\bar{y}}$
+Debido a que la interacción es muy pequeña, las medias se movieron muy poco y las dos cantidades obtenidas son muy similares.
+
+
++ Observe en cuánto aumentó la suma de cuadrados residual en el mod3 con respecto a la que se obtuvo en el mod2.  Explique por qué tiene sentido que el mod3 tenga una mayor suma de cuadrados residual y por qué la diferencia debe ser esa cantidad.
+
++  Observe en la columna de F el valor asociado a la hipótesis y concluya.
+```{r}
+anova(mod3)[1,5]
+```
+Debido a que la probabilidad máxima de error es menor a 0.05, por ello rechazamos la hipótesis nula, por lo tanto se puede decir que las medias son diferentes 
+```{r}
+anova(mod2)[4,2]
+anova(mod3)[3,2]
+anova(mod3)[3,2]-anova(mod3)[4,2] #Resta de cuadrados medios residuales con o sin interacción
+anova(mod3)
+
+```
+Observe que la probabilidad es mucho menor que 0.05, por lo tanto se puede rechazar la hipótesis nula, esto nos lleva a que no hay efecto de la condición, esto causa que las dos condiciones producen medias de proteína independientemente del género. 
+
++  Debido a que se concluyó que sí hay diferencia en las medias de proteína según condición, vale la pena establecer una cota inferior para la magnitud de esa diferencia.  
+```{r}
+mod3$coef
+contrasts(base$cond)
+contrasts(base$genero)
+v1 <- c(1,1,0)
+v2 <- c(1,-1,0)
+c=(v1-v2)
+L <- t(c)%*%mod3$coef
+ee <- sqrt(t(c)%*%vcov(mod3)%*%c)
+t <- qt(0.95,13)
+lim= (L-t*ee)
+```
+La diferencia entre las medias es de al menos 0.77 con un 95% de confianza 
+
+# Tortugas 2
+
+Se desea determinar si la falta de alimento afecta el nivel de proteínas en sangre en tortugas de las especies Kinosternum scorpioides (de agua dulce) y Chelonia midas (de agua salada). Además,  si el efecto es diferente de una especie a otra.
+
+Se escogen 12 ejemplares de cada especie y se les asigna aleatoriamente a cada tortuga una de las siguientes condiciones: 1) dieta estricta, 2) dieta balanceada y 3) alimento en abundancia. Se registra el nivel de proteína en gramos por decilitro.
+
+## Ejercicios
+
+1. Preparación:
+	
++ Cargue el archivo tortugas2.csv. Verifique que la variable condición sea un factor con los niveles adecuados.
+
+```{r}
+base2 <- read.csv("tortugas2.csv")
+base2$cond =factor(base2$cond)
+base2$especie=factor(base2$especie)
+```
+
+
++ ¿Cuáles son los factores que se incluyen en el experimento? 
+
+Hay dos factores: el que se está investigando es la condición de alimento (factor de diseño) y se tiene otro que es la especie de tortuga
+
++ ¿En qué aspectos debe concentrarse el análisis?
+
+2. Efectos:
+
++ Obtenga la media general de la respuesta.
+```{r}
+medgen= mean(base2$proteina)
+```
+
++ Obtenga los efectos simples de cada condición, en otras palabras, las diferencias entre cada media de condición y la media general ($\alpha_1$, $\alpha_2$ y $\alpha_3$).
+
+```{r}
+alpha=tapply(base2$proteina,base2$cond, mean)-medgen
+```
+
+
++ Obtenga los efectos simples de cada especie ($\beta_1$ y $\beta_2$).
+
+```{r}
+beta=tapply(base2$proteina,base2$especie, mean)- medgen
+```
+
+
+
++ Obtenga los promedios observados de los 6 tratamientos. 
+```{r}
+med=tapply(base2$proteina,list(base2$cond,base2$especie), mean)
+```
+
+
++ Obtenga manualmente los promedios estimados bajo el modelo sin interacción. 
+```{r}
+m11=medgen+alpha[1]+beta[1]
+m21=medgen+alpha[2]+beta[1]
+m31=medgen+alpha[3]+beta[1]
+m12=medgen+alpha[1]+beta[2]
+m22=medgen+alpha[2]+beta[2]
+m32=medgen+alpha[3]+beta[2]
+mest=matrix(c(m11,m21,m31,m12,m22, m32),nrow = 3, dimnames = list(c("estricta", "balanceada", "abundancia"),c("chelonia", "kynosternon")))
+```
+
+
++ Obtenga un gráfico de los valores de proteína para interpretar si existe interacción entre condición y especie. 
+
+```{r}
+library(ggplot2)
+ggplot(base2, aes(x=especie, y=proteina, group = cond))+ stat_summary(fun.y = "mean", geom= "line", aes(linetype = cond))
+```
+
++ Visualice en el gráfico las medias estimadas. Compare los promedios observados con los promedios estimados y a partir de ahí obtenga la cantidad que debe sumarse o restarse a cada promedio observado para obtener una estimación que cumpla con el supuesto de independencia. 
+```{r}
+efint=med-mest
+```
+
+
++ Obtenga los efectos simples y de interacción usando la función \verb|model.tables| (use el modelo con interacción con la función \verb|aov|). 
+```{r}
+mod1= aov(proteina~cond*especie,data = base2)
+model.tables(mod1)
+```
+
+
++ Compare estos resultados con los obtenidos anteriormente.
+Se obtiene los mismos efectos simples (alfa y beta), así como los efectos de interacción.  
+  
+3. Varianza del error:
+
++ Visualice los 6 tratamientos con un gráfico de cajas donde se incluyan los dos factores. Use este gráfico para ver si se puede esperar que los datos de los 6 tratamientos provengan de distribuciones con la misma varianza.  Además, confirme si se puede esperar interacción entre condición y especie.
+```{r}
+boxplot(proteina~cond*especie,ylab = "proteína",xlab = "condición:especie", data = base2)
+```
+
+
++ Obtenga las varianzas de los seis tratamientos.
+```{r}
+v=tapply(base2$proteina,list(base2$cond,base2$especie), var)
+```
+
+
++ Verifique si se cumple el supuesto de homocedasticidad. 
+```{r}
+bartlett.test(base2$proteina~interaction(base2$cond,base2$especie))
+```
+Poniendo a prueba le principio de homocedaticidad observamos que la probabilidad es mucho mayor a 0.05, por lo tanto no se puede asegurar heterocedasticidad. Puede ser que en las muestrales sean diferentes, pero en las poblacionales iguales.
+
++ Obtenga una medida de la variabilidad del error asumiendo homocedasticidad.
+```{r}
+mean(v)
+```
+
+
+4. Estimaciones bajo el modelo con interacción:
+
+
+
++ Cambie al modelo de suma nula.  Escriba el modelo con lm (mod2). 
+```{r}
+options(contrasts=c("contr.sum", "contr.poly"))
+mod2= lm(proteina~cond*especie, data = base2)
+```
+
+
++ Observe la matriz de estructura usando model.matrix(mod2).  Vea a qué corresponde cada columna.
+```{r}
+contrasts(base2$cond)
+contrasts(base2$especie)
+model.matrix(mod2)
+```
+Recordar codificicación de número de coeficientes 
++ Extraiga los coeficientes.  Obtenga efectos simples y de interacción que no aparecen debido a la restricción de suma nula.
+```{r}
+mod2$coef
+```
+Efectos de forma directa 
+
++ Use los coeficientes y un vector de contrastes para calcular manualmente el promedio de chelonia-estricta y compárelo con el promedio observado de ese tratamiento.
+```{r}
+coef= mod2$coef
+c(1,1,0,1,1,0)%*%coef
+```
+
++ Obtenga el promedio para los otros tratamientos.
+```{r}
+ch.e= c(1,1,0,1,1,0)
+ch.b= c(1,0,1,1,0,1)
+ch.a = c(1,-1,-1,1,-1,-1)
+ky.e = c(1,1,0,-1,-1,0)
+ky.b = c(1,0,1,-1,0,-1)
+ky.a= c(1,-1,-1,-1,1,1)
+h= cbind(ch.e,ch.b,ch.a,ky.e,ky.b,ky.a)
+
+```
+```{r}
+L= t(h)%*%coef
+```
+
+5. Hipótesis de independencia:
+
++ Obtenga la tabla de análisis de varianza para probar la hipótesis de independencia entre condición y especie.  
+```{r}
+anova(mod2)
+```
+
+
+
+
++ Escriba la hipótesis nula con símbolos y con palabras.
+
+$$H0: \gamma_{ij} = 0$$
+
+El efecto de condición sobre la proteína promedio en sangre no depende de la especie, dicho de otra forma, es el mismo en cualquiera de las dos especies.
+En otras palabras la intersección es nula o cero
+
++ Observe el cuadrado medio residual y compárelo con la estimación de la varianza del error obtenida más arriba. Interprete qué significa el cuadrado medio residual.
+
+```{r}
+anova(mod2)[4,3]
+```
+Note que el resultado es igual a la media de las varianzas
+
++ Obtenga los grados de libertad de cada fuente de variación y justifíquelos.
+
+```{r}
+anova(mod2)[1:2,1] # 3-1 condiciones
+#2-1 [(3-1)-(2-1)] #grados de libertad interacción
+```
+
+
++ Interprete qué se está midiendo con el cuadrado medio de condición y el cuadrado medio de especie.
+```{r}
+anova(mod2)[1:2,3]
+```
+El cuadrado medio de condición mide la distancia entre las medias de las tres condiciones.El mismo caso es en de las especies 
++ Asegúrese que puede obtener estas cantidades a partir de los efectos simples.
+```{r}
+table(base2$cond)
+table(base2$especie)
+c(sum(8*alpha^2)/2, sum(12*beta^2)/1)
+```
+
++ A partir de las estimaciones de los efectos de la interacción verifique la suma de cuadrados de interacción.
+```{r}
+table(base2$cond,base2$especie)
+sum(4*efint^2)
+```
+
++ Interprete qué se está midiendo con el cuadrado medio de interacción.
+
+
+El cuadrado medio de interacción mide la magnitud general de los efectos de interacción. Si este tiene un valor pequeño, quiere decir que la interacción entre los dos factores, si pasa el caso contrario significa que hay mucha interación
+`
+
+
++ Obtenga el valor F asociado a la hipótesis establecida, así como la probabilidad asociada y concluya.
+```{r}
+f= (42.88)/(2.56)
+```
+```{r}
+pf(f,2,18,lower.tail = F)
+```
+
+Al ser el cuadrado medio de interaccción mucho  más grande que el cuadro medio de interacción, se tiene una probabilidad muy baja 
+6. Comparaciones bajo el modelo con interacción:
+
++ Puesto que se ha encontrado que sí hay una interacción importante entre la condición y la especie, ahora hay que investigar cómo actúan las condiciones en cada especie. Escriba el modelo con interacción y los contrastes para comparar las condiciones dentro de cada especie.
+$$\mu_{ij}= \mu +\alpha_i+\beta_j+\gamma_{ij}\\
+\text{Contrates de chelonia}\\
+\mu_{21}-\mu_{11}\\
+\mu_{21}-\mu_{31}\\
+\mu_{31}-\mu_{11}\\
+\text{contrates para Kynosternon}\\
+\mu_{22}-\mu_{12}\\
+\mu_{32}-\mu_{22}\\
+\mu_{32}-\mu_{12}\\
+$$
+
++ Verifique que los 3 contrastes dentro de cada especie no son ortogonales, pero que cada bloque de 3 contrastes es ortogonal al otro bloque.
+$$\text{vector de promedios (se debe seguir el mismo orden)}\\
+(\mu{11},\mu{21},\mu{31},\mu{12},\mu{22},\mu{32)}\\
+\text{Los vectores se sacan a partir del anterior}$$
+
+```{r}
+v1= c(-1,1,0,0,0,0)
+v2= c(0,1,-1,0,0,0)
+v3= c(1,0,-1,0,0,0)
+c(v1%*%v2, v1%*%v3, v2%*%v3)
+```
+
+Observe que los 3 vectores no son ortogonales, estos nos lleva a que hay que hacer una correción.
+
+Con los vectores de las hipótesis de el segundo grupo (kynosternon)
+
+```{r}
+v4=c(0,0,0,-1,1,0)
+v5= c(0,0,0,0,-1,1)
+v6= c(0,0,0,-1,0,1)
+c(v4%*%v5, v4%*%v6, v5%*%v6)
+```
+
+Estos tampoco son ortogonales
+
+
+Ahora comoparamos todos juntos
+
+```{r}
+c(v1%*%v4, v1%*%v5, v1%*%v6, v2%*%v4, v2%*%v5, v2%*% v6, v3%*%v4, v3%*%v5, v3%*%v6)
+```
+
+Como dentro de cada grupo no son ortogonales ahí si se debe hacer una correción, mientras que al ser independientes entre las hipótesis,se puede probar cada una por aparte. Por ello se debe realizar una correción de Bonferroni tomando en cuenta 3 hipótesis.
+
+Siempre son independientes entre las especies.
+
++ Escriba una matriz que permita el cálculo de los contrastes.
+
+```{r}
+ch.be= ch.b-ch.e
+ch.ba= ch.b- ch.a
+ch.ae= ch.a-ch.e
+ky.be= ky.b-ky.e
+ky.ab= ky.a-ky.b
+ky.ae= ky.a-ky.e
+h= cbind(ch.be,ch.ba,ch.ae,ky.be,ky.ab,ky.ae)
+```
+
+
++ Estime cada contraste y su varianza.
+```{r}
+L=t(h)%*%coef
+L
+#Es la resta de las medias de cada condición
+```
+```{r}
+var=diag(t(h)%*%vcov(mod2)%*%h)
+```
+
+Todas las varianzas son iguales porque es un diseño balanceado
++ Pruebe de forma simultánea las hipótesis que establecen que cada contraste es igual a cero. Puesto que los contrastes no son ortogonales debe usarse la corrección de Bonferroni, es decir, dividir el nivel de significancia por el número de comparaciones.
+```{r}
+ee=sqrt(var)
+t=L/ee
+row.names(t)=row.names(L)
+p=pt(t,18,lower.tail = F)
+row.names(p)=row.names(L)
+p
+round(p,7)
+```
+
+Si se quieren hacer pruebas de una cola la probabilidad de saca con $\alpha/3= 0.017$
+Si se quieren hacer prubas de dos colas la probabilidad se calcula con $\alpha/6 = 0.0083$.
+De esta forma se rechazan todas las hipótesis nulas excepto una y se concluye que en cada especie el nivel promedio de protteía en sangre es diferente en casi todas las condicione, excepto para kynosternon donde no se ha encontrado que la dieta balanceada produzca un nivel promedio de proteína en sangre más alto que la dieta estricta.
+
+
+
+Nota el $\alpha/3$ sale de las 3 comparaciones que hay que se deben hacer (una cola). Lo mismo aplica para el $\alpha/6$ que son 6 comparaciones (dos colas, tres comparaciones)
++ Obtenga las cotas inferiores que permitan cuantificar las diferencias que son significativas.
+```{r}
+tc1= qt(1-0.05/3,18)
+tc2= qt(1-0.05/2,18) #En este caso alpha/2 es porque rechace una en la parte anterior y me quedan solo dos comparaciones 
+lim1=L[1:3]-tc1*ee[1:3]
+lim2=L[5:6]-tc1*ee[5:6]
+names(lim1)=row.names(L)[1:3]
+names(lim2)=row.names(L)[5:6]
+lim1
+lim2
+```
+
+
++ La función emmeans de la librería con el mismo nombre se puede utilizar para realizar las comparaciones múltiples de forma automática. En este caso, puesto que hay interacción debe indicarse que se hacen las comparaciones para los promedios de A dentro de cada nivel de B y se pide que se use la corrección de Boferroni de la siguiente forma:  emmeans(mod, pairwise~A|B, adjust="bonferroni").  Las probabilidades que se obtienen en la salida de esta función se deben interpretar de forma diferente. Se pueden comparar directamente contra $\alpha$ si se tienen pruebas de dos colas o contra $2\alpha$ si son de una cola. Utilice esas probabilidades directamente y verifique que se llega a las mismas conclusiones que en el punto (e).
+```{r}
+library(emmeans)
+em1=emmeans(mod2, pairwise~cond|especie, adjust = "bonferroni")
+```
+
+Todas las probabilidades (excepto la comparación de estricta vs balanceada para kynosternon) son menores a 0.05 (una cola) y también a 0.025 (dos colas), por lo que se llega a la misma conclusión.
+
++ Si se quieren obtener las mismas probabilidades del punto (e), las probabilidades de la salida de emmeans deben dividirse por 6, ya que se tenían 3 comparaciones en cada grupo con una cola.  También pueden multiplicarse las del punto (e) por 6 para obtener las de la función emmeans.  Multiplique las  probabilidades del punto (e) por 6 y compárelas con las obtenidas con esta función.
+```{r}
+round(p*6,6)
+```
+
+
+
+
+
++ Una vez que se ha aplicado emmeans, se pueden obtener intervalos de confianza. Por ejemplo, si el resultado anterior se guardó en el objeto em1, entonces con confint(em1) se obtienen los intervalos de confianza (dos límites); sin embargo, esta función calcula todos los intervalos dentro de cada grupo aunque la diferencia no haya sido significativa.  Para obtener los intervalos solo de algunos pares o solo cotas inferiores o superiores, se puede tomar la información de esta salida y construirlos un poco a pie, pero sin necesidad de hacer todos los vectores que usualmente se hacen cuando se construyen totalmente a pie.  Obtenga los intervalos automáticamente y ajústelos según sea necesario para que dar las cotas del punto (f).
+```{r}
+confint(em1)$contrasts
+```
+
+
+
++ ¿Qué se concluye?
+
+Se concluye, con 95% de confianza, que el nivel promedio de proteína en sangre para chelonia es al menos 6,65 gr/ml mayor con dieta balanceada que con dieta estricta y al menos de 3,15 gr/ml mayor con dieta balanceada que con abundancia. Para kynosternon el alimento en abundancia aventaja a la dieta estricta en al menos 2,88 gr/ml. Las otras dos diferencias son pequeñas, por lo que es importante contrastar sus magnitudes con la diferencia mínima que establezca un investigador para determinar si son relevantes.
+
+
+
+
+
+
+
+
+
+

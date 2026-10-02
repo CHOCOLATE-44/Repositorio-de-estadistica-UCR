@@ -1,0 +1,241 @@
+---
+title: "SUPUESTOS"
+output:
+  word_document: default
+  html_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(car)
+```
+
+# Homocedasticidad y normalidad
+
+Esta función va a generar datos de un diseño con 2 factores: 
+f1 con 3 niveles y f2 con 2 niveles.
+
+Se ingresa r: el número de réplicas por tratamiento de un diseño balanceado. #Puede ser un vector para que sea desbalanceado
+
+Se ingresa v: un vector con 6 varianzas que pueden ser iguales o diferentes #Sin son iguales homocesasticidad, si son diferentes heterocedastic
+
+La función devuelve las pruebas de Bartlett y Levene.
+También devuelve una base que contiene la respuesta y los 2 factores.
+```{r}
+#z=rnorm(n,rep(mu,each=r),sqrt(rep(v,each=r)))
+#tapply(z,list(f1,f2),mean)
+```
+
+
+```{r}
+fnorm=function(r,v){
+  n=6*r
+  f1=factor(rep(1:2,each=r,2))
+  f2=factor(rep(1:2,each=3*r))
+  mu=c(2,8,5,6,2,10)
+  y=round(rnorm(n,rep(mu,each=r),rep(sqrt(v),each=r)),1)
+  boxplot(y~f1+f2)
+  t1=bartlett.test(y~interaction(f1,f2))
+  t2=leveneTest(y ~ f1*f2)
+  base=data.frame(y,f1,f2)
+  return(list(t1,t2,base))
+}
+```
+
++ Corra la función con r=5 y v=c(1,5,3,8,2,1). Almacene el resultado en res.
+
+```{r}
+r=5
+res=fnorm(r=5, v=c(1,5,3,8,2,1))
+p1=p2= c()
+for (i in 1:1000) {
+  res=fnorm(r=30, v=c(rep(2,6))) #r representa la potencia de las pruebas y que tanto alcanze tiene cada una, mientasr mayor sea el r mayor es la potencia 
+ p1[i]=res[[1]]$p.value #Probabilidad barlett
+p2[i]=res[[2]]$`Pr(>F)`[1] #Probabilidad de levin
+}
+p1; p2
+mean(p1< 0.05) #Barlett
+mean(p2< 0.05) #Levin
+
+
+```
+
++ Vea que "res" es una lista. Extraiga la base del tercer elemento de la lista "res".
+
+```{r}
+base=res[[3]]
+```
+
+## Pruebas de homocedasticidad
+
++ Obtenga las pruebas nuevamente. 
+
+```{r}
+with(base,leveneTest(y~f1*f2))
+with(base,bartlett.test(y~interaction(f1,f2)))
+```
+
+## Mínimos Cuadrados Ponderados (MCP o WLS en inglés)
+
++ Calcule las varianzas de los 6 tratamientos y conviértalas en vector
+
+```{r}
+v=with(base,tapply(y,list(f1,f2),var))
+v1=as.vector(v)
+#Otra opción con otro orden 
+#v1=as.vector(t(v))
+```
+
++ Repita las varianzas según el número de réplicas
+
+```{r}
+v2=rep(v1,each=r)
+```
+
++ Obtenga los pesos.
+
+```{r}
+w=1/v2
+```
+
++ Pegue las varianzas y los pesos a la base y observe que están bien acomodados
+
+```{r}
+cbind(base,v2,w)
+```
+
++ Obtenga las estimaciones usando el modelo simple (con interacción) y con los pesos
+
+```{r}
+mod1=lm(y~f1*f2,base)
+mod2=lm(y~f1*f2,weights = w,base)
+```
+
++ Obtenga el summary de ambos modelos y compárelos
+
+```{r}
+summary(mod1)$coef
+anova(mod1)
+summary(mod2)$coef
+anova(mod2)
+```
+
+## Normalidad
+
++ Haga el gráfico de cuantiles-cuantiles con los residuales del modelo simple. Observe que, a pesar de que los datos son normales, el gráfico indica que no lo son debido a que hay gran heterocedasticidad.
+
+```{r}
+
+qqPlot(mod1$res)
+```
+ 
+```{r}
+res2= fnorm(r=15, rep(2,6))
+base2= res2[[3]]
+mod3= lm(y~f1*f2,base2)
+qqPlot(mod3$res)
+```
+
+
+
++ Haga la prueba de Shapiro y Kolmogorov-Smirnov
+
+```{r}
+shapiro.test(mod1$res)
+ks.test(mod1$res, "pnorm", mean = 0, sd = sd(mod1$res))
+```
+
+H0: La distribución es normal
+H1: La distribución no es normal
+
+
++ Obtenga datos con un vector de varianzas iguales y haga el gráfico de normalidad. Observe que ahora no hay problema
+
+```{r}
+res=fnorm(r=5,v=rep(1,6))
+base=res[[3]]
+mod1=lm(y~f1*f2,base)
+qqPlot(mod1$res)
+shapiro.test(mod1$res)
+ks.test(mod1$res, "pnorm", mean = 0, sd = sd(mod1$res))
+```
+
+## Tranformación logarítmica
+
+Esta función va a generar datos similares a los anteriores pero no son normales. Se ha escogido una distribución exponencial en la cual la varianza depende de la media.
+
+```{r}
+fexp=function(r){
+  n=6*r
+  f1=factor(rep(1:3,each=r,2))
+  f2=factor(rep(1:2,each=3*r))
+  mu=c(2,8,5,6,2,10)
+  y=rexp(n,rate=1/rep(mu,each=r))
+  boxplot(y~f1+f2)
+  t1=bartlett.test(y~interaction(f1,f2))
+  t2=leveneTest(y ~ f1*f2)
+  base=data.frame(y,f1,f2)
+  return(list(t1,t2,base))
+}
+```
+
++ Corra la función con r=5.  Almacene el resultado en res y extraiga la base.
+
+```{r}
+res=fexp(r=5)
+base=res[[3]]
+```
+
++ Obtenga las estimaciones usando el modelo simple (con interacción). Haga el gráfico de cuantiles y las pruebas.
+
+```{r}
+mod1=lm(y~f1*f2,base)
+qqPlot(mod1$res)
+shapiro.test(mod1$res)
+ks.test(mod1$res, "pnorm", mean = 0, sd = sd(mod1$res))
+```
+
++ Repita usando como respuesta el logaritmo de y.
+
+```{r}
+y1=log(base$y)
+mod2=lm(y1~f1*f2,base)
+qqPlot(mod2$res)
+shapiro.test(mod2$res)
+ks.test(mod2$res, "pnorm", mean = 0, sd = sd(mod2$res))
+```
+
++ Verifique homocedasticidad gráficamente y con las pruebas.
+
+```{r}
+boxplot(y1~f1+f2,base)
+with(base,bartlett.test(y1~interaction(f1,f2)))
+with(base,leveneTest(y1 ~ f1*f2))
+```
+
++ Aumente el número de réplicas a 10 y repita.
+
+```{r}
+res=fexp(r=10)
+base=res[[3]]
+mod3=lm(y~f1*f2,base)
+qqPlot(mod3$res)
+shapiro.test(mod3$res)
+ks.test(mod3$res, "pnorm", mean = 0, sd = sd(mod3$res))
+```
+
+```{r}
+y1=log(base$y)
+mod4=lm(y1~f1*f2,base)
+qqPlot(mod4$res)
+shapiro.test(mod4$res)
+ks.test(mod4$res, "pnorm", mean = 0, sd = sd(mod4$res))
+```
+
+```{r}
+boxplot(y1~f1+f2,base)
+with(base,bartlett.test(y1~interaction(f1,f2)))
+with(base,leveneTest(y1 ~ f1*f2))
+```
+

@@ -1,0 +1,266 @@
+---
+title: "DISEÑO DE EXPERIMENTOS"
+subtitle: DISEÑOS CON BLOQUES
+output:
+  html_document:
+    highlight: tango
+    theme: cerulean
+  word_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+# Burbujas
+
+Tres investigadoras quieren analizar el efecto que tienen las diferentes proporciones de glicerina utilizada en la mezcla para la confección de burbujas sobre el tiempo promedio de resistencia de las mismas. Se van a presentar 3 experimentos similares donde se toman las personas como bloques y se trata de que cada una haga burbujas bajo diferentes condiciones.  En los primeros dos casos se tienen 6 personas, mientras que en el tercer caso se cuenta con 12 personas. Además, en todos, cada persona hace 5 burbujas con cada  tratamiento. El orden en que cada persona tiene que utilizar un tipo de mezcla se aleatoriza con repeticiones hasta completar 5 burbujas por tratamiento.  La variable respuesta es el tiempo promedio de resistencia de las burbujas (en minutos) de cada tratamiento para cada persona.  En este contexto, el promedio de las 5 burbujas es una mejor medida de la resistencia que se obtiene en un tratamiento en una persona específica, ya que puede haber muchísima variación entre esa resistencia de una burbuja a otra aún cuando sean hechas por la misma persona y con el mismo tratamiento.
+
+A continuación se describen las variantes de cada experimento:
+
+1. Se consideran dos cantidades de glicerina (60 ml y 120 ml) con un solo tipo de agua. Cada persona hace 5 burbujas con cada tratamiento en un orden aleatorio, por lo que debe hacer 10 burbujas. Se promedian los resultados de las 5 burbujas de cada tratamiento y se tienen 2 valores de la respuesta por persona para un total de 12 valores de la respuesta. Como solo hay un valor de la respuesta por tratamiento por persona, el análisis se puede realizar usando el modelo lineal clásico con el análisis de varianza o el modelo mixto con LRT.
+
+2. Se incluye un nuevo factor para investigar si el efecto que tiene la cantidad de glicerina es el mismo con diferentes tipos de agua. Se obtiene una mezcla simple y, posteriormente, se ajusta al propósito de la investigación. En la mezcla se van variando el tipo de agua (destilada, grifo, añejada) y la cantidad de glicerina (60 ml, 120 ml). A partir de estos factores, se obtienen 6 tratamientos.  Cada persona hace 5 burbujas con cada tratamiento en un orden aleatorio, por lo que debe hacer 30 burbujas. Se promedian los resultados de las 5 burbujas de cada tratamiento y se tienen 6 valores de la respuesta por persona, uno para cada tratamiento por persona, para un total de 36 valores de la respuesta.   Como solo hay un valor de la respuesta por tratamiento por persona, el análisis se puede realizar usando el modelo lineal clásico con el análisis de varianza o el modelo mixto con LRT.
+
+3. Se modifica el experimento inicial, pero interesa ver si el efecto que tiene la cantidad de glicerina varía según el nivel aeróbico de las personas.  Para esto se dividen  en tres grupos: bajo, medio y alto.  Se cuenta con 4 personas de cada grupo.  En este caso hay 2 factores, pero cada bloque (persona) solo puede tener observaciones en los diferentes niveles de un factor (glicerina), mientras que los bloques se clasifican según otro factor superior (nivel aérobico).  
+
+## Ejercicios
+
+1. Preparación:
+	
++ Cargue el archivo burbujas.Rdata que contiene tres bases de datos: 
+1) base1 que incorpora los datos solamente con el factor glicerina, 2)
+base2 que contiene el factor glicerina y el factor agua y 3) base3 en donde se tienen el factor glicerina y el factor nivel.
+```{r}
+ setwd("~/III Ciclo UCR estadística/Experimentos/Laboratorios/LAB-NO.5 BLOQUES")
+library(readr)
+base <- load("burbujas.Rdata")
+```
+	
+	
++ Asegúrese de que en todas las bases se han definido adecuadamente los factores glicerina, agua y nivel. Además, la persona es el bloque y también tiene que estar definido como factor.
+```{r}
+str(base1)
+base1$glicerina=factor(base1$glicerina)
+base1$persona=factor(base1$persona)
+```
+
+	
+2. Visualización de datos con glicerina: 
+	
++ Realice la visualización usando base1. Haga un gráfico de líneas para ver el comportamiento de los tratamientos dentro de cada persona. Use ggplot2 con la persona en el eje X y  group=glicerina para que haga una 	línea para cada tratamiento.
+```{r}
+library(ggplot2)
+ggplot(base1, aes(x=persona, y = tiempo, group = glicerina))+
+  stat_summary(fun.y = mean, geom = "line",
+               aes(linetype = glicerina))+ labs(x = "personas")
+```
+
+
++ Observe si se puede esperar que haya diferencia entre las medias de los tratamientos.
+	
+Si se puede esperar una diferencia entre las medias de los tratamientos ya que como se puede ver en el gráfico anterior el tiempo tiended a ser mayor cuando el nivel de glicerina es 120
+	
++ Observe si hay alguna tendencia de valores más altos o más bajos para ciertas personas.
+Si hay una tendencia de valores altos en la persona 5 y una tendencia de valores bajos en la persona 6
+		
++ ¿Se observa interacción entre glicerina y persona?
+	
+Note que la distancia de los puntajes de las personas 1,2,4,5,6 son similares. Sin embargo con la persona 3 esto no sucede igual ya que la diferencia es mucho más grande, esto nos puede indicar que existe la posibilidad de interacción entre glicerona y persona 
+
+
+
++ ¿Se podría verificar la hipótesis de no interacción?
+
+
+No se puede verficar la hipótesis de interacción ya que los residuales no alcanzarían para hacerlo, ya que solo tenemos una replica por tratamientos, sucedería lo contrario si hay más de 1 por bloque 
+
+
++ Centre los datos de tiempo dentro de cada persona, dicho de otro modo, se quiere quitar el efecto del bloque restando la media del bloque al que una observación pertenece. Para centrar los datos, ajuste un modelo solamente con el bloque como factor con lm(tiempo~persona) y obtenga los valores ajustados mediante mod$fit.  Luego, reste a cada respuesta estos valores ajustados con lo cual en realidad está centrando los datos dentro de cada persona. Finalmente, sume la media general de la respuesta.
+```{r}
+mod1= lm(tiempo~persona, data = base1)#Selecciona los coeficinetes
+pre=predict(mod1)#Cálcula el promedio de cada bloque de forma acomodada
+t1=base1$tiempo-pre+mean(base1$tiempo)#El promedio centrado 
+```
+
+
+
+
++ Haga dos gráficos para ver la variabilidad del tiempo en los 2 niveles de glicerina: 1) use los datos originales, 2) use los tiempos centrados. Ponga los dos gráficos uno al lado del otro y asegúrese de que ambos tengan el mismo rango en el eje Y.
+```{r}
+par(mfrow= c (1,2))
+boxplot(tiempo~glicerina, ylim= c(3,17), xlab = "glicerina",
+        ylab= "tiempo", data = base1) #Este no es correcto solo es una observador
+
+boxplot(t1~glicerina, ylim= c(3,17),xlab = "glicerina",
+        ylab= "tiempo", data = base1) #Este es el correcto y el que se necesita, nos deja observar la variabilidad
+
+```
+NOTA: La utilidad de centrar es solo para el gráfico 
+
++ Observe la variabilidad de los residuales en ambos gráficos. ¿A qué se deben las diferencias?  Verifique si se puede justificar el cumplimiento del supuesto de homocedasticidad.
+
+Las diferencias se deben a que en uno de los gráficos los datos se centraron,porque de esa forma se eliminaron las diferencias entre los bloques, lo que causo que la variabilidad de los residuales fuera muy similar, por  esta razón si se podría justificar el cumplimiento del principio de homocedasticidad
+
+
+3. Varianza residual:
+
++ Estime dos modelos: 1) uno que incluye el factor de diseño y el bloque con 
+el tiempo original como respuesta, 2) otro  solo el factor de diseño con el tiempo centrado como respuesta.
+```{r}
+mod2=lm(tiempo~glicerina+persona, data = base1)
+mod3= lm(t1~glicerina, data = base1) #Se le quita el efecto de la persona
+```
+
+
++ Compare los análisis de varianza de ambos modelos. Observe la suma de cuadrados total, la suma de cuadrados residual y los grados de libertad de ambos modelos.
+```{r}
+anova(mod2)
+```
+```{r}
+anova(mod3) #Este anova es incorrecto
+```
+
+La variable en este caso cambia ya que le quitamos el efecto de la persona (datos centrados), esto causa que cambie la suma de cuadrados total
+
+```{r}
+#Observe que 
+sum(anova(mod2)[,2])
+sum(anova(mod3)[,2])
+183.80-99.56 #Es el efecto de persona 
+mp= tapply(base1$tiempo, base1$persona, mean)
+sum(2*(mp-mean(base1$tiempo))^2)#Observe que es el mismo resultado que la resta anterior, este es el sin quitarle el efecto del bloque (Suma de cuadrados residual bruta)
+114.56-84.24 #Se llego al 30.32 sin la necesidad de centrar los datos 
+mean(var)
+```
+
+
+
++ ¿Cuál es la forma correcta de obtener la varianza residual?
+
+```{r}
+var=tapply(base1$tiempo, base1$glicerina, var)
+5*(sum(var))
+var2=tapply(t1, base1$glicerina, var)
+5*(sum(var))
+```
+
+
+
++ Estime la varianza del error.
+
++ ¿Qué representa esta varianza?
+	
++ Obtenga el valor de $F$ para probar la hipótesis de igualdad de promedios entre los 2 niveles de glicerina.  Calcule la probabilidad asociada con los grados de libertad adecuados. Concluya.
+
+
+
+Note que la variabiliadad de persona a persona es ruido, por lo tanto sino lo centramos y el elinamos el efecto de perssonas el cmres va a aumentar.
+
+
+
+4. Modelo mixto:
+
++ Para ilustrar la aplicación del modelo mixto, se ajusta el modelo con la función lme de la librería nlme.  Escriba el modelo que se plantea de forma similar al modelo lineal, pero se separa el término aleatorio (bloque o persona) en el argumento random y se pone de la siguiente forma:  lme(Y~X,random=~1|bloque,data=base). 
+	
++ Obtenga el análisis de varianza con la función anova. Calcule la probabilidad asociada a glicerina y compárela con la obtenida anteriormente.
+		
++ Existe otra librería muy utilizada para el análisis de modelos mixtos que se llama lme4.  Se usa la función lme4 y el modelo se plantea de la siguiente forma: lme4(Y~X+(1|bloque),data=base.  Escriba el modelo con esta función.
+	
++ Obtenga el summary. Observe que el resultado no da una probabilidad, sino que da un valor de $t$ para el cual debe buscarse la probabilidad asociada con los grados de libertad residuales.  Calcule la probabilidad con dos colas y compárela con la obtenida anteriormente. 
+	
+5. Homocedasticidad:
+
++ Verifique el supuesto de homocedasticidad. No se pueden usar los tiempos originales puesto que debe considerarse la presencia de los bloques.  La homocedasticidad es un supuesto que dice que la varianza condicional de la respuesta para cada tratamiento es la misma, lo cual implica que también los errores de los diferentes tratamientos tengan la misma varianza. En este caso, se recomienda obtener los residuales del modelo con bloques y luego hacer la prueba sobre estos residuales con el factor de la siguiente forma: bartlett.test(mod2$res~glicerina).
+```{r}
+bartlett.test(mod2$residuals~base1$glicerina)
+```
+
+
+Homocedasticidad
+La varianza de los dos tratamientos eliminando el efecto de los bloques son iguales
+
+6. Análisis con glicerina y agua:
+
++ Use base2. Visualice los datos. Como se trata de dos factores se pueden centrar por bloque y hacer un boxplot con ambos factores. Para esto se incluyen los factores separados por +.  Haga un gráfico con los datos centrados como respuesta y ponga glicerina+agua y otro gráfico con agua+glicerina.
+```{r}
+mod6=lm(tiempo~persona, data = base2)
+t3=base2$tiempo-predict(mod6)+mean(base2$tiempo)
+boxplot(t3~glicerina+agua, xlab = "glicerina-agua",
+        ylab = "tiempo centrado", cex.lab= 1.5, data= base2)#Para este experimento este nos sirve más debido a que nuestro factor de diseño es la glicerina 
+```
+
+```{r}
+boxplot(t3~agua+glicerina, xlab = "agua-glicerina",
+        ylab = "tiempo centrado", cex.lab= 1.5, data = base2)
+```
+
+	
++ Analice si existe interacción entre glicerina y agua tanto gráficamente como con una prueba formal.
+```{r}
+ggplot(base2, aes(x= agua, y = tiempo, group = glicerina))+
+  stat_summary(fun.y = "mean", geom = line, aes(linetype = glicerina))
+```
+
+```{r}
+options(contrasts = c("contr.sum", "contr.poly"))
+mod7=lm(tiempo~glicerina*agua+persona, data = base2)
+anova(mod7)
+
+```
+
+```{r}
+model.matrix(mod7)
+```
+
+
+```{r}
+var3=tapply(base2$tiempo, base2$glicerina, var)
+mean(var3)
+```
+
+
+Forma de sacar los grados de libertad para los residuales 
+$$gl= n-p\\
+\text{donde: n son las observaciones y p el numero de coeficientes del modelo}$$
+```{r}
+
+mod6 = lm(tiempo~persona, data = base2)
+t3 = base2$tiempo - predict(mod6) + mean(base2$tiempo)
+
+par(mfrow = c(1,2))
+
+boxplot(tiempo~glicerina+agua, ylim = c(0,30), xlab = "glicerina",
+        ylab = "tiempo", data = base2)
+
+boxplot(t3~glicerina+agua,  ylim = c(0,30), xlab = "glicerina-agua",
+        ylab = "tiempo centrado", cex.lab = 1.5, data = base2)
+```
+
+Le media de las varianzas es el cuadrado medio residual, pero sin eliminar el efecto del bloque.
+
++ Pruebe si hay efecto de la glicerina en este nuevo diseño al asumir que no hay interacción.
+```{r}
+mod8= lm(tiempo~glicerina+agua+persona, data = base2)
+anova(mod8)
+```
+	
++ Cuantifique la diferencia con un nivel de confianza de 95\%.
+	
++ Pruebe si hay efecto del tipo de agua en este nuevo diseño.
+	
++ Verifique entre cuáles pares de medias hay diferencias y cuantifique aquellas donde las diferencias son significativas. Use un nivel de signficancia de 5\% y un nivel de confianza de 95\%.
+
+
+	
+7. Análisis con glicerina y nivel aeróbico:
+
++ Haga un esquema del diseño.
+
++ Use base3. Visualice los datos. Haga un gráfico con los datos centrados como respuesta y ponga glicerina+nivel.
+	
++ Haga el análisis para determinar si hay interacción entre glicerina y nivel con la función lmer. Use la función drop1 con el parámetro test="Chisq" que sirve para obtener la LRT.
+
++ Asumiendo que no hay interacción, determine si hay un efecto de la glicerina y del nivel de aeróbico.
+
+
+
+

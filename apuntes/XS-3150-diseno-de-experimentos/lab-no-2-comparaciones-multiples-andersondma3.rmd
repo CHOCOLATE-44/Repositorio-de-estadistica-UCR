@@ -1,0 +1,440 @@
+---
+title: "DISEÑO DE EXPERIMENTOS"
+subtitle: COMPARACIONES MULTIPLES
+output:
+  html_document:
+    highlight: tango
+    theme: cerulean
+  word_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+# Uvas
+
+En Costa Rica se cultivan dos especies de uva: roja y  blanca. Como medida de dulzor se utiliza la escala Brix. Se tomaron medidas de los grados Brix de una muestra de uvas de ambas especies provenientes de 3 sitios: La Garita, La Guácima y San Vito. Se quería determinar si el dulzor promedio varía según la localidad de producción. Los investigadores consideran que una diferencia en el dulzor promedio de dos poblaciones debe ser al menos de medio grado Brix para considerarse relevante.
+
+
+## Ejercicios
+
+1. Preparación:
+	
++ Cargue el archivo uvas.csv. Verifique que la variable localidad esté definida correctamente como un factor.
+```{r}
+setwd("~/III Ciclo UCR estadística/Experimentos/Laboratorios/LAB.NO.2")
+library(dplyr)
+base <- read.csv("uvas.csv")
+base$especie <- as.factor(base$especie)
+str(base)
+base$localidad <- factor(base$localidad)
+base$especie <- factor(base$especie)
+str(base)
+```
+
++ Comente las características de este experimento. Si solo se están comparando los promedios entre las tres localidades ¿es necesario tomar en cuenta que las uvas son de dos tipos?
+```{r}
+#si, es necesario para poder eliminar el ruido ya que la especie de la uva nos mete variabilidad 
+```
+
+
+2. Hipótesis básica:
+
++ Establezca la hipótesis básica para verificar que en efecto las tres localidades no producen el mismo promedio de dulzor.
+```{r}
+#H0: Las medias verdaderas de las uvas en la escala brix son iguales en las tres localidades  
+#Los efectos en cada un de las localidades es cero 
+```
+
+
++  Haga un boxplot  que permita de una forma descriptiva apoyar o contradecir esta hipótesis.
+```{r}
+boxplot(brix~localidad, data = base)
+```
+
+
++  Obtenga las medias de cada tratamiento. 
+```{r}
+tapply(base$brix,base$localidad, mean)
+```
+
+
++  Ponga a prueba la hipótesis.
+```{r}
+mod1 <- aov(brix~localidad,data = base)
+anova(mod1)
+```
+
+
+3. Comparaciones de promedios:
+
++ Dado que el objetivo es comparar todas las localidades entre sí, se trata de un problema de comparación de todos los pares de promedios. Escriba todas las hipótesis que se deben probar.
+```{r}
+m <- tapply(base$brix,base$localidad, mean)
+#Se deben probar 3 hipótesis, porque puedo hacer solamente 3 comparaciones
+#Mientras más comparaciones, más díficl es ver las diferencias 
+#Tukey se utiliza para todas las combinaciones 
+#Dunnet Se usa para todos contra uno 
+#Bonderroni se usa para otros casos 
+```
+
+
++ Verifique que estas hipótesis no son ortogonales.
+```{r}
+v1 <- c(1,-1,0)
+v2 <- c(1,0,-1)
+v3 <- c(0,1,-1)
+v1%*%v2 ;v1%*%v3; v2%*%v3 #Multiplicación de todas las combinaciones 
+#Si el producto de los dos vectores de coeficientes = 0 Para 2 hipótesis son independintes 
+#Si es diferente de cero no son indendientes => usar{Tukey, Dunnet, Bonderroni}esto es una correción, sino nos da el resultdo 
+```
+
+	
++ Obtenga el cuadrado medio residual.
+```{r}
+cmres <- anova(mod1)[2,3]
+cmres
+```
+
+
++ Obtenga los estadísticos de interés para realizar cada prueba, es decir, debe calcular $$\bar{y}_i-\bar{y}_j$$. Solo interesa ver si existen diferencias entre cada par de promedios, use el valor absoluto de las 
+diferencias $$|\bar{y}_i-\bar{y}_j|$$.
+
+```{r}
+d12 <- abs(m[1]-m[2]) #Valor absoluto, por teoría 
+d13 <- abs(m[1]-m[3])
+d23 <- abs(m[2]-m[3])
+d <- c(d12,d13,d23)
+names(d) <- c("Ga-Gu", "Ga-SV", "Ga-SV")
+d
+```
+
+
+
++ Obtenga el error estándar del estadístico $$|\bar{y}_i - \bar{y}_j|$$ en cada caso.
+```{r}
+r <- table(base$localidad)
+ee12 <- sqrt(cmres*(1/r[1]+1/r[2]))
+ee13 <- sqrt(cmres*(1/r[1]+1/r[3]))
+ee23 <- sqrt(cmres*(1/r[2]+1/r[3]))
+ee <- c(ee12,ee13,ee23)
+names(ee)=names(ee)
+ee
+```
+
++ Obtenga el valor estandarizado del estadístico dividiéndolo por su error estándar.
+```{r}
+q <- d/ee
+names(q)=names(d)
+q
+ (1-pt(q,97))*2 #Probabilidades 
+```
+
+
+
++ Encuentre la probabilidad de obtener un valor igual o mayor al estadístico usando la distribución del rango estudentizado de Tukey. Use ptukey(q*sqrt(2),k,df,lower.tail = F), donde k es el número de grupos y df son los grados de libertad de los residuales. Se debe multiplicar el valor $q$ por $\sqrt{2}$ porque la función de R asume que los dos grupos tienen igual número de réplicas e incluye en el denominador $\sqrt{2}$, lo cual debe corregirse.  Con el argumento lower.tail=F se obtienen directamente las dos colas. Esta probabilidad debe compararse directamente contra $\alpha$, puesto que se trata de pruebas de dos colas.  
+```{r}
+#Como las variables no son independientes hay que hacer Tukey
+#Si son independintes se usa la t 
+p <- ptukey(q*sqrt(2),3,97,lower.tail = F)
+p
+round(p,3) #Cuando se usa tukey no hay que mutiplicarlo por 2, sin embargo hay que poner el raiz de 2
+#Estos resultados se comparan con la media que nos dan para rechazar el 0.5 que nos indican para rechazar 
+
+#Conclusión
+#Concluyo: Con una probabilidad máxima de error de 0.5
+#Que hay diferencia entre las medias de Garita y Guácima, así como entre Garita y San Vito, peron no encuentro diferencias entre Guácima y San Vito
+```
+
+
+
++ Obtenga estas probabilidades automáticamente con la función TukeyHSD(mod).  Las probabilidades que se obtienen con esta función son relativas a hipótesis de dos colas, mientras que los intervalos de confianza son válidos solo si se rechazan todas las comparaciones de pares de promedios.  En cas	o de que haya diferencia entre solo algunos pares, debe hacerse la corrección de Bonferroni para obtener los límites de confianza simultáneos solo para aquellos pares en que se encontraron diferencias significativas.
+```{r}
+TukeyHSD(mod1) #Si se hace oav podemos sacarlo directamente es mayor 
+```
+
+
++ ¿Qué se concluye en términos de las hipótesis que se probaron?
+```{r}
+#Concluyo: Con una probabilidad máxima de error de 0.5
+#Que hay diferencia entre las medias de Garita y Guácima, así como entre Garita y San Vito, peron no encuentro diferencias entre Guácima y San Vito
+```
+
+
+4. Límites para las diferencias:
+
++ Obtenga intervalos de confianza para la diferencia de las medias solo en los casos en que se encontró una diferencia significativa. Se debe obtener el valor de la distribución t con los grados de libertad residuales (gl). Este valor se obtiene haciendo el ajuste de Bonferroni para tener un nivel de 95\% de confianza para todos los intervalos en conjunto, lo cual se hace con t=qt(1-0.05/(2*d),gl), donde d es el número de intervalos.  Luego se calculan los límites de c.onfianza con:
+```{r}
+t <- qt(1-0.05/(2*2),97)
+lim <- cbind(d[1:2]-t*ee[1:2],d[1:2]+t*ee[1:2]) #Donde se encuentra la diferencia de la media verdadera, entre los tratamientos 
+round(lim,4)
+```
+
+ 	$$ IC=|\bar{y}_i-\bar{y}_j| \pm t \cdot ee_{ij}.$$
+ 	
+ 	
+ 	
+# Manzanas
+
+En el ejercicio de manzanas (Sección 1.2) se plantean además estos objetivos:
+```{r}
+load("manzanas.RData")
+```
+
++ Verificar si los tratamientos definidos controlan el pardeamiento y producen una menor puntuación promedio que en el caso en que no se aplica nada (control). 
+```{r}
+m1 > (m2+m3+m4)/3 #En este caso  el de control va a tener más color que los otros 
+```
+
+
++ Verificar si aplicar ácido controla mejor que cubrir (tapar o poner en bolsa). 
+```{r}
+m4 < (m2+m3)/2 #El ácido es mejor que cubir 
+```
+
+
++ Verificar si poner en bolsa plástica cerrada es mejor que solamente tapar. 
+```{r}
+m2 > m3 #Bolsa es mejor que tapar
+```
+
+
+
+El objetivo final es seleccionar el tratamiento que mantenga mejor el color original para una empresa que se encarga de servicios de alimentación para actividades. Por la naturaleza de la variable respuesta, el tratamiento que produzca un valor promedio más bajo se considera mejor. Una vez que la hipótesis básica de igualdad de promedios se rechaza, interesa hacer varias comparaciones para cumplir con los objetivos:
+
++ En primer lugar, es necesario verificar si la respuesta promedio en realidad es menor en los tres tratamientos aplicados que en el caso control. 
+
++ En segundo lugar, deben compararse los dos tratamientos donde se ha cubierto contra aquel en que se usó ácido y verificar si el promedio del último en realidad es menor que el promedio de los primeros.
+
++ En tercer lugar, deben compararse los dos tratamientos en que se cubrió y verificar si en realidad el promedio del tratamiento cuando se usó bolsa es menor que cuando se tapó. 
+
+## Ejercicios
+
+1. Preparación:
+
++ Cargue el archivo manzanas.Rdata.
+
+2. Pruebas de hipótesis:
+
++ Cambie al modelo de suma nula.  Obtenga las estimaciones de los coeficientes, para esto debe usar la función lm. 
+```{r}
+options(contrasts = c("contr.sum", "contr.poly"))
+mod2 <- lm(base$color~base$trat)
+mod2$coefficients
+```
+
++ Verifique cuál es el tratamiento que está codificando con -1. Use contrasts(base$trat).
+```{r}
+contrasts(base$trat)
+```
+
+
++ Plantee las hipótesis necesarias para cumplir con los objetivos del problema. 
+```{r}
+m <- tapply(base$color,base$trat, mean)
+m
+#Hipótesis uno #En este caso  el de control va a tener más color que los otros
+#H0: m1 = (m2+m3+m4)/3
+#H1: m1 > (m2+m3+m4)/3
+
+
+#Hipótesis dos #El ácido es mejor que cubir 
+#H0: m4 = (m2+m3)/2 
+#H1: m4 < (m2+m3)/2 
+
+
+#Hipótesis tres #Bolsa es mejor que tapar
+#H0: m2 = m3
+#H1: m2 > m3
+```
+
+
++ Explique por qué da lo mismo escribir estas hipótesis en términos de los efectos que en términos de los promedios de cada tratamiento.
+```{r}
+#Como estamos trabajando en el modelo de suma nula de modo que tj=m-mj, esto aplica que al cambiar las medias por los tau, la media general se cancelan
+```
+
+
++ Defina los contrastes ortogonales ($L_1$, $L_2$ y $L_3$) necesarios para probar las hipótesis.
+```{r}
+#L_1 = t1 -1/3(t2+t3+t4)
+#L_2 = 1/2(t2+t3)-t4
+#L_3 = t2-t3
+```
+
++ Verifique que los tres vectores ($v_1$, $v_2$ y $v_3$) son ortogonales. Para esto debe usar los coeficientes originales.
+```{r}
+v1 <- c(1,-1/3,-1/3,-1/3)
+v2 <- c(0,1/2,1/2,-1)
+v3 <- c(0,1,-1,0)
+c(v1%*%v2,v1%*%v3,v2%*%v3)
+```
+
+
++ En el modelo con suma nula se tiene la restricción 
+$\tau_4=-(\tau_1+\tau_2+\tau_3)$. Para que todo quede en términos de los 3 efectos que son estimados con este modelo, haga la sustitución de $\tau_4$ en $L_1$.
+```{r}
+#L_1 = t1-1/3t2-1/3t3-1/3(t1-t2-t3)
+#L_1 = t1-1/3t2-1/3t3+1/3t1+1/3t2+1/3t3 #Se cancelan t2 y t3
+#L_1 = 4/3t1
+
+
+
+```
+
+
+$$
+
+\begin{aligned}
+L_1 &= \tau_1 - \frac{1}{3}\tau_2 - \frac{1}{3}\tau_3 - \frac{1}{3}(\tau_1 - \tau_2 - \tau_3) \\\\
+    &= \tau_1 - \frac{1}{3}\tau_2 - \frac{1}{3}\tau_3 + \frac{1}{3}\tau_1 + \frac{1}{3}\tau_2 + \frac{1}{3}\tau_3 \\\\
+    &= \frac{4}{3}\tau_1 \\\\
+L_2 &=  \frac{1}{2}\tau_2 + \frac{1}{2}\tau_3 - (-\tau_1 - \tau_2 - \tau_3) \\\\ 
+    &= \tau_1 + \frac{3}{2}\tau_2 + \frac{3}{2}\tau_3  \\\\
+L_3 &= \tau_2 - \tau_3
+\end{aligned} 
+$$
+
+
+
++ Cree una matriz con los coeficientes de los contrastes. Recuerde que debe incluir el intercepto.  
+```{r}
+h1 <- c(0,4/3,0,0)
+h2 <- c(0,1,3/2,3/2)
+h3 <- c(0,0,1,-1)
+h <- cbind(h1,h2,h3)
+h
+```
+
+
++ Estime los contrastes. 
+```{r}
+L <- t(h)%*%mod2$coefficients #Transpone la matriz h t(h)
+L
+```
+
++ Verifique los resultados anteriores estimando el contraste basado en las medias estimadas.
+```{r}
+L11 <- m[1]-mean(m[2:4])
+L11
+L22 <- mean(m[2:3])-m[4]
+L22
+L33 <- m[2]-m[3]
+L33
+```
+
++ Encuentre el error estándar de cada contraste ($ee_1$, $ee_2$ y $ee_3$).
+```{r}
+ee <- sqrt(diag(t(h)%*%vcov(mod2)%*%h))
+ee
+```
+
++ Encuentre el valor estandarizado del contraste con $t=\hat{L}_j/ee_j$.
+```{r}
+t <- L/ee
+t
+```
+
++ Encuentre la probabilidad de obtener un valor igual o mayor al estadístico con la distribución t. Aunque sean varias pruebas simultáneas, no se necesita hacer ninguna corrección porque los contrastes son ortogonales. Use los grados de libertad de los residuales. De esta forma debe hacer: pt(t,36,lower.tail=F).
+```{r}
+p <- pt(t,36,lower.tail=F)
+round(p,4)
+```
+
+
++ ¿Qué se concluye en términos de las hipótesis que se probaron?
+```{r}
+#Como se tarabaja con un 0.05 de nivel de significancia, note que esto ocurre para la primera y segunda hipótesis, para la tercera no se cumple 
+```
+
+
+3. Cota para la diferencia:
+
++ Obtenga una cota inferior para la diferencia de las medias solo en los casos en que se encontró una diferencia significativa. 
+```{r}
+t <- qt(0.95,36)
+lim <- L[1:2]-t*ee[1:2]
+lim
+```
+
+
++ ¿Qué se concluye en términos de los objetivos del estudio?
+```{r}
+#Que almenos existe una diferencia de 2.2 mayor en el tratamiento cuando no se aplica nada en comparación con los otros tratamientos 
+#Al aplicar limón, se prueba que almenos este tratamiento va a ser al menos 0.55 menor que el tratamiento de tapar 
+#Todos estos resultados nos ayudan a probar las hipótesis dependiendo del contexto del problema
+```
+
+
+4. Comparaciones no ortogonales. Ahora se van a hacer dos nuevas comparaciones adicionales suponiendo que el investigador tenía como objetivo solamente saber si cubrir (tapar o bolsa) da mejores resultados que no hacer nada y también si poner limón da mejores resultados que no hacer nada (control). En ambos casos, si hubiera diferencia se debería cuantificar la mejoría.
+
++ Escriba las hipótesis y los contrastes asociados. Verifique que no son ortogonales.
+
+**Hipótesis 1**
+
+$$
+\begin{aligned}
+H_0\!:& \quad \frac{\tau_2 + \tau_3}{2} = \tau_1 \\\\
+H_1\!:& \quad \frac{\tau_2 + \tau_3}{2} < \tau_1
+\end{aligned}
+$$
+
+**Hipótesis 2**
+
+$$
+\begin{aligned}
+H_0\!:& \quad \tau_4 = \tau_1 \\\\
+H_1\!:& \quad \tau_4 < \tau_1
+\end{aligned}
+$$
+
+```{r}
+v1 <- c(1,1/2,1/2,0)
+v2 <- c(1,0,0,1)
+t(v1)%*%v2 #No son ortogonales, porque no dan cero
+```
+
++ Encuentre las estimaciones de los contrastes, los errores estándar y el valor estandarizado del contraste.
+
+$$
+\begin{aligned}
+L_1 &= \tau_1 - \frac{1}{2}\tau_2 - \frac{1}{2}\tau_3 \\\\
+L_2 &= \tau_1 + \tau_4 \\\\
+     &= \tau_1 - (\tau_1 - \tau_2 - \tau_3) \\\\
+     &= 2\tau_1 + \tau_2 + \tau_3
+\end{aligned}
+$$
+```{r}
+h1 <- c(0,1,-1/2,-1/2)
+h2 <- c(0,2,1,1)
+h <- cbind(h1,h2)
+h
+```
+
+
+```{r}
+L <- t (h)%*%mod2$coef
+ ee <- sqrt(diag(t(h)%*%vcov(mod2)%*%h))
+ t <- L/ee
+```
+
+
+
++ Encuentre la probabilidad de obtener un valor igual o mayor al estadístico con la distribución t.  Como se trata de dos pruebas simultáneas con contrastes no ortogonales debe hacer la corrección de Bonferroni. Esta consiste en dividir el nivel de significancia ($\alpha$) por el número de pruebas que se realizan (d), entonces la probabilidad asociada a cada prueba se compara contra $\alpha/d$.
+```{r}
+p <- pt(t,36,lower.tail=F)
+qt <- qt(1-0.05/2,36)
+lim <- L-qt*ee
+```
+
+
++ Cuantifique la diferencia en los casos en que se concluyó que hay diferencia entre un par de promedios.
+```{r}
+qt <- qt(1-0.05/2,36)
+lim <- L-qt*ee
+```
+
++ ¿Qué se concluye?
+Se concluye el promedio cuando se cubre sea al menos 1.62 puntos menor en comparación cuando no se hace nada
+Cuando se usa limón el promedio sea almenos 2.70 puntps menor comparandolo cuando no se hace nada 
++ ¿Qué se concluye en términos generales?
+#Se puede rechazar la hipótesis nula 

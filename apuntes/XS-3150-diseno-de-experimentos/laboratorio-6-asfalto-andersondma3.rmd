@@ -1,0 +1,314 @@
+---
+title: 'Laboratorio #7_asfalto'
+output: html_document
+date: "2025-06-26"
+---
+
+# 1. Preparacion
+
+  a. Lectura
+
+```{r}
+
+load("asfalto.Rdata")
+str(base)
+
+```
+```{r}
+
+levels(base$agreg)
+
+```
+
+```{r}
+
+base2 = subset(base, conc == "alto")
+
+```
+
+  c. Repeticiones por tratamiento
+
+```{r}
+
+table(base2$antiox)
+
+```
+  e. Repeticiones por combinacion
+
+```{r}
+
+with(base2, table(antiox, env, agreg))
+
+```
+# 2. Variabilidad de la respuesta
+
+  a. Variancia de la respuesta observada dentro de cada antioxidante
+
+```{r}
+
+(v1 = tapply(base2$mod, base2$antiox, var))
+
+```
+```{r}
+
+mean(v1)
+
+```
+  b. Variancia de la respuesta dentor de cada combinacion
+
+```{r}
+
+(v2 = with(base2 , tapply(mod, list(antiox, env, agreg), var)))
+
+```
+```{r}
+
+mean(v2)
+
+```
+  c. Visualizacion de la variabilidad
+
+```{r}
+
+boxplot(mod ~ antiox, col = c(2,4),
+        xlab = "antioxidante",
+        ylab = "modulo",
+        data = base2)
+
+```
+```{r}
+
+boxplot(mod ~ antiox+agreg+env, 
+        col = c(2, 4),
+        cex.axis = 0.5,
+        las = 2,
+        xlab = "Antioxidante - Fuente - Envejecimiento",
+        ylab = "Módulo",
+        data = base2)
+
+
+```
+# 3. Inclusion de covariable
+
+  a. Corelacion entre respuesta y convariable
+
+```{r}
+
+with(base2, cor(cbind(temp, frec), mod))
+
+```
+  b. Correlacion dentro de cada tratamiento
+
+```{r}
+
+library(dplyr)
+
+summarise(group_by(base2, antiox), cor(temp,mod))
+
+```
+
+```{r}
+
+summarise(group_by(base2, antiox), cor(frec,mod))
+
+```
+
+  c. Lineas de regresion por antioxidante
+
+```{r}
+
+library(lattice)
+xyplot(mod ~ temp|antiox, type = c("r","p"), data = base2)
+
+```
+  e. Variabilidad alrededor de la media por combinacion
+
+```{r}
+
+boxplot(mod ~ antiox, 
+        col = c(2,4), 
+        xlab = "antioxidante",
+        ylab = "modulo"
+        data = base2)
+
+```
+```{r}
+
+boxplot(mod ~ antiox+agreg+env, 
+        col = c(2, 4),
+        cex.axis = 0.5,
+        las = 2,
+        xlab = "Antioxidante - Fuente - Envejecimiento",
+        ylab = "Módulo",
+        data = base2)
+
+```
+```{r}
+
+boxplot(mod ~ antiox+temp2, 
+        col = c(2, 4),
+        cex.axis = 0.5,
+        las = 2,
+        xlab = "Antioxidante - Temperatura",
+        ylab = "Módulo",
+        data = base2)
+
+```
+  f. Modelo con la covariable
+
+```{r}
+
+mod1 = lm(mod ~ antiox, data = base2)
+mod2 = lm(mod ~ temp+antiox, data = base2)
+
+```
+  
+  g. Cuadrado medio residual
+
+```{r}
+
+cmr1 = anova(mod1)[2,3]
+cmr2 = anova(mod2)[3,3]
+c(cmr1,cmr2, mean(v1))
+```
+# 4. Efecto del antioxidante
+
+```{r}
+
+drop1(mod1 , test = "F")
+
+```
+```{r}
+
+drop1(mod2 , test = "F")
+
+```
+# 5. Analisis completo
+
+  a. Prueba de interaccion entre factor de diseño y covariables
+
+```{r}
+
+mod3 = lm(mod ~ antiox*env + antiox*agreg + antiox*temp + antiox*frec,
+          data = base2)
+mod4 = lm(mod ~ antiox*env + antiox*agreg + temp + frec,
+          data = base2)
+anova(mod4, mod3)
+
+```
+  b. Eliminacion de interaccion
+
+```{r}
+
+drop1(mod4, test = "F")
+
+```
+```{r}
+
+mod5 = lm(mod ~ antiox+env+agreg+temp+frec+antiox:env,
+          data = base2)
+drop1(mod5, test = "F")
+```
+  c. Visualizacion de interaccion entre antioxidante y envejecimeinto
+
+```{r}
+
+library(ggplot2)
+
+ggplot(base, aes(x = env, y = mod, group = antiox)) +
+  stat_summary(fun = "mean", geom = "line", aes(linetype = antiox))
+
+
+```
+  d. Modelo resultante
+
+$$\mu_{ijk, X_1, X_2} = \beta_0 + \alpha_i + \delta_j + \tau_k + \beta_1 X_1 + \beta_2 X_2 + (\alpha\delta)_{ij}$$
+  e. Niveles de referencia
+
+```{r}
+
+contrasts(base2$antiox)
+
+```
+```{r}
+
+contrasts(base2$env)
+
+```
+
+$$\alpha_1 = (\alpha\delta)_{11} = (\alpha\delta)_{12} = (\alpha\delta)_{13} = (\alpha\delta)_{21} = 0$$
+$$\mu_{11} - \mu_{21} = (\beta_0 + \alpha_i + \delta_j + \tau_k + \beta_1 X_1 + \beta_2 X_2 + (\alpha\delta)_{11}) - (\beta_0 + \alpha_i + \delta_j + \tau_k + \beta_1 X_1 + \beta_2 X_2 + (\alpha\delta)_{21})$$
+
+$$ = \alpha_1 - \alpha_2 + (\alpha\delta)_{11} - (\alpha\delta)_{21} = -\alpha_2$$
+$$\mu_{12} - \mu_{22} = (\beta_0 + \alpha_i + \delta_j + \tau_k + \beta_1 X_1 + \beta_2 X_2 + (\alpha\delta)_{12}) - (\beta_0 + \alpha_i + \delta_j + \tau_k + \beta_1 X_1 + \beta_2 X_2 + (\alpha\delta)_{22})$$
+
+$$ = \alpha_1 - \alpha_2 + (\alpha\delta)_{12} - (\alpha\delta)_{22} = -\alpha_2 - (\alpha\delta)_{22}$$
+$$\mu_{13} - \mu_{23} = (\beta_0 + \alpha_i + \delta_j + \tau_k + \beta_1 X_1 + \beta_2 X_2 + (\alpha\delta)_{13}) - (\beta_0 + \alpha_i + \delta_j + \tau_k + \beta_1 X_1 + \beta_2 X_2 + (\alpha\delta)_{23})$$
+
+$$ = \alpha_1 - \alpha_2 + (\alpha\delta)_{13} - (\alpha\delta)_{23} = -\alpha_2 - (\alpha\delta)_{23} $$
+  g. Planteamiento de contrastes
+
+```{r}
+
+mod5$coef
+
+```
+```{r}
+
+c1 = c(0, -1, 0, 0, 0, 0, 0, 0, 0)
+c2 = c(0, -1, 0, 0, 0, 0, 0, -1, 0)
+c3 = c(0, -1, 0, 0, 0, 0, 0, 0, -1)
+
+```
+
+  h. Calculo de contastes
+
+```{r}
+
+beta =  mod5$coef
+cont = cbind(c1,c2,c3)
+L = t(cont) %*% beta
+row.names(L) = c("ASC-OR, 4 años", "ASC-OR, 8 años", "ASC-OR, 16 años")
+L
+
+```
+  i. Prueba de hipotesis relaticas a los constrastes
+
+$$\mu_{11} - \mu_{21}$$
+$$\mu_{12} - \mu_{22}$$
+$$\mu_{13} - \mu_{23}$$
+$$ v1 = (1, -1 , 0, 0, 0, 0)$$
+$$ v2 = (0, 0 , 1, -1, 0, 0)$$
+$$ v3 = (0, 0 , 0, 0, 1, -1)$$
+```{r}
+
+v1 = c(1, -1 , 0, 0, 0, 0)
+v2 = c(0, 0 , 1, -1, 0, 0)
+v3 = c(0, 0 , 0, 0, 1, -1)
+
+c(v1%*%v2, v1%*%v3, v2%*%v3)
+
+```
+```{r}
+
+ee = sqrt(diag(t(cont) %*% vcov(mod5) %*% cont))
+t = L/ee
+anova(mod5)
+
+```
+```{r}
+
+p = pt(t, 351, lower.tail = F)
+p
+
+```
+  j. Cotas inferiores e interpretacion
+
+```{r}
+
+t = qt(1-0.05, 351)
+lim = L[1:2] - t * ee[1:2]
+names(lim) = row.names(L)[1:2]
+lim
+
+```

@@ -1,0 +1,285 @@
+---
+title: "DISEÑO DE EXPERIMENTOS"
+subtitle: ANALISIS DE VARIANCIA DE UNA VIA
+output:
+  html_document:
+    highlight: tango
+    theme: cerulean
+  word_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+# Manzanas
+
+Las manzanas tienen un compuesto llamado polifenol oxidasa, el cual hace que al cortarse y entrar en contacto con el aire se oscurezcan rápidamente. Para evitar el pardeamiento se probaron tres tratamientos: tapar (código 2), poner en bolsa plástica cerrada (código 3) y aplicar jugo de limón (código 4). Además, se incluyó  un control sin aplicar nada (código 1). Se seleccionan 40 manzanas y a cada una se le aplica aleatoriamente uno de los 4 tratamientos, lo cual resulta en 10 manzanas para cada tratamiento. Una vez aplicado el tratamiento a cada manzana, se pide a 3 jueces que califiquen el color en una escala de 1 a 6, donde 1 es el color normal de la fruta y 6 es el más oscuro.  Cada manzana recibe como calificación el promedio de los 3 jueces. El objetivo final es seleccionar el tratamiento que mantenga mejor el color original para una empresa que se encarga de banquetes.
+
+En un primer análisis solo se va a investigar si existe alguna diferencia en el color promedio resultante con los cuatro tratamientos.
+
+## Ejercicios
+
+1. Preparación:
+	
+  + Lea el archivo manzanas.csv en R.
+```{r}
+base <- read.csv("manzanas.csv", sep = ";")
+#library(readr)
+# <- read_csv2("manzanas.csv")
+str(base)
+```
+  
+
+  + Defina correctamente el factor y ponga las etiquetas correspondientes 
+	para cada uno de los tratamientos. 
+```{r}
+#library(dplyr)
+#manzanas <- manzanas %>%
+ # mutate(trat = recode(as.character(trat), 
+                      # "1" = "Sin nada", 
+                       #"3" = "Bolsa plástica",
+                       #"4" = "Jugo de limón",
+                       #"2"= "Tapar")) 
+base$trat <- factor(base$trat)
+levels(base$trat) <- c("control","tapar", "bolsa","limón")
+base$trat
+```
+
+
+  + Guarde la base en un archivo llamado manzanas.Rdata para 
+ser utilizado en futuros ejercicios.
+```{r}
+save(base, file = "manzanas.RData")
+
+```
+
+```{r}
+load("manzanas.RData")
+base1=base
+save(base,base1, file = "manzanas.RData")
+```
+
+
+2. Análisis gráfico:
+
++ Obtenga una tabla con los promedios de cada tratamiento y llámela m. Use: tapply(y,x,mean).
+```{r}
+m <- tapply(base$color,base$trat,mean)
+m
+```
+
+
++ Obtenga una tabla con las varianzas por tratamiento y llámela v.
+```{r}
+v<- tapply(base$color,base$trat,var)
+v
+```
+
+
++ Obtenga la media general de la respuesta y llámela media.
+```{r}
+media <- mean(base$color)
+media
+```
+
+
++ Haga un boxplot para analizar el efecto de los tratamientos sobre la respuesta promedio. Agregue la media general  usando abline(h=media,col=2)  y las medias de los tratamientos con points(1:4,m,col=4,pch="-",cex=2).
+```{r}
+#y~x = color~trat
+boxplot(color~trat,ylab = "color",xlab = "tratamiento", data = base, col= "#FFE7BA")
+abline(h=media, lty=3) #Para trazar la media general #lty= Tipo de linea
+points(1:4,m,col="red3",pch="-",cex=2.5)
+#Rango intercuartil es donde se ubica la caja, este nos ayuda para ver la variablidad 
+```
+
+	
++ Obtenga los efectos muestrales de cada tratamiento a partir de la tabla de medias y compare estos resultados con lo que ve en el gráfico. Cada efecto se puede estimar como:  $\hat{\tau}_j=\bar{y}_j-\bar{y}$.
+```{r}
+ef <- (m-media)
+ef
+```
+
+
++ Explique el significado de cada uno de los valores obtenidos para los efectos muestrales.
+```{r}
+# En control da positivo ya que se media se encunetra por encima de la media general 
+#En el caso de tapar es negativo pero en un valor muy pequeño ya que esta un poquito por debajo de la media general
+```
+
++ Obtenga la suma de los efectos anteriores.
+```{r}
+sum(m-media)
+```
+
+
++ Obtenga una estimación de la varianza del error a partir de la tabla de varianzas.  La estimación Debe ser la media ponderada de las varianzas en los tratamientos, las cuales se ponderan con los grados de libertad de cada varianza; no obstante, en este caso se tiene el mismo número de réplicas en todos los tratamientos, por lo 	que basta hacer un promedio simple de las varianzas.
+```{r}
+#Homocedasticiadad: Que las varianzas sean iguales de cada uno de los tratamientos (la de las curvas)
+#En este caso debemos sacar la media de las varianzas, pero en este caso como la muestra está balanceada no la debemos ponderar
+mean(v)
+#Note que 
+r <- table(base$trat)
+v1 <- sum((r-1)*v)/(sum(r)-4) #Ojo con los grados de libertad 
+#Lo anterior es igual que esto
+v2 <- mean(v)
+round(v1)==round(v2) #comprobación
+```
+
+
+3. Análisis de varianza:
+
++ Ajuste un modelo lineal. Use tanto la función aov como la función lm.  La 
+	diferencia 	principal es que con lm se pueden obtener los coeficientes del modelo, mientras que con aov se puede obtener la tabla de efectos. En todo caso, cuando usa lm, por ejemplo mod=lm(y~x), luego puede obtener mod1=aov(mod) de la misma forma que haciendo mod1=aov(y~x).
+```{r}
+#lm =linear model 
+#mod = modelo 
+mod <- lm(color~trat, data = base)
+mod1 <- aov(color~trat, data =base)
+```
+	
+
++ Obtenga los resultados del análisis de varianza mediante anova(mod) o anova(mod1). Si usa la 	función aov da lo mismo usar summary(mod1) o anova(mod1).
+```{r}
+anova(mod)
+summary(mod1)
+anova(mod1)
+```
+
+
++ Observe la línea de residuales para obtener el cuadrado medio residual y compárelo con la estimación de la varianza del error obtenida en el punto anterior.
+```{r}
+(anova(mod)[2,3])
+```
+
+
++ Observe los grados de libertad residuales y justifique por qué se obtiene ese número.
+```{r}
+anova(mod)[2,1]
+```
+
+
++ Observe la línea del tratamiento y obtenga la suma de cuadrados de tratamiento.   
+```{r}
+anova(mod)[1,2] #Importar desde la tabla
+sum(r*ef^2) #No balanceado 
+sum(10*ef^2) #Balanceado 
+```
+
+
++ Haga la suma de los cuadrados de los efectos obtenidos anteriormente.  Observe que estos cuadrados deben multiplicarse por el número de réplicas para obtener exactamente la suma de cuadrados de tratamiento.  Justifique por qué esto debe ser así.
+```{r}
+sum(10*ef^2) # Suma de cuadrados de los tramientos
+```
+
++ Compare la variabilidad de los promedios con la variabilidad residual para determinar si hay alguna evidencia de diferencias entre las medias de la respuesta.
+```{r}
+cmtrat <- anova(mod)[1,3]
+cmres <- anova(mod)[2,3]
+f <- cmtrat/cmres
+p <- pf(f,3,36,lower.tail = F) # 3 y 36 grados de libertad en anova df
+round(p)
+```
+
++ Establezca adecuadamente la hipótesis que está poniendo a prueba y dé una conclusión. 
+```{r}
+#H0: El promedio de los tratamientos son iguales 
+#H1: El promedio de los tratamientos son diferentes 
+```
+
+
+4. Estimación de parámetros del modelo de tratamiento referencia:
+
++ Obtenga las estimaciones de los parámetros del modelo. Por default R usa el modelo de tratamiento referencia. 	Esto se logra con el ajuste hecho con lm mediante summary(mod) o mod$coef. 
+```{r}
+#Ojo que usamos el de lm
+summary(mod)
+mod$coef #Versión simplificada 
+#Note que n1 corresponde a 5.4. Este representa la media del control
+#-2.2 representa la estimación de la diferencia entre n1 y n2, esto corresponde a delta2, esto implica que se encuentra -2.2 unidades por debajo de la media del tratamiento 1
+#Los promedios los podemos obtener a partir de esto 
+
+```
+
++ ¿Qué significa el intercepto en este modelo? 
+
++ ¿Qué representa cada uno de los coeficientes del modelo?
+
++ Obtenga la matriz de estructura y observe la codificación de las variables auxiliares.
+```{r}
+model.matrix(mod) #Recordar como se construia dicha matriz
+#La manzanas que tienen cero son de control 
+```
+
++ A partir de los coeficientes obtenidos, obtenga los efectos muestrales y compárelos con los obtenidos en el punto 2e).
+```{r}
+model.tables(mod1) #Cálculo los efectos (t) de forma directo 
+```
+
+
++ Obtenga los efectos directamente con model.tables(mod) (solo funciona si el modelo fue hecho con la función aov.
+
+5. Modelo de suma nula:
+
++ Cambie al modelo de suma nula  usando la siguiente instrucción:
+	options(contrasts=c("contr.sum","contr.poly")).  
+```{r}
+	options(contrasts=c("contr.sum","contr.poly")) #Es para pasarse al módelo de referencia 
+```
+	
+	
+	Para volver al modelo  de tratamiento referencia se usa:
+	options(contrasts=c("contr.treatment","contr.poly")).
+```{r}
+options(contrasts=c("contr.treatment","contr.poly"))
+```
+	
+
++ Verifique la codificación con contrasts(base$trat).
+```{r}
+contrasts(base$trat) #Con el cambio hecho anteriormente se cambio al módelo de suma nula OJO CON LOS "-1"
+```
+
+
++ Repita los pasos del punto 4. Compare los resultados.
+```{r}
+mod2 <- lm(color~trat,data=base) 
+mod2$coefficients #Este fue hecho con suma nula
+#3.3 es la estimación es la media general (Intercepto)
+#2.1 La distancia del trat1 a la media general, OJO que los trat2 y trat3 están por debajo de la media
+sum(mod2$coef[2:4]) #Cálculo del t4 a mano 
+model.matrix(mod2)
+```
+
+
+6. Factor con dos niveles:
+
++ Para ilustrar el caso cuando el factor tiene solo dos niveles, haga una base que contenga solo los datos que corresponden al nivel 1 y 2, llámela base1.  
+```{r}
+base1 <- base[base$trat=="control" | base$trat== "tapar",] # Seleccionar dos niveles Forma 1
+base1 <- base[as.numeric(base$trat)< 3,] #Seleccionar dos niveles Forma 2
+table(base1$trat)
+```
+
+	
++ Para eliminar los niveles que no tienen datos haga  base1\$trat=factor(as.numeric(base1\$trat).
+```{r}
+base1$trat=factor(as.numeric(base1$trat))
+levels(base1$trat)= c("control", "tapar")#Eliminar niveles que no tienen datos 
+table(base1$trat)
+```
+
++ Ajuste el modelo con lm.  Obtenga el análisis de varianza y observe la probabilidad asociada a la hipótesis de igualdad de medias.
+```{r}
+mod3 <- lm(color~trat, data = base1) 
+anova(mod3)
+#Observe que el valor de p es muy bajo por lo tanto se puede rechazar la hipótesis nula, por ello las media de tapar y control son diferentes 
+```
+
+	
++ Obtenga el summary, extraiga la estimación del efecto y su error estándar, verifique el valor de $t$ y obtenga la probabilidad asociada en la distribución $t$.   Compare el resultado con el análisis de varianza.
+```{r}
+summary(mod3) # El valor de la probabilidad de t no da
+t <- (-2.2000)/(0.4714)
+pt <- pt(t,18)
+2*(1-pt)
+```
+
